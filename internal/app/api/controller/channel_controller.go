@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -30,6 +31,10 @@ func (c *ChannelController) CreateChannel(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		// 如果没有请求体或请求体解析错误，使用空值创建随机频道ID
 		req.ChannelID = ""
+	}
+	if req.ChannelID != "" && !validation.IsValidChannelID(req.ChannelID) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
+		return
 	}
 
 	// 创建频道（使用指定的ID或生成随机ID）
@@ -117,6 +122,10 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 		ChannelID string `json:"channel_id"`
 	}
 	if err := ctx.ShouldBindJSON(&req); err == nil && req.ChannelID != "" {
+		if !validation.IsValidChannelID(req.ChannelID) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
+			return
+		}
 		exists, err := c.channelService.VerifyChannel(req.ChannelID)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -134,6 +143,10 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 	channelID := ctx.Param("channelID")
 	if channelID == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "channel ID is required"})
+		return
+	}
+	if !validation.IsValidChannelID(channelID) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
 		return
 	}
 

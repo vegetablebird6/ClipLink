@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -19,12 +21,26 @@ type MySQLConfig struct {
 	Charset  string `yaml:"charset,omitempty"`  // 字符集
 }
 
+// CORSConfig 控制浏览器跨域访问策略。
+type CORSConfig struct {
+	AllowedOrigins []string `yaml:"allowed_origins,omitempty"`
+}
+
+// SecurityConfig 存储通用安全限制。
+type SecurityConfig struct {
+	MaxBodyBytes int64 `yaml:"max_body_bytes,omitempty"`
+}
+
 // Config 存储应用程序配置
 type Config struct {
 	// 主机名，例如 "localhost" 或 "0.0.0.0"
 	Host string `yaml:"host,omitempty"`
 	// 端口号，例如 8080
 	Port int `yaml:"port,omitempty"`
+	// CORS配置（默认只允许本地前端开发地址跨域）
+	CORS CORSConfig `yaml:"cors,omitempty"`
+	// 安全配置
+	Security SecurityConfig `yaml:"security,omitempty"`
 	// MySQL配置（可选）
 	MySQL *MySQLConfig `yaml:"mysql,omitempty"`
 }
@@ -46,6 +62,15 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Host: "0.0.0.0",
 		Port: 8080,
+		CORS: CORSConfig{
+			AllowedOrigins: []string{
+				"http://localhost:3000",
+				"http://127.0.0.1:3000",
+			},
+		},
+		Security: SecurityConfig{
+			MaxBodyBytes: 2 << 20, // 2 MiB
+		},
 	}
 
 	// 应用命令行参数覆盖默认配置
@@ -54,6 +79,9 @@ func Load() (*Config, error) {
 	} else if *cmdP > 0 {
 		cfg.Port = *cmdP
 	}
+
+	applyEnvOverrides(cfg)
+	normalize(cfg)
 
 	return cfg, nil
 }
@@ -110,7 +138,8 @@ func (c *Config) GetDSN() string {
 		// SQLite 使用默认路径
 		homeDir, _ := os.UserHomeDir()
 		appDir := filepath.Join(homeDir, ".cliplink")
-		os.MkdirAll(appDir, 0755)
+		// #nosec G104 -- connection setup will fail later if the directory cannot be created.
+		_ = os.MkdirAll(appDir, 0700)
 		return filepath.Join(appDir, "cliplink.db")
 	}
 }
@@ -122,6 +151,8 @@ func (c *Config) GetServerAddress() string {
 
 // LoadFromFile 从指定文件路径加载配置
 func LoadFromFile(configPath string) (*Config, error) {
+	configPath = filepath.Clean(configPath)
+
 	// 先获取默认配置
 	cfg, err := Load()
 	if err != nil {
@@ -134,6 +165,7 @@ func LoadFromFile(configPath string) (*Config, error) {
 	}
 
 	// 读取配置文件
+	// #nosec G304 -- configPath is intentionally supplied by CLI/container config.
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
@@ -151,13 +183,18 @@ func LoadFromFile(configPath string) (*Config, error) {
 		cfg.Port = *cmdP
 	}
 
+	applyEnvOverrides(cfg)
+	normalize(cfg)
+
 	return cfg, nil
 }
 
 // SaveToFile 将配置保存到文件
 func SaveToFile(cfg *Config, configPath string) error {
+	configPath = filepath.Clean(configPath)
+
 	// 确保目录存在
-	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(configPath), 0700); err != nil {
 		return fmt.Errorf("创建配置目录失败: %w", err)
 	}
 
@@ -168,9 +205,40 @@ func SaveToFile(cfg *Config, configPath string) error {
 	}
 
 	// 写入文件
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
 		return fmt.Errorf("写入配置文件失败: %w", err)
 	}
 
 	return nil
+}
+
+func applyEnvOverrides(cfg *Config) {
+	if origins := os.Getenv("CLIPLINK_ALLOWED_ORIGINS"); origins != "" {
+		cfg.CORS.AllowedOrigins = splitCSV(origins)
+	}
+
+	if maxBodyBytes := os.Getenv("CLIPLINK_MAX_BODY_BYTES"); maxBodyBytes != "" {
+		if value, err := strconv.ParseInt(maxBodyBytes, 10, 64); err == nil {
+			cfg.Security.MaxBodyBytes = value
+		}
+	}
+}
+
+func normalize(cfg *Config) {
+	cfg.CORS.AllowedOrigins = splitCSV(strings.Join(cfg.CORS.AllowedOrigins, ","))
+	if cfg.Security.MaxBodyBytes <= 0 {
+		cfg.Security.MaxBodyBytes = 2 << 20
+	}
+}
+
+func splitCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }

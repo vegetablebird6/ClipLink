@@ -6,6 +6,7 @@ import (
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/infra/db"
+	"gorm.io/gorm/clause"
 )
 
 // clipboardRepository 剪贴板仓库实现
@@ -276,10 +277,15 @@ func (r *clipboardRepository) SearchByKeyword(keyword, channelID string, page, s
 		totalPages++
 	}
 
-	// 获取分页数据，按相关度和时间排序
-	// 优先显示标题匹配的结果，然后按创建时间倒序
-	orderClause := "CASE WHEN title LIKE '" + searchPattern + "' THEN 0 ELSE 1 END, created_at DESC"
-	if err := query.Order(orderClause).Offset(offset).Limit(size).Find(&items).Error; err != nil {
+	// 获取分页数据，按相关度和时间排序，避免将搜索词拼接进SQL。
+	orderClause := clause.OrderBy{
+		Expression: clause.Expr{
+			SQL:                "CASE WHEN title LIKE ? THEN 0 ELSE 1 END, created_at DESC",
+			Vars:               []interface{}{searchPattern},
+			WithoutParentheses: true,
+		},
+	}
+	if err := query.Clauses(orderClause).Offset(offset).Limit(size).Find(&items).Error; err != nil {
 		return nil, 0, 0, err
 	}
 

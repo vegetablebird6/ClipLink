@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
@@ -25,6 +26,11 @@ func (m *ChannelAuthMiddleware) ExtractChannelFromHeader() gin.HandlerFunc {
 		channelID := c.GetHeader("X-Channel-ID")
 		if channelID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "X-Channel-ID header is required"})
+			c.Abort()
+			return
+		}
+		if !validation.IsValidChannelID(channelID) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
 			c.Abort()
 			return
 		}
@@ -57,6 +63,11 @@ func (m *ChannelAuthMiddleware) VerifyChannel() gin.HandlerFunc {
 		channelID := c.Param("channelID")
 		if channelID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "channel ID is required"})
+			c.Abort()
+			return
+		}
+		if !validation.IsValidChannelID(channelID) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
 			c.Abort()
 			return
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/xiaojiu/cliplink/internal/app"
 	"github.com/xiaojiu/cliplink/internal/config"
@@ -52,7 +53,15 @@ func main() {
 
 	// 构建监听地址
 	addr := fmt.Sprintf(":%d", cfg.Port)
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 
 	log.Printf("服务器启动中，监听端口: %d", cfg.Port)
-	log.Fatal(http.ListenAndServe(addr, router))
+	log.Fatal(server.ListenAndServe())
 }

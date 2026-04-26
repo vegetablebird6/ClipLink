@@ -6,6 +6,20 @@
 # host: "0.0.0.0"
 # port: 8080
 
+# 浏览器跨域配置（可选）
+# 生产环境推荐通过同域名反向代理访问，一般不需要额外跨域来源。
+# 如果前端和后端分属不同源，请只填写可信来源；也可用环境变量 CLIPLINK_ALLOWED_ORIGINS 覆盖。
+# cors:
+#   allowed_origins:
+#     - "https://cliplink.example.com"
+#     - "http://localhost:3000"
+
+# 安全限制（可选）
+# max_body_bytes 限制单个请求体大小，默认 2097152（2 MiB）。
+# 如果需要同步较大的文本或 base64 内容，可按需调大；也可用环境变量 CLIPLINK_MAX_BODY_BYTES 覆盖。
+# security:
+#   max_body_bytes: 2097152
+
 # MySQL 数据库配置（可选）
 # 只有配置了完整的 MySQL 信息才会使用 MySQL，否则自动使用 SQLite
 # mysql:

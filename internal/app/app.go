@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -51,16 +52,19 @@ func BuildRouterWithConfig(cfg *config.Config) (*gin.Engine, error) {
 	// 3. 创建 gin 引擎
 	router := gin.Default()
 
-	// 4. 设置CORS（必须在注册路由前 use）
+	// 4. 设置安全中间件（必须在注册路由前 use）
+	router.Use(SecurityHeaders())
+	router.Use(RequestBodyLimit(cfg.Security.MaxBodyBytes))
+
 	corsConfig := cors.DefaultConfig()
-	// 允许所有源访问，包括开发和生产环境
-	// 注意：在生产环境中，根据安全需求可以配置具体的域名列表
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AllowCredentials = true
+	corsConfig.AllowOrigins = cfg.CORS.AllowedOrigins
+	corsConfig.AllowCredentials = false
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
-	corsConfig.AllowHeaders = []string{"*"}
+	corsConfig.AllowHeaders = []string{"Content-Type", "X-Channel-ID"}
 	corsConfig.ExposeHeaders = []string{"Content-Length"}
-	router.Use(cors.New(corsConfig))
+	if len(corsConfig.AllowOrigins) > 0 {
+		router.Use(cors.New(corsConfig))
+	}
 
 	// 5. 创建仓库
 	channelRepo := persistence.NewChannelRepository()
@@ -86,4 +90,33 @@ func BuildRouterWithConfig(cfg *config.Config) (*gin.Engine, error) {
 	)
 
 	return router, nil
+}
+
+// SecurityHeaders adds conservative browser security headers for the UI and API.
+func SecurityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		headers := c.Writer.Header()
+		headers.Set("X-Content-Type-Options", "nosniff")
+		headers.Set("X-Frame-Options", "DENY")
+		headers.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		headers.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), clipboard-read=(self), clipboard-write=(self)")
+
+		if c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https" {
+			headers.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+
+		c.Next()
+	}
+}
+
+// RequestBodyLimit prevents oversized payloads from exhausting memory or storage.
+func RequestBodyLimit(maxBodyBytes int64) gin.HandlerFunc {
+	if maxBodyBytes <= 0 {
+		maxBodyBytes = 2 << 20
+	}
+
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodyBytes)
+		c.Next()
+	}
 }
