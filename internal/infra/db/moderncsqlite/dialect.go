@@ -43,7 +43,9 @@ func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 		DSN: dialector.DSN,
 	}
 
-	db.Callback().Create().Before("gorm:create").Register("sqlite:create_auto_increment", callback.CreateBefore)
+	if err := db.Callback().Create().Before("gorm:create").Register("sqlite:create_auto_increment", callback.CreateBefore); err != nil {
+		return err
+	}
 
 	for k, v := range dialector.ClauseBuilders() {
 		db.ClauseBuilders[k] = v
@@ -58,10 +60,10 @@ func (dialector Dialector) ClauseBuilders() map[string]clause.ClauseBuilder {
 		"LIMIT": func(c clause.Clause, builder clause.Builder) {
 			if limit, ok := c.Expression.(clause.Limit); ok {
 				if limit.Limit != nil && *limit.Limit > 0 {
-					builder.WriteString(fmt.Sprintf(" LIMIT %d", *limit.Limit))
+					_, _ = builder.WriteString(fmt.Sprintf(" LIMIT %d", *limit.Limit))
 				}
-				if limit.Offset != nil && *limit.Offset > 0 {
-					builder.WriteString(fmt.Sprintf(" OFFSET %d", *limit.Offset))
+				if limit.Offset > 0 {
+					_, _ = builder.WriteString(fmt.Sprintf(" OFFSET %d", limit.Offset))
 				}
 			}
 		},
@@ -107,14 +109,14 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 
 // BindVarTo 绑定变量
 func (dialector Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{}) {
-	writer.WriteByte('?')
+	_ = writer.WriteByte('?')
 }
 
 // QuoteTo 引用标识符
 func (dialector Dialector) QuoteTo(writer clause.Writer, str string) {
-	writer.WriteByte('`')
-	writer.WriteString(str)
-	writer.WriteByte('`')
+	_ = writer.WriteByte('`')
+	_, _ = writer.WriteString(str)
+	_ = writer.WriteByte('`')
 }
 
 // Explain 解释SQL

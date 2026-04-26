@@ -23,7 +23,7 @@ cliplink.log
 cliplink_error.log
 
 # Go Binaries
-clipboard
+/clipboard
 cliplink
 
 # 编译临时文件

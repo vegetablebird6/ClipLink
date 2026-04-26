@@ -1,6 +1,8 @@
 package moderncsqlite
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/migrator"
@@ -14,7 +16,11 @@ type Migrator struct {
 // HasTable 检查表是否存在
 func (m Migrator) HasTable(value interface{}) bool {
 	var count int
-	tableName := m.Migrator.DB.NamingStrategy.TableName(value)
+	tableName := fmt.Sprint(value)
+	_ = m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		tableName = stmt.Table
+		return nil
+	})
 	m.Migrator.DB.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", tableName).Scan(&count)
 	return count > 0
 }
@@ -38,7 +44,11 @@ func (m Migrator) DropTable(values ...interface{}) error {
 // HasColumn 检查列是否存在
 func (m Migrator) HasColumn(value interface{}, name string) bool {
 	var count int
-	tableName := m.Migrator.DB.NamingStrategy.TableName(value)
+	tableName := fmt.Sprint(value)
+	_ = m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		tableName = stmt.Table
+		return nil
+	})
 	columnName := name
 	if field := m.Migrator.DB.Config.NamingStrategy.ColumnName("", name); field != "" {
 		columnName = field
@@ -62,7 +72,7 @@ func (m Migrator) AlterColumn(value interface{}, name string) error {
 
 // ReorderModels 重新排序模型以处理依赖关系
 func (m Migrator) ReorderModels(values []interface{}, sortHasOneAndHasMany bool) []interface{} {
-	return migrator.ReorderModels(values, m.Migrator.DB)
+	return m.Migrator.ReorderModels(values, sortHasOneAndHasMany)
 }
 
 // RunWithValue 运行带有值的函数
