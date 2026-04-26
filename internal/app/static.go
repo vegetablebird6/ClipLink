@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,26 +18,25 @@ import (
 // SetupStaticRoutes 设置静态文件路由
 func SetupStaticRoutes(router *gin.Engine) {
 	webFS := static.GetWebFS()
-	router.Use(StaticFileHandler(webFS))
+	router.NoRoute(StaticFileHandler(webFS))
 }
 
 // StaticFileHandler 处理静态文件的中间件
 func StaticFileHandler(webFS fs.FS) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		path := c.Request.URL.Path
+		requestPath := c.Request.URL.Path
 
 		// API请求不处理 - 修复检查逻辑
-		if strings.HasPrefix(path, "/api/") || path == "/api" {
+		if strings.HasPrefix(requestPath, "/api/") || requestPath == "/api" {
 			c.Next()
 			return
 		}
 
-		// 去掉开头的斜杠
-		filePath := path
-		if path == "/" {
-			filePath = "index.html"
-		} else if path[0] == '/' {
-			filePath = path[1:]
+		filePath, ok := staticFilePath(requestPath)
+		if !ok {
+			c.Status(http.StatusNotFound)
+			c.Abort()
+			return
 		}
 
 		// 检查文件是否存在
@@ -49,10 +49,13 @@ func StaticFileHandler(webFS fs.FS) gin.HandlerFunc {
 				return
 			}
 
-			// 如果是主页面路由，返回index.html
+			// 如果是前端路由，优先返回 Next.js 静态导出的页面文件。
 			if !strings.Contains(filePath, ".") {
-				serveFile(c, webFS, "index.html")
-				return
+				for _, routePath := range frontendRoutePaths(filePath) {
+					if serveFile(c, webFS, routePath) {
+						return
+					}
+				}
 			}
 
 			c.Next()
@@ -98,6 +101,45 @@ func StaticFileHandler(webFS fs.FS) gin.HandlerFunc {
 		http.ServeContent(c.Writer, c.Request, stat.Name(), stat.ModTime(), file.(io.ReadSeeker))
 		c.Abort()
 	}
+}
+
+func frontendRoutePaths(filePath string) []string {
+	cleanPath := strings.Trim(filePath, "/")
+	if cleanPath == "" {
+		return []string{"index.html"}
+	}
+
+	return []string{
+		cleanPath + ".html",
+		path.Join(cleanPath, "index.html"),
+		"index.html",
+	}
+}
+
+func staticFilePath(requestPath string) (string, bool) {
+	if requestPath == "" || requestPath == "/" {
+		return "index.html", true
+	}
+
+	if hasParentPathSegment(requestPath) {
+		return "", false
+	}
+
+	filePath := strings.TrimPrefix(path.Clean("/"+strings.TrimPrefix(requestPath, "/")), "/")
+	if filePath == "" || filePath == "." {
+		return "index.html", true
+	}
+
+	return filePath, fs.ValidPath(filePath)
+}
+
+func hasParentPathSegment(requestPath string) bool {
+	for _, segment := range strings.Split(strings.ReplaceAll(requestPath, "\\", "/"), "/") {
+		if segment == ".." {
+			return true
+		}
+	}
+	return false
 }
 
 // handleNextjsAsset 处理Next.js的静态资源
