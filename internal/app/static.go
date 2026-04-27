@@ -18,7 +18,47 @@ import (
 // SetupStaticRoutes 设置静态文件路由
 func SetupStaticRoutes(router *gin.Engine) {
 	webFS := static.GetWebFS()
+	registerExportedPageRoutes(router, webFS)
 	router.NoRoute(StaticFileHandler(webFS))
+}
+
+func registerExportedPageRoutes(router *gin.Engine, webFS fs.FS) {
+	for routePath, filePath := range exportedPageRoutes(webFS) {
+		routePath := routePath
+		filePath := filePath
+		handler := func(c *gin.Context) {
+			if !serveFile(c, webFS, filePath) {
+				c.Status(http.StatusNotFound)
+			}
+		}
+
+		router.GET(routePath, handler)
+		router.HEAD(routePath, handler)
+	}
+}
+
+func exportedPageRoutes(webFS fs.FS) map[string]string {
+	routes := make(map[string]string)
+	entries, err := fs.ReadDir(webFS, ".")
+	if err != nil {
+		return routes
+	}
+
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || filepath.Ext(name) != ".html" {
+			continue
+		}
+
+		pageName := strings.TrimSuffix(name, ".html")
+		if pageName == "" || pageName == "index" || pageName == "404" {
+			continue
+		}
+
+		routes["/"+pageName] = name
+	}
+
+	return routes
 }
 
 // StaticFileHandler 处理静态文件的中间件

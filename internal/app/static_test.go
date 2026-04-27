@@ -22,6 +22,26 @@ func TestStaticFileHandlerServesExportedRoutes(t *testing.T) {
 	}
 }
 
+func TestRegisterExportedPageRoutesServesExtensionlessPages(t *testing.T) {
+	router := gin.New()
+	webFS := fstest.MapFS{
+		"index.html":     {Data: []byte("index page")},
+		"favorites.html": {Data: []byte("favorites page")},
+		"history.html":   {Data: []byte("history page")},
+	}
+
+	registerExportedPageRoutes(router, webFS)
+	router.NoRoute(StaticFileHandler(webFS))
+
+	for _, target := range []string{"/favorites", "/history"} {
+		response := performStaticRequest(router, target)
+
+		if response.Code != http.StatusOK {
+			t.Fatalf("expected GET %s status %d, got %d", target, http.StatusOK, response.Code)
+		}
+	}
+}
+
 func TestStaticFileHandlerLeavesAPIRoutesAlone(t *testing.T) {
 	router := newStaticTestRouter()
 
