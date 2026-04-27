@@ -80,9 +80,12 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   const router = useRouter();
   
   // 添加状态用于连接通道
+  const [channelActionTab, setChannelActionTab] = useState<'connect' | 'create'>('connect');
   const [inputChannelId, setInputChannelId] = useState('');
+  const [createChannelId, setCreateChannelId] = useState('');
   const [instanceToken, setInstanceToken] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   
   // 实际数据状态
@@ -354,22 +357,21 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   };
 
   // 创建新通道
-  const [isCreating, setIsCreating] = useState(false);
   const handleCreateChannel = async () => {
     setIsCreating(true);
     setConnectionError(null);
     try {
-      const customId = inputChannelId.trim() || undefined;
+      const customId = createChannelId.trim() || undefined;
       const success = await createChannel(customId, instanceToken.trim() || undefined);
       if (success) {
         showToast('新通道创建并已连接', 'success');
-        setInputChannelId('');
+        setCreateChannelId('');
         setInstanceToken('');
       } else {
-        setConnectionError('创建通道失败，请检查实例 Token 后重试');
+        setConnectionError('创建通道失败，请检查服务器创建密钥');
       }
     } catch (err) {
-      setConnectionError('创建通道失败，请检查实例 Token 后重试');
+      setConnectionError('创建通道失败，请检查服务器创建密钥');
     } finally {
       setIsCreating(false);
     }
@@ -383,76 +385,123 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
       </div>
       <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">未连接通道</h3>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center max-w-md">
-        请输入通道ID进行连接，或创建一个新的通道来开始跨设备同步。
+        加入已有通道不需要服务器创建密钥；只有创建新通道时才需要。
       </p>
 
-      {/* 通道连接输入框和按钮 */}
       <div className="w-full max-w-md mb-6">
-        <div className="relative">
-          <input
-            type="text"
-            value={inputChannelId}
-            onChange={(e) => setInputChannelId(e.target.value)}
-            placeholder="输入通道ID连接"
-            className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
-            disabled={isConnecting || isCreating}
-          />
-          {connectionError && (
-            <p className="text-xs text-red-500 mt-1">{connectionError}</p>
-          )}
-        </div>
-        <div className="relative mt-3">
-          <input
-            type="password"
-            value={instanceToken}
-            onChange={(e) => setInstanceToken(e.target.value)}
-            placeholder="实例 Token（服务端启用时必填）"
-            className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
-            disabled={isConnecting || isCreating}
-            autoComplete="off"
-          />
-        </div>
-        <div className="flex justify-between mt-4 space-x-3">
+        <div className="grid grid-cols-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-1">
           <button
-            onClick={handleConnectChannel}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center"
-            disabled={isConnecting || !inputChannelId.trim() || isCreating}
+            type="button"
+            onClick={() => {
+              setChannelActionTab('connect');
+              setCreateChannelId('');
+              setInstanceToken('');
+              setConnectionError(null);
+            }}
+            className={`py-2 text-sm font-medium rounded transition-colors ${
+              channelActionTab === 'connect'
+                ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
           >
-            {isConnecting ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                连接中...
-              </>
-            ) : (
-              <>连接通道</>
-            )}
+            加入通道
           </button>
           <button
-            onClick={handleCreateChannel}
-            className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center"
-            disabled={isCreating || isConnecting}
+            type="button"
+            onClick={() => {
+              setChannelActionTab('create');
+              setConnectionError(null);
+            }}
+            className={`py-2 text-sm font-medium rounded transition-colors ${
+              channelActionTab === 'create'
+                ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
           >
-            {isCreating ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-600 dark:text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                创建中...
-              </>
-            ) : (
-              <>创建新通道</>
-            )}
+            创建通道
           </button>
         </div>
+
+        {channelActionTab === 'connect' ? (
+          <div className="mt-4 space-y-4">
+            <input
+              type="text"
+              value={inputChannelId}
+              onChange={(e) => setInputChannelId(e.target.value)}
+              placeholder="通道 ID"
+              className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              disabled={isConnecting || isCreating}
+            />
+            {connectionError && (
+              <p className="text-xs text-red-500">{connectionError}</p>
+            )}
+            <button
+              onClick={handleConnectChannel}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center"
+              disabled={isConnecting || !inputChannelId.trim() || isCreating}
+            >
+              {isConnecting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  连接中...
+                </>
+              ) : (
+                <>加入通道</>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <input
+              type="text"
+              value={createChannelId}
+              onChange={(e) => setCreateChannelId(e.target.value)}
+              placeholder="自定义通道 ID（可选）"
+              className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              disabled={isConnecting || isCreating}
+            />
+            <input
+              type="password"
+              value={instanceToken}
+              onChange={(e) => setInstanceToken(e.target.value)}
+              placeholder="服务器创建密钥"
+              className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              disabled={isConnecting || isCreating}
+              autoComplete="off"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              这是服务器管理员配置的创建权限密钥，已有通道无需填写。
+            </p>
+            {connectionError && (
+              <p className="text-xs text-red-500">{connectionError}</p>
+            )}
+            <button
+              onClick={handleCreateChannel}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center"
+              disabled={isCreating || isConnecting}
+            >
+              {isCreating ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  创建中...
+                </>
+              ) : (
+                <>创建并连接</>
+              )}
+            </button>
+          </div>
+        )}
       </div>
       
       <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
         <FontAwesomeIcon icon={faInfoCircle} className="mr-1" />
-        通道ID用于连接多个设备，创建后请妥善保存
+        通道 ID 用于连接多个设备，请勿分享给不信任的人
       </div>
     </div>
   );
@@ -843,7 +892,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                   type="password"
                   value={deleteInstanceToken}
                   onChange={(e) => setDeleteInstanceToken(e.target.value)}
-                  placeholder="实例 Token"
+                  placeholder="服务器创建密钥"
                   className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-red-500 focus:border-red-500"
                   disabled={isDeletingChannel}
                   autoComplete="off"
