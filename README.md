@@ -186,6 +186,27 @@ curl -fsSL https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | sudo bash
 5. 在其他设备上打开同一网址，即可查看和使用已保存的内容
 6. 历史内容会在页面上列出，可随时查看和重新使用
 
+### 安全配置
+
+如果实例会暴露到公网，建议配置实例 Token 来限制陌生人创建新通道。配置后，只有创建通道接口需要提供 `X-Instance-Token`；读写已有通道仍使用 `X-Channel-ID`。
+
+```yaml
+security:
+  instance_token: "replace-with-a-long-random-token"
+```
+
+也可以用环境变量覆盖：
+
+```bash
+export CLIPLINK_INSTANCE_TOKEN="replace-with-a-long-random-token"
+```
+
+生成随机 Token 示例：
+
+```powershell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
 ### 数据库配置
 
 ClipLink 支持两种数据库类型：

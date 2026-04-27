@@ -41,6 +41,11 @@ func main() {
 	case "sqlite":
 		log.Printf("SQLite 数据库: %s", cfg.GetDSN())
 	}
+	if cfg.Security.InstanceToken != "" {
+		log.Printf("实例 Token: 已启用，创建新通道需要 X-Instance-Token")
+	} else {
+		log.Printf("实例 Token: 未启用，创建新通道不需要 X-Instance-Token")
+	}
 
 	// 初始化所有依赖（数据库、API 路由等）
 	router, err := app.BuildRouterWithConfig(cfg)

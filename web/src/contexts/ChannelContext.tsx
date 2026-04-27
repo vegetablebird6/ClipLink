@@ -8,7 +8,7 @@ interface ChannelContextType {
   isChannelVerified: boolean;
   isLoading: boolean;
   error: string | null;
-  createChannel: (customId?: string) => Promise<boolean>;
+  createChannel: (customId?: string, instanceToken?: string) => Promise<boolean>;
   verifyChannel: (channelId: string) => Promise<boolean>;
   setChannel: (channelId: string) => void;
   clearChannel: () => void;
@@ -81,11 +81,11 @@ export function ChannelProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // 创建新通道
-  const createChannel = async (customId?: string): Promise<boolean> => {
+  const createChannel = async (customId?: string, instanceToken?: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await clipboardService.createChannel(customId);
+      const response = await clipboardService.createChannel(customId, instanceToken);
       if (response.success && response.data) {
         const newChannelId = response.data.id;
         localStorage.setItem(CHANNEL_ID_KEY, newChannelId);

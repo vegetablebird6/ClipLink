@@ -117,9 +117,13 @@ const convertRawClipboardItem = (raw: ClipboardItemResponse): ClipboardItem => {
 export const clipboardService = {
   // 通道相关接口
   // 创建通道
-  createChannel: async (channelId?: string): Promise<ApiResponse<{id: string, created_at: string}>> => {
+  createChannel: async (channelId?: string, instanceToken?: string): Promise<ApiResponse<{id: string, created_at: string}>> => {
     try {
-      const response = await api.post<unknown>('/channel', channelId ? { channel_id: channelId } : undefined);
+      const response = await api.post<unknown>(
+        '/channel',
+        channelId ? { channel_id: channelId } : undefined,
+        instanceToken ? { headers: { 'X-Instance-Token': instanceToken } } : undefined
+      );
       return handleApiResponse<{id: string, created_at: string}>(response.data);
     } catch (error) {
       return handleApiError<{id: string, created_at: string}>(error, '创建通道失败');

@@ -19,6 +19,9 @@
 # 如果需要同步较大的文本或 base64 内容，可按需调大；也可用环境变量 CLIPLINK_MAX_BODY_BYTES 覆盖。
 # security:
 #   max_body_bytes: 2097152
+#   # 可选：配置后，创建新通道必须提供此实例 Token（请求头 X-Instance-Token）。
+#   # 读写已有通道仍使用 X-Channel-ID。也可用环境变量 CLIPLINK_INSTANCE_TOKEN 覆盖。
+#   instance_token: "replace-with-a-long-random-token"
 
 # 日志配置（可选）
 # sql 可选值：silent、error、warn、info；生产环境建议 warn 或 silent。

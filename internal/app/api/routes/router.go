@@ -15,6 +15,7 @@ func SetupRouter(
 	deviceService service.DeviceService,
 	statsService service.StatsService,
 	syncService service.SyncService,
+	instanceToken string,
 ) {
 	// 创建控制器
 	channelController := controller.NewChannelController(channelService)
@@ -30,8 +31,8 @@ func SetupRouter(
 	api := router.Group("/api")
 	{
 		// 通道相关路由 - 匹配前端API调用格式
-		api.POST("/channel", channelController.CreateChannel)        // 修改为/channel以匹配前端
-		api.POST("/channel/verify", channelController.VerifyChannel) // 修改为POST /channel/verify以匹配前端
+		api.POST("/channel", middleware.InstanceTokenAuth(instanceToken), channelController.CreateChannel) // 修改为/channel以匹配前端
+		api.POST("/channel/verify", channelController.VerifyChannel)                                       // 修改为POST /channel/verify以匹配前端
 
 		// 以下路由都需要通道认证 - 从请求头中提取channelID
 		authenticatedRoutes := api.Group("")

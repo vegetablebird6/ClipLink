@@ -29,6 +29,9 @@ type CORSConfig struct {
 // SecurityConfig 存储通用安全限制。
 type SecurityConfig struct {
 	MaxBodyBytes int64 `yaml:"max_body_bytes,omitempty"`
+	// InstanceToken protects channel creation when configured. Existing channels
+	// still use X-Channel-ID as their bearer token.
+	InstanceToken string `yaml:"instance_token,omitempty"`
 }
 
 // LogConfig controls application logging verbosity.
@@ -233,6 +236,10 @@ func applyEnvOverrides(cfg *Config) {
 		}
 	}
 
+	if instanceToken := os.Getenv("CLIPLINK_INSTANCE_TOKEN"); instanceToken != "" {
+		cfg.Security.InstanceToken = instanceToken
+	}
+
 	if sqlLog := os.Getenv("CLIPLINK_SQL_LOG"); sqlLog != "" {
 		cfg.Log.SQL = sqlLog
 	}
@@ -243,6 +250,7 @@ func normalize(cfg *Config) {
 	if cfg.Security.MaxBodyBytes <= 0 {
 		cfg.Security.MaxBodyBytes = 2 << 20
 	}
+	cfg.Security.InstanceToken = strings.TrimSpace(cfg.Security.InstanceToken)
 	cfg.Log.SQL = strings.ToLower(strings.TrimSpace(cfg.Log.SQL))
 	switch cfg.Log.SQL {
 	case "silent", "error", "warn", "info":

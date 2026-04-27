@@ -60,7 +60,7 @@ func BuildRouterWithConfig(cfg *config.Config) (*gin.Engine, error) {
 	corsConfig.AllowOrigins = cfg.CORS.AllowedOrigins
 	corsConfig.AllowCredentials = false
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
-	corsConfig.AllowHeaders = []string{"Content-Type", "X-Channel-ID"}
+	corsConfig.AllowHeaders = []string{"Content-Type", "X-Channel-ID", "X-Instance-Token"}
 	corsConfig.ExposeHeaders = []string{"Content-Length"}
 	if len(corsConfig.AllowOrigins) > 0 {
 		router.Use(cors.New(corsConfig))
@@ -87,6 +87,7 @@ func BuildRouterWithConfig(cfg *config.Config) (*gin.Engine, error) {
 		deviceService,
 		statsService,
 		syncService,
+		cfg.Security.InstanceToken,
 	)
 
 	return router, nil

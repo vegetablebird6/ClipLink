@@ -14,12 +14,12 @@ func RegisterRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		// 重用已有的路由设置函数
-		setupSubRoutes(api)
+		setupSubRoutes(api, "")
 	}
 }
 
 // setupSubRoutes 设置子路由
-func setupSubRoutes(api *gin.RouterGroup) {
+func setupSubRoutes(api *gin.RouterGroup, instanceToken string) {
 	// 创建存储库
 	channelRepo := persistence.NewChannelRepository()
 	clipboardRepo := persistence.NewClipboardRepository()
@@ -44,7 +44,7 @@ func setupSubRoutes(api *gin.RouterGroup) {
 	channelAuthMiddleware := middleware.NewChannelAuthMiddleware(channelService)
 
 	// 通道相关路由 - 匹配前端API调用格式
-	api.POST("/channel", channelController.CreateChannel)
+	api.POST("/channel", middleware.InstanceTokenAuth(instanceToken), channelController.CreateChannel)
 	api.POST("/channel/verify", channelController.VerifyChannel)
 
 	// 以下路由都需要通道认证 - 从请求头中提取channelID

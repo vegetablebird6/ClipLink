@@ -75,6 +75,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   
   // 添加状态用于连接通道
   const [inputChannelId, setInputChannelId] = useState('');
+  const [instanceToken, setInstanceToken] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   
@@ -315,15 +316,16 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
     setConnectionError(null);
     try {
       const customId = inputChannelId.trim() || undefined;
-      const success = await createChannel(customId);
+      const success = await createChannel(customId, instanceToken.trim() || undefined);
       if (success) {
         showToast('新通道创建并已连接', 'success');
         setInputChannelId('');
+        setInstanceToken('');
       } else {
-        setConnectionError('创建通道失败，请稍后重试');
+        setConnectionError('创建通道失败，请检查实例 Token 后重试');
       }
     } catch (err) {
-      setConnectionError('创建通道失败，请稍后重试');
+      setConnectionError('创建通道失败，请检查实例 Token 后重试');
     } finally {
       setIsCreating(false);
     }
@@ -354,6 +356,17 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
           {connectionError && (
             <p className="text-xs text-red-500 mt-1">{connectionError}</p>
           )}
+        </div>
+        <div className="relative mt-3">
+          <input
+            type="password"
+            value={instanceToken}
+            onChange={(e) => setInstanceToken(e.target.value)}
+            placeholder="实例 Token（服务端启用时必填）"
+            className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+            disabled={isConnecting || isCreating}
+            autoComplete="off"
+          />
         </div>
         <div className="flex justify-between mt-4 space-x-3">
           <button
