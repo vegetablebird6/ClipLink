@@ -52,6 +52,7 @@ func setupSubRoutes(api *gin.RouterGroup, instanceToken string) {
 	authenticatedRoutes.Use(channelAuthMiddleware.ExtractChannelFromHeader())
 	{
 		authenticatedRoutes.GET("/channel", channelController.GetChannel)
+		authenticatedRoutes.DELETE("/channel", middleware.RequireInstanceTokenAuth(instanceToken), channelController.DeleteChannel)
 
 		// 注册剪贴板路由
 		clipboard := authenticatedRoutes.Group("/clipboard")

@@ -162,6 +162,18 @@ export const clipboardService = {
     }
   },
 
+  // 删除当前通道及其关联数据
+  deleteChannel: async (instanceToken: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.delete<unknown>('/channel', {
+        headers: { 'X-Instance-Token': instanceToken }
+      });
+      return handleApiResponse<any>(response.data);
+    } catch (error) {
+      return handleApiError<any>(error, '删除通道失败');
+    }
+  },
+
   // 设备相关接口
   // 注册设备
   registerDevice: async (deviceData: {

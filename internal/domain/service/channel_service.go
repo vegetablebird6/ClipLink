@@ -26,4 +26,7 @@ type ChannelService interface {
 	// GetChannelStats 获取频道统计信息
 	// GetChannelStats retrieves statistics for a channel
 	GetChannelStats(channelID string) (*model.ChannelStats, error)
+
+	// DeleteChannel 删除频道及其关联数据
+	DeleteChannel(channelID string) (*model.ChannelDeleteResult, error)
 }

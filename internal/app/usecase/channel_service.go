@@ -10,6 +10,8 @@ import (
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
+const orphanDeviceRetention = 30 * 24 * time.Hour
+
 // channelService 频道服务实现
 type channelService struct {
 	channelRepo   repository.ChannelRepository
@@ -123,4 +125,17 @@ func (s *channelService) GetChannelStats(channelID string) (*model.ChannelStats,
 	}
 
 	return stats, nil
+}
+
+// DeleteChannel 删除频道及其关联数据。
+func (s *channelService) DeleteChannel(channelID string) (*model.ChannelDeleteResult, error) {
+	exists, err := s.channelRepo.Exists(channelID)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, model.ErrChannelNotFound
+	}
+
+	return s.channelRepo.Delete(channelID, time.Now().Add(-orphanDeviceRetention))
 }

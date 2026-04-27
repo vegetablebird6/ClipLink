@@ -39,6 +39,7 @@ func SetupRouter(
 		authenticatedRoutes.Use(channelAuthMiddleware.ExtractChannelFromHeader())
 		{
 			authenticatedRoutes.GET("/channel", channelController.GetChannel)
+			authenticatedRoutes.DELETE("/channel", middleware.RequireInstanceTokenAuth(instanceToken), channelController.DeleteChannel)
 
 			// 注册剪贴板路由
 			RegisterClipboardRoutes(authenticatedRoutes, clipboardController)

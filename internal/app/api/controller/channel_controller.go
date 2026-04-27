@@ -72,6 +72,27 @@ func (c *ChannelController) GetChannel(ctx *gin.Context) {
 	response.Success(ctx, channel, "获取成功")
 }
 
+// DeleteChannel 删除当前频道及其关联数据。
+func (c *ChannelController) DeleteChannel(ctx *gin.Context) {
+	channelID, exists := ctx.Get("channelID")
+	if !exists || channelID == nil || channelID == "" {
+		response.BadRequest(ctx, "channel ID is required")
+		return
+	}
+
+	result, err := c.channelService.DeleteChannel(channelID.(string))
+	if err != nil {
+		if err == model.ErrChannelNotFound {
+			response.NotFound(ctx, "channel not found")
+			return
+		}
+		response.ServerError(ctx, err.Error())
+		return
+	}
+
+	response.Success(ctx, result, "通道已删除")
+}
+
 // GetChannelStats 获取频道统计信息
 func (c *ChannelController) GetChannelStats(ctx *gin.Context) {
 	channelID, exists := ctx.Get("channelID")

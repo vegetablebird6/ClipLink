@@ -18,7 +18,8 @@ import {
   faMobile,
   faTablet,
   faSignOutAlt,
-  faExclamationTriangle
+  faExclamationTriangle,
+  faTrash
 } from '@fortawesome/free-solid-svg-icons';
 import { useToast } from '@/contexts/ToastContext';
 import AnimatedModal from '../ui/AnimatedModal';
@@ -69,6 +70,11 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   const [qrVisible, setQrVisible] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [confirmExitVisible, setConfirmExitVisible] = useState(false);
+  const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
+  const [deleteInstanceToken, setDeleteInstanceToken] = useState('');
+  const [deleteChannelConfirm, setDeleteChannelConfirm] = useState('');
+  const [isDeletingChannel, setIsDeletingChannel] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { showToast } = useToast();
   const { clearChannel, isChannelVerified, verifyChannel, createChannel } = useChannel();
   const router = useRouter();
@@ -198,6 +204,44 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
       showToast('已成功退出通道', 'success');
       setConfirmExitVisible(false); // 关闭确认对话框
       onClose(); // 关闭主模态框
+    }
+  };
+
+  const handleDeleteChannel = () => {
+    setDeleteError(null);
+    setDeleteInstanceToken('');
+    setDeleteChannelConfirm('');
+    setConfirmDeleteVisible(true);
+  };
+
+  const confirmDeleteChannel = async () => {
+    if (deleteChannelConfirm.trim() !== channelId) {
+      setDeleteError('请输入完整通道 ID 以确认删除');
+      return;
+    }
+    if (!deleteInstanceToken.trim()) {
+      setDeleteError('请输入实例 Token');
+      return;
+    }
+
+    setIsDeletingChannel(true);
+    setDeleteError(null);
+    try {
+      const response = await clipboardService.deleteChannel(deleteInstanceToken.trim());
+      if (!response.success) {
+        setDeleteError(response.message || '删除通道失败');
+        return;
+      }
+
+      clearChannel();
+      showToast('通道已删除', 'success');
+      setConfirmDeleteVisible(false);
+      onClose();
+    } catch (error) {
+      console.error('删除通道失败:', error);
+      setDeleteError('删除通道失败，请稍后重试');
+    } finally {
+      setIsDeletingChannel(false);
     }
   };
   
@@ -724,14 +768,23 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
             )}
             
             {/* 底部操作栏 */}
-            <div className="mt-auto border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between space-x-3">
-              <button 
-                onClick={handleExitChannel}
-                className="px-4 py-2 border border-red-300 dark:border-red-700 rounded-md text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center transition-colors"
-              >
-                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
-                退出通道
-              </button>
+            <div className="mt-auto border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex flex-wrap justify-between gap-3">
+              <div className="flex flex-wrap gap-3">
+                <button 
+                  onClick={handleExitChannel}
+                  className="px-4 py-2 border border-red-300 dark:border-red-700 rounded-md text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center transition-colors"
+                >
+                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
+                  退出通道
+                </button>
+                <button
+                  onClick={handleDeleteChannel}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium flex items-center transition-colors"
+                >
+                  <FontAwesomeIcon icon={faTrash} className="mr-2" />
+                  删除通道
+                </button>
+              </div>
               <button 
                 onClick={onClose}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
@@ -767,6 +820,58 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                   onClick={confirmExitChannel}
                 >
                   确认退出
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {confirmDeleteVisible && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center mb-4">
+                <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full mr-3">
+                  <FontAwesomeIcon icon={faTrash} className="text-red-600 dark:text-red-400 text-lg" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">删除通道</h3>
+              </div>
+              <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                此操作会删除当前通道、剪贴板内容、同步历史和设备关联，且无法恢复。
+              </p>
+              <div className="space-y-3">
+                <input
+                  type="password"
+                  value={deleteInstanceToken}
+                  onChange={(e) => setDeleteInstanceToken(e.target.value)}
+                  placeholder="实例 Token"
+                  className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-red-500 focus:border-red-500"
+                  disabled={isDeletingChannel}
+                  autoComplete="off"
+                />
+                <input
+                  type="text"
+                  value={deleteChannelConfirm}
+                  onChange={(e) => setDeleteChannelConfirm(e.target.value)}
+                  placeholder="输入完整通道 ID 确认删除"
+                  className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-red-500 focus:border-red-500"
+                  disabled={isDeletingChannel}
+                />
+                {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-200"
+                  onClick={() => setConfirmDeleteVisible(false)}
+                  disabled={isDeletingChannel}
+                >
+                  取消
+                </button>
+                <button
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                  onClick={confirmDeleteChannel}
+                  disabled={isDeletingChannel}
+                >
+                  {isDeletingChannel ? '删除中...' : '确认删除'}
                 </button>
               </div>
             </div>

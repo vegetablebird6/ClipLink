@@ -207,6 +207,8 @@ export CLIPLINK_INSTANCE_TOKEN="replace-with-a-long-random-token"
 [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
 ```
 
+删除通道属于管理操作，需要同时提供当前通道的 `X-Channel-ID` 和实例 Token。删除后会清理该通道的剪贴板内容、同步历史和设备关联，并自动删除超过 30 天没有任何通道关联的孤儿设备。
+
 ### 数据库配置
 
 ClipLink 支持两种数据库类型：

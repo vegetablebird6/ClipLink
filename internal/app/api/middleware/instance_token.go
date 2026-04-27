@@ -36,3 +36,31 @@ func InstanceTokenAuth(instanceToken string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// RequireInstanceTokenAuth protects destructive instance-wide operations.
+func RequireInstanceTokenAuth(instanceToken string) gin.HandlerFunc {
+	expected := strings.TrimSpace(instanceToken)
+
+	return func(c *gin.Context) {
+		if expected == "" {
+			response.Forbidden(c, "instance token is not configured")
+			c.Abort()
+			return
+		}
+
+		actual := strings.TrimSpace(c.GetHeader(InstanceTokenHeader))
+		if actual == "" {
+			response.Unauthorized(c, "instance token is required")
+			c.Abort()
+			return
+		}
+
+		if subtle.ConstantTimeCompare([]byte(actual), []byte(expected)) != 1 {
+			response.Forbidden(c, "invalid instance token")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

@@ -75,3 +75,64 @@ func TestInstanceTokenAuth(t *testing.T) {
 		})
 	}
 }
+
+func TestRequireInstanceTokenAuth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name          string
+		configured    string
+		header        string
+		expectedCode  int
+		handlerCalled bool
+	}{
+		{
+			name:         "rejects when not configured",
+			expectedCode: http.StatusForbidden,
+		},
+		{
+			name:         "requires token when configured",
+			configured:   "secret",
+			expectedCode: http.StatusUnauthorized,
+		},
+		{
+			name:         "rejects wrong token",
+			configured:   "secret",
+			header:       "wrong",
+			expectedCode: http.StatusForbidden,
+		},
+		{
+			name:          "accepts matching token",
+			configured:    "secret",
+			header:        "secret",
+			expectedCode:  http.StatusOK,
+			handlerCalled: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			router := gin.New()
+			router.DELETE("/channel", RequireInstanceTokenAuth(tt.configured), func(c *gin.Context) {
+				called = true
+				c.String(http.StatusOK, "ok")
+			})
+
+			request := httptest.NewRequest(http.MethodDelete, "/channel", nil)
+			if tt.header != "" {
+				request.Header.Set(InstanceTokenHeader, tt.header)
+			}
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code != tt.expectedCode {
+				t.Fatalf("expected status %d, got %d", tt.expectedCode, response.Code)
+			}
+			if called != tt.handlerCalled {
+				t.Fatalf("expected handlerCalled=%v, got %v", tt.handlerCalled, called)
+			}
+		})
+	}
+}

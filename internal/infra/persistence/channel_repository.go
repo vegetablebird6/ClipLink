@@ -1,9 +1,12 @@
 package persistence
 
 import (
+	"time"
+
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/infra/db"
+	"gorm.io/gorm"
 )
 
 // channelRepository 通道仓库实现
@@ -37,4 +40,57 @@ func (r *channelRepository) Exists(channelID string) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// Delete 删除通道及其通道内数据，并清理超过指定时间的孤儿设备。
+func (r *channelRepository) Delete(channelID string, orphanDeviceOlderThan time.Time) (*model.ChannelDeleteResult, error) {
+	result := &model.ChannelDeleteResult{ChannelID: channelID}
+
+	err := db.GetDB().Transaction(func(tx *gorm.DB) error {
+		clipboardResult := tx.Where("channel_id = ?", channelID).Delete(&model.ClipboardItem{})
+		if clipboardResult.Error != nil {
+			return clipboardResult.Error
+		}
+		result.ClipboardItemsDeleted = clipboardResult.RowsAffected
+
+		syncHistoryResult := tx.Where("channel_id = ?", channelID).Delete(&model.SyncHistory{})
+		if syncHistoryResult.Error != nil {
+			return syncHistoryResult.Error
+		}
+		result.SyncHistoryDeleted = syncHistoryResult.RowsAffected
+
+		deviceLinksResult := tx.Where("channel_id = ?", channelID).Delete(&model.DeviceChannel{})
+		if deviceLinksResult.Error != nil {
+			return deviceLinksResult.Error
+		}
+		result.DeviceLinksDeleted = deviceLinksResult.RowsAffected
+
+		orphanDevicesResult := tx.
+			Where("last_seen < ?", orphanDeviceOlderThan).
+			Where("NOT EXISTS (?)",
+				tx.Model(&model.DeviceChannel{}).
+					Select("1").
+					Where("device_channels.device_id = devices.id"),
+			).
+			Delete(&model.Device{})
+		if orphanDevicesResult.Error != nil {
+			return orphanDevicesResult.Error
+		}
+		result.OrphanDevicesDeleted = orphanDevicesResult.RowsAffected
+
+		channelResult := tx.Where("id = ?", channelID).Delete(&model.Channel{})
+		if channelResult.Error != nil {
+			return channelResult.Error
+		}
+		if channelResult.RowsAffected == 0 {
+			return model.ErrChannelNotFound
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
