@@ -7,7 +7,7 @@ import (
 // ClipboardService 剪贴板服务接口
 type ClipboardService interface {
 	// SaveClipboard 保存剪贴板项目
-	SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string) (*model.ClipboardItem, error)
+	SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string, cleanDuplicates bool) (*model.ClipboardItem, error)
 
 	// GetLatestClipboard 获取最新的剪贴板项目
 	GetLatestClipboard(channelID string, limit int) ([]*model.ClipboardItem, error)
@@ -41,4 +41,7 @@ type ClipboardService interface {
 
 	// SearchClipboard 按关键词搜索剪贴板项目
 	SearchClipboard(keyword, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+
+	// CleanupDuplicateContents 清理重复内容
+	CleanupDuplicateContents(channelID string) (int64, error)
 }

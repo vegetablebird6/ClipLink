@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { ApiResponse, ClipboardItem, SaveClipboardRequest, ClipboardType, RawClipboardItem } from '@/types/clipboard';
 import { deviceIdUtil } from '@/utils/deviceId';
 import { detectDeviceType } from '@/utils/deviceDetection';
+import { settingsManager } from '@/utils/settings';
 
 // 获取通道ID
 const getChannelId = (): string | null => {
@@ -332,7 +333,8 @@ export const clipboardService = {
       const requestData: SaveClipboardRequest = {
         ...data,
         device_id: deviceIdUtil.getDeviceId(),
-        device_type: detectDeviceType()
+        device_type: detectDeviceType(),
+        clean_duplicates: settingsManager.getSetting('autoCleanDuplicates')
       };
       
       const response = await api.post<unknown>('/clipboard', requestData);
@@ -399,6 +401,16 @@ export const clipboardService = {
       return handleApiResponse<null>(response.data);
     } catch (error) {
       return handleApiError<null>(error, '删除剪贴板失败');
+    }
+  },
+
+  // 清理当前通道下已存在的重复剪贴板内容
+  cleanupDuplicates: async (): Promise<ApiResponse<{deleted: number}>> => {
+    try {
+      const response = await api.post<unknown>('/clipboard/cleanup-duplicates');
+      return handleApiResponse<{deleted: number}>(response.data);
+    } catch (error) {
+      return handleApiError<{deleted: number}>(error, '清理重复内容失败');
     }
   },
 

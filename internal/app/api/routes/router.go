@@ -64,6 +64,7 @@ func RegisterClipboardRoutes(router *gin.RouterGroup, c *controller.ClipboardCon
 		clipboard.GET("/history", c.GetClipboardHistory)
 		clipboard.GET("/favorites", c.GetFavoriteClipboard)
 		clipboard.GET("/search", c.SearchClipboard)
+		clipboard.POST("/cleanup-duplicates", c.CleanupDuplicateContents)
 		clipboard.GET("/type/:type", c.GetClipboardByType)
 		clipboard.GET("/device/:deviceType", c.GetClipboardByDeviceType)
 		clipboard.GET("/:itemID", c.GetClipboardItem)

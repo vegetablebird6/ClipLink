@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import AnimatedModal from '../ui/AnimatedModal';
 import { Settings, settingsManager, ThemeMode, HistoryRetention, Language } from '@/utils/settings';
+import { clipboardService } from '@/services/api';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -34,6 +35,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     settingsManager.setSetting(key, value);
+    if (key === 'autoCleanDuplicates' && value === true) {
+      void clipboardService.cleanupDuplicates().then((response) => {
+        if (response.success && typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('clipboard-updated'));
+        }
+      });
+    }
   };
 
   const handleSave = () => {

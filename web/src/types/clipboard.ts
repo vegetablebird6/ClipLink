@@ -53,6 +53,7 @@ export interface SaveClipboardRequest {
   type?: ClipboardType;
   device_id?: string;
   device_type?: DeviceType; // 添加设备类型字段
+  clean_duplicates?: boolean;
 }
 
 // API响应类型 - 新的统一格式

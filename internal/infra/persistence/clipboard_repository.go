@@ -2,6 +2,8 @@ package persistence
 
 import (
 	"errors"
+	"strings"
+	"time"
 
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
@@ -11,6 +13,12 @@ import (
 
 // clipboardRepository 剪贴板仓库实现
 type clipboardRepository struct{}
+
+type duplicateCandidate struct {
+	ID        string
+	Content   string
+	CreatedAt time.Time
+}
 
 // NewClipboardRepository 创建新的剪贴板仓库
 func NewClipboardRepository() repository.ClipboardRepository {
@@ -221,6 +229,57 @@ func (r *clipboardRepository) Delete(id, channelID string) error {
 	}
 
 	return nil
+}
+
+// DeleteDuplicates 删除同通道下内容相同的重复项，保留指定项目。
+func (r *clipboardRepository) DeleteDuplicates(channelID, content, keepID string) error {
+	if channelID == "" || content == "" || keepID == "" {
+		return nil
+	}
+
+	return db.GetDB().
+		Where("channel_id = ? AND id <> ? AND TRIM(content) = ?", channelID, keepID, strings.TrimSpace(content)).
+		Delete(&model.ClipboardItem{}).Error
+}
+
+// CleanupDuplicateContents 清理同通道下已存在的重复内容，保留每组最新项目。
+func (r *clipboardRepository) CleanupDuplicateContents(channelID string) (int64, error) {
+	if channelID == "" {
+		return 0, nil
+	}
+
+	var candidates []duplicateCandidate
+	if err := db.GetDB().
+		Model(&model.ClipboardItem{}).
+		Select("id", "content", "created_at").
+		Where("channel_id = ?", channelID).
+		Order("created_at DESC").
+		Find(&candidates).Error; err != nil {
+		return 0, err
+	}
+
+	seen := make(map[string]struct{}, len(candidates))
+	duplicateIDs := make([]string, 0)
+	for _, candidate := range candidates {
+		normalizedContent := strings.TrimSpace(candidate.Content)
+		if normalizedContent == "" {
+			continue
+		}
+		if _, exists := seen[normalizedContent]; exists {
+			duplicateIDs = append(duplicateIDs, candidate.ID)
+			continue
+		}
+		seen[normalizedContent] = struct{}{}
+	}
+
+	if len(duplicateIDs) == 0 {
+		return 0, nil
+	}
+
+	result := db.GetDB().
+		Where("channel_id = ? AND id IN ?", channelID, duplicateIDs).
+		Delete(&model.ClipboardItem{})
+	return result.RowsAffected, result.Error
 }
 
 // Count 统计剪贴板项目数量

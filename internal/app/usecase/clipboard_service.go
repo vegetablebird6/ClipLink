@@ -28,7 +28,7 @@ func NewClipboardService(
 }
 
 // SaveClipboard 保存剪贴板项目
-func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string) (*model.ClipboardItem, error) {
+func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string, cleanDuplicates bool) (*model.ClipboardItem, error) {
 	item := &model.ClipboardItem{
 		ID:         uuid.New().String(),
 		Title:      title,
@@ -44,6 +44,12 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 	// 保存到数据库
 	if err := s.clipboardRepo.Save(item); err != nil {
 		return nil, err
+	}
+
+	if cleanDuplicates {
+		if err := s.clipboardRepo.DeleteDuplicates(channelID, content, item.ID); err != nil {
+			return nil, err
+		}
 	}
 
 	return item, nil
@@ -193,4 +199,9 @@ func (s *clipboardService) SearchClipboard(keyword, channelID string, page, size
 
 	// 调用仓库层搜索方法
 	return s.clipboardRepo.SearchByKeyword(keyword, channelID, page, size)
+}
+
+// CleanupDuplicateContents 清理同一通道下已存在的重复剪贴板内容。
+func (s *clipboardService) CleanupDuplicateContents(channelID string) (int64, error) {
+	return s.clipboardRepo.CleanupDuplicateContents(channelID)
 }

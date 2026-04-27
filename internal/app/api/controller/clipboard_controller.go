@@ -61,11 +61,12 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 
 	// 绑定请求体 - 适配前端发送的字段格式
 	var req struct {
-		Title      string `json:"title"`
-		Content    string `json:"content" binding:"required"`
-		Type       string `json:"type" binding:"required"`
-		DeviceID   string `json:"device_id" binding:"required"`
-		DeviceType string `json:"device_type" binding:"required"`
+		Title           string `json:"title"`
+		Content         string `json:"content" binding:"required"`
+		Type            string `json:"type" binding:"required"`
+		DeviceID        string `json:"device_id" binding:"required"`
+		DeviceType      string `json:"device_type" binding:"required"`
+		CleanDuplicates bool   `json:"clean_duplicates"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -81,6 +82,7 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		req.DeviceID,
 		req.DeviceType,
 		channelID,
+		req.CleanDuplicates,
 	)
 
 	if err != nil {
@@ -386,4 +388,20 @@ func (c *ClipboardController) SearchClipboard(ctx *gin.Context) {
 		"totalPages": totalPages,
 		"keyword":    keyword,
 	}, "搜索成功")
+}
+
+// CleanupDuplicateContents 清理当前通道下已存在的重复剪贴板内容。
+func (c *ClipboardController) CleanupDuplicateContents(ctx *gin.Context) {
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
+	}
+
+	deleted, err := c.clipboardService.CleanupDuplicateContents(channelID)
+	if err != nil {
+		response.ServerError(ctx, err.Error())
+		return
+	}
+
+	response.Success(ctx, gin.H{"deleted": deleted}, "重复内容已清理")
 }

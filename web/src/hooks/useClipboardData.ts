@@ -5,6 +5,7 @@ import { ClipboardItem, ClipboardType, SaveClipboardRequest } from '@/types/clip
 import { ClipboardFilterType } from '@/components/clipboard/TabBar';
 import { detectClipboardType } from '@/utils/clipboardTypeDetector';
 import { getClipboardTypeName } from '@/utils/clipboardTypeDetector';
+import { settingsManager } from '@/utils/settings';
 
 interface UseClipboardDataProps {
   pageSize?: number;
@@ -47,6 +48,34 @@ export const useClipboardData = ({
   const [hasMore, setHasMore] = useState(false);
   
   const { showToast } = useToast();
+
+  const removeDuplicateContentFromList = useCallback((items: ClipboardItem[], savedItem: ClipboardItem) => {
+    if (!settingsManager.getSetting('autoCleanDuplicates')) {
+      return items;
+    }
+
+    const normalizedContent = savedItem.content.trim();
+    return items.filter(item => item.id === savedItem.id || item.content.trim() !== normalizedContent);
+  }, []);
+
+  const dedupeItemsForDisplay = useCallback((items: ClipboardItem[]) => {
+    if (!settingsManager.getSetting('autoCleanDuplicates')) {
+      return items;
+    }
+
+    const seen = new Set<string>();
+    return items.filter(item => {
+      const normalizedContent = item.content.trim();
+      if (!normalizedContent) {
+        return true;
+      }
+      if (seen.has(normalizedContent)) {
+        return false;
+      }
+      seen.add(normalizedContent);
+      return true;
+    });
+  }, []);
   
   const fetchClipboardData = useCallback(async () => {
     if (!isChannelVerified) {
@@ -80,7 +109,7 @@ export const useClipboardData = ({
           pagesValue = historyRes.data.totalPages;
         }
         
-        setClipboardItems(items);
+        setClipboardItems(dedupeItemsForDisplay(items));
         setCurrentPage(pageValue);
         setTotalPages(pagesValue);
         setHasMore(pageValue < pagesValue);
@@ -90,7 +119,7 @@ export const useClipboardData = ({
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, pageSize, isChannelVerified]);
+  }, [showToast, pageSize, isChannelVerified, dedupeItemsForDisplay]);
   
   const loadMoreData = useCallback(async (activeTab: ClipboardFilterType) => {
     if (!isChannelVerified) {
@@ -123,14 +152,14 @@ export const useClipboardData = ({
         if ('items' in response.data) {
           const { items, page, totalPages: pages } = response.data;
           
-          const uniqueNewItems = items.filter(item => !existingIds.has(item.id));
+          const uniqueNewItems = dedupeItemsForDisplay(items).filter(item => !existingIds.has(item.id));
           
           setClipboardItems(prevItems => [...prevItems, ...uniqueNewItems]);
           setCurrentPage(page);
           setTotalPages(pages);
           setHasMore(page < pages);
         } else if (Array.isArray(response.data)) {
-          const uniqueFilteredItems = response.data.filter(item => !existingIds.has(item.id));
+          const uniqueFilteredItems = dedupeItemsForDisplay(response.data).filter(item => !existingIds.has(item.id));
           
           setClipboardItems(prevItems => [...prevItems, ...uniqueFilteredItems]);
           setCurrentPage(nextPage);
@@ -142,7 +171,7 @@ export const useClipboardData = ({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [currentPage, totalPages, isLoadingMore, showToast, clipboardItems, pageSize, isChannelVerified]);
+  }, [currentPage, totalPages, isLoadingMore, showToast, clipboardItems, pageSize, isChannelVerified, dedupeItemsForDisplay]);
   
   const handleSaveClipboardContent = useCallback(async (content: string) => {
     if (!isChannelVerified) {
@@ -152,17 +181,6 @@ export const useClipboardData = ({
     
     try {
       if (!content || content.trim() === '') {
-        return false;
-      }
-      
-      const isDuplicate = clipboardItems.some(item => 
-        item.content === content || 
-        (item.content && content && 
-         item.content.trim() === content.trim())
-      );
-      
-      if (isDuplicate) {
-        showToast('内容已存在于历史记录中', 'info');
         return false;
       }
       
@@ -193,7 +211,7 @@ export const useClipboardData = ({
         };
         
         setCurrentClipboard(clipboardItem);
-        setClipboardItems(prev => [clipboardItem, ...prev]);
+        setClipboardItems(prev => [clipboardItem, ...removeDuplicateContentFromList(prev, clipboardItem)]);
       } else {
         const tempItem: ClipboardItem = {
           id: 'temp-' + Date.now(),
@@ -206,7 +224,7 @@ export const useClipboardData = ({
           updatedAt: new Date().toISOString()
         };
         setCurrentClipboard(tempItem);
-        setClipboardItems(prev => [tempItem, ...prev]);
+        setClipboardItems(prev => [tempItem, ...removeDuplicateContentFromList(prev, tempItem)]);
       }
       
       showToast('新内容已同步', 'success');
@@ -215,7 +233,7 @@ export const useClipboardData = ({
       showToast('保存失败，请重试', 'error');
       return false;
     }
-  }, [showToast, clipboardItems, isChannelVerified]);
+  }, [showToast, isChannelVerified, removeDuplicateContentFromList]);
   
   const handleCopy = useCallback((item?: ClipboardItem) => {
     if (!item) return;
@@ -359,19 +377,6 @@ export const useClipboardData = ({
       showToast(`检测到${getClipboardTypeName(contentType)}内容`, 'info');
       }
       
-    if (!isManualInput) {
-      const isDuplicate = clipboardItems.some(item => 
-        item.content === content || 
-        (item.content && content && 
-         item.content.trim() === content.trim())
-      );
-      
-      if (isDuplicate) {
-        showToast('内容已存在于历史记录中', 'info');
-        return false;
-      }
-    }
-    
     try {
       const response = await clipboardService.saveClipboard({
         content,
@@ -382,7 +387,7 @@ export const useClipboardData = ({
         const clipboardItem: ClipboardItem = response.data;
         
         setCurrentClipboard(clipboardItem);
-        setClipboardItems(prev => [clipboardItem, ...prev]);
+        setClipboardItems(prev => [clipboardItem, ...removeDuplicateContentFromList(prev, clipboardItem)]);
         
         return true;
       } else {
@@ -393,7 +398,7 @@ export const useClipboardData = ({
       showToast('保存失败，请重试', 'error');
       return false;
     }
-  }, [showToast, clipboardItems, isChannelVerified]);
+  }, [showToast, isChannelVerified, removeDuplicateContentFromList]);
   
   const fetchTabData = useCallback(async (tab: ClipboardFilterType) => {
     if (!isChannelVerified) {
@@ -432,7 +437,7 @@ export const useClipboardData = ({
           pagesValue = response.data.totalPages;
         }
         
-        setClipboardItems(items);
+        setClipboardItems(dedupeItemsForDisplay(items));
         setCurrentPage(pageValue);
         setTotalPages(pagesValue);
         setHasMore(pageValue < pagesValue);
@@ -442,7 +447,7 @@ export const useClipboardData = ({
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, pageSize, isChannelVerified]);
+  }, [showToast, pageSize, isChannelVerified, dedupeItemsForDisplay]);
   
   useEffect(() => {
     if (isChannelVerified) {

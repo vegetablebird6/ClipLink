@@ -61,6 +61,7 @@ func setupSubRoutes(api *gin.RouterGroup) {
 			clipboard.GET("/current", clipboardController.GetCurrentClipboard)
 			clipboard.GET("/history", clipboardController.GetClipboardHistory)
 			clipboard.GET("/favorites", clipboardController.GetFavoriteClipboard)
+			clipboard.POST("/cleanup-duplicates", clipboardController.CleanupDuplicateContents)
 			clipboard.GET("/type/:type", clipboardController.GetClipboardByType)
 			clipboard.GET("/device/:deviceType", clipboardController.GetClipboardByDeviceType)
 			clipboard.GET("/:itemID", clipboardController.GetClipboardItem)
