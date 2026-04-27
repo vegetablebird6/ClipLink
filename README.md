@@ -82,14 +82,22 @@ cliplink/
 │   └── package.json        # 依赖配置
 ├── docs/                   # 文档目录
 │   ├── build_script.md     # 构建脚本使用文档
+│   ├── database-config.md  # 数据库配置文档
 │   ├── docker.md           # Docker 部署文档
 │   ├── run_script.md       # 运行脚本使用文档
-│   └── preview.png         # 应用预览图片
+│   ├── home.png            # 应用预览图片
+│   ├── home-1.png          # 应用预览图片
+│   └── home-2.png          # 应用预览图片
 ├── .dockerignore           # Docker 构建排除文件
 ├── Dockerfile              # Docker 镜像构建文件
 ├── docker-compose.yml      # Docker Compose 配置
+├── Makefile                # Make 构建配置
+├── auto_deploy.sh          # 自动部署脚本
 ├── build.sh                # 构建脚本
 ├── run.sh                  # 运行脚本
+├── config.example.yml      # 配置文件示例
+├── go.mod                  # Go 模块定义
+├── go.sum                  # Go 模块校验
 └── LICENSE                 # 许可证文件
 ```
 
@@ -105,7 +113,7 @@ cliplink/
 
 ### 手动部署
 
-1. 从项目的 GitLab Releases 页面下载适合您系统的压缩包
+1. 从项目的 GitHub Releases 页面下载适合您系统的压缩包
 2. 解压到您选择的目录
 3. **（可选）配置数据库**：
    - 默认使用 SQLite，无需任何配置
@@ -169,15 +177,21 @@ docker run -d \
 #### 安全相关环境变量
 
 ```bash
-# 跨域来源（生产环境建议只填写 HTTPS 域名）
--e CLIPLINK_ALLOWED_ORIGINS=https://cliplink.example.com
-
-# 请求体大小限制（默认 2 MiB）
--e CLIPLINK_MAX_BODY_BYTES=2097152
-
-# 实例 Token（配置后创建通道需要提供）
--e CLIPLINK_INSTANCE_TOKEN="your-token"
+docker run -d \
+  --name cliplink \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -v cliplink-data:/home/cliplink/.cliplink \
+  -e CLIPLINK_ALLOWED_ORIGINS=https://cliplink.example.com \
+  -e CLIPLINK_MAX_BODY_BYTES=2097152 \
+  -e CLIPLINK_INSTANCE_TOKEN="your-token" \
+  cliplink:latest
 ```
+
+各环境变量说明：
+- `CLIPLINK_ALLOWED_ORIGINS`：跨域来源，生产环境建议只填写 HTTPS 域名
+- `CLIPLINK_MAX_BODY_BYTES`：请求体大小限制，默认 2 MiB
+- `CLIPLINK_INSTANCE_TOKEN`：实例 Token，配置后创建通道需要提供
 
 > 更多 Docker 部署细节请参考 [Docker 部署文档](docs/docker.md)。
 
@@ -406,6 +420,7 @@ go run cmd/main.go --port 3000
 - **[构建脚本使用指南 (build.sh)](docs/build_script.md)** - 详细介绍构建工具的使用方法、参数选项和功能
 - **[运行脚本使用指南 (run.sh)](docs/run_script.md)** - 全面说明运行脚本的所有命令、选项和流程
 - **[Docker 部署指南](docs/docker.md)** - Docker 和 docker-compose 部署方法、配置选项和安全设置
+- **[数据库配置指南](docs/database-config.md)** - SQLite 和 MySQL 数据库配置详解
 
 这些文档包含了更多技术细节和进阶使用方法，建议开发者和部署人员完整阅读。
 
