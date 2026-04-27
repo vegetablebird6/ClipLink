@@ -22,7 +22,7 @@ func TestStaticFileHandlerServesExportedRoutes(t *testing.T) {
 	}
 }
 
-func TestRegisterExportedPageRoutesServesExtensionlessPages(t *testing.T) {
+func TestStaticSiteRegistersExportedPageRoutes(t *testing.T) {
 	router := gin.New()
 	webFS := fstest.MapFS{
 		"index.html":     {Data: []byte("index page")},
@@ -30,8 +30,9 @@ func TestRegisterExportedPageRoutesServesExtensionlessPages(t *testing.T) {
 		"history.html":   {Data: []byte("history page")},
 	}
 
-	registerExportedPageRoutes(router, webFS)
-	router.NoRoute(StaticFileHandler(webFS))
+	site := newStaticSite(webFS)
+	site.Register(router)
+	router.NoRoute(site.Handle)
 
 	for _, target := range []string{"/favorites", "/history"} {
 		response := performStaticRequest(router, target)
@@ -39,6 +40,19 @@ func TestRegisterExportedPageRoutesServesExtensionlessPages(t *testing.T) {
 		if response.Code != http.StatusOK {
 			t.Fatalf("expected GET %s status %d, got %d", target, http.StatusOK, response.Code)
 		}
+	}
+}
+
+func TestStaticFileHandlerServesRoot(t *testing.T) {
+	router := newStaticTestRouter()
+
+	response := performStaticRequest(router, "/")
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, response.Code)
+	}
+	if response.Body.String() != "index page" {
+		t.Fatalf("expected index page, got %q", response.Body.String())
 	}
 }
 
@@ -68,12 +82,26 @@ func TestStaticFileHandlerRejectsParentPathSegments(t *testing.T) {
 	}
 }
 
+func TestStaticFileHandlerServes404Page(t *testing.T) {
+	router := newStaticTestRouter()
+
+	response := performStaticRequest(router, "/missing")
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d", http.StatusNotFound, response.Code)
+	}
+	if response.Body.String() != "not found page" {
+		t.Fatalf("expected custom 404 page, got %q", response.Body.String())
+	}
+}
+
 func newStaticTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
 	router.NoRoute(StaticFileHandler(fstest.MapFS{
 		"index.html":     {Data: []byte("index page")},
+		"404.html":       {Data: []byte("not found page")},
 		"favorites.html": {Data: []byte("favorites page")},
 		"secret.txt":     {Data: []byte("secret")},
 	}))

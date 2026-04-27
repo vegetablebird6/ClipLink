@@ -13,8 +13,9 @@ func TestStaticFileHandlerServesEmbeddedExportedRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
-	registerExportedPageRoutes(router, static.GetWebFS())
-	router.NoRoute(StaticFileHandler(static.GetWebFS()))
+	site := newStaticSite(static.GetWebFS())
+	site.Register(router)
+	router.NoRoute(site.Handle)
 
 	for _, method := range []string{http.MethodGet, http.MethodHead} {
 		for _, target := range []string{"/favorites", "/history"} {
