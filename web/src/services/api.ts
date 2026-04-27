@@ -37,22 +37,20 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// 处理新的统一API响应格式
+// 处理统一API响应格式
 const handleApiResponse = <T>(response: unknown): ApiResponse<T> => {
-  // 如果响应符合新的统一格式
-  if (response && typeof response === 'object' && 'code' in response && 
+ if (response && typeof response === 'object' && 'code' in response && 
       typeof response.code === 'number' && 
       'success' in response && 
       typeof response.success === 'boolean') {
     return response as ApiResponse<T>;
   }
   
-  // 如果不是新格式，尝试转换为新格式
   return {
-    code: 200,
-    message: '成功',
-    success: true,
-    data: response as T
+    code: 500,
+    message: 'API响应格式错误',
+    success: false,
+    error: 'API响应格式错误'
   };
 };
 
@@ -93,7 +91,13 @@ const handleApiError = <T>(error: unknown, defaultMessage: string): ApiResponse<
 };
 
 // 将API返回的原始格式转换为前端使用的格式
-const convertRawClipboardItem = (raw: RawClipboardItem | any): ClipboardItem => {
+type ClipboardItemResponse = RawClipboardItem & {
+  isFavorite?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+const convertRawClipboardItem = (raw: ClipboardItemResponse): ClipboardItem => {
   return {
     id: raw.id,
     title: raw.title || '',

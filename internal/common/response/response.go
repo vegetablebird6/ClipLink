@@ -26,13 +26,11 @@ type Response struct {
 }
 
 func Success(c *gin.Context, data interface{}, message string) {
-	if data == nil {
-		data = map[string]interface{}{}
-	} else {
+	if data != nil {
 		v := reflect.ValueOf(data)
 		if v.Kind() == reflect.Ptr {
 			if v.IsNil() {
-				data = map[string]interface{}{}
+				data = nil
 			} else {
 				v = v.Elem()
 			}

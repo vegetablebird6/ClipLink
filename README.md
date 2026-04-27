@@ -1,9 +1,9 @@
 # ClipLink - 跨平台剪贴板共享工具
 
-[![Go](https://img.shields.io/badge/Go-1.16%2B-blue)](https://golang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-16%2B-green)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-19.0.0-blue)](https://reactjs.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15.3.2-lightgrey)](https://nextjs.org/)
+[![Go](https://img.shields.io/badge/Go-1.25%2B-blue)](https://golang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22%2B-green)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19.2-blue)](https://reactjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2-lightgrey)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ClipLink 是一个功能强大的跨平台剪贴板内容同步工具，允许您在不同设备（如电脑和手机）之间通过网页界面共享剪贴板内容。该项目采用前后端分离架构，后端使用 Go 语言构建，数据通过 SQLite 存储并通过网络同步，前端使用 Next.js 和 React 构建。通过内置的编译脚本，可以将前端静态资源嵌入到 Go 二进制文件中，实现前后端一体化部署。
@@ -67,16 +67,12 @@ cliplink/
 ├── cmd/                    # Go主程序目录
 │   └── main.go             # 应用程序入口
 ├── internal/               # Go内部包
-│   ├── api/                # API定义
-│   ├── bootstrap/          # 应用启动配置
-│   ├── controller/         # 控制器
-│   ├── db/                 # 数据库相关
-│   ├── middleware/         # 中间件
-│   ├── model/              # 数据模型
-│   ├── repository/         # 数据操作
-│   ├── server/             # 服务器配置
-│   ├── service/            # 业务逻辑
-│   └── static/             # 静态资源
+│   ├── app/                # HTTP 路由、控制器、用例和静态站点服务
+│   ├── common/             # 通用响应与校验
+│   ├── config/             # 配置加载
+│   ├── domain/             # 模型、仓库接口和服务接口
+│   ├── infra/              # 数据库与持久化实现
+│   └── static/             # 嵌入式前端静态资源
 ├── web/                    # 前端目录
 │   ├── src/                # React源码
 │   ├── public/             # 静态资源

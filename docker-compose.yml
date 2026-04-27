@@ -12,6 +12,7 @@ services:
       # 生产环境通常走同源反向代理；如需跨域访问API，请改成可信域名列表。
       CLIPLINK_ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
       CLIPLINK_MAX_BODY_BYTES: "2097152"
+      CLIPLINK_SQL_LOG: "warn"
     volumes:
       - cliplink-data:/home/cliplink/.cliplink
       # 如需使用 MySQL 或自定义端口，可取消下一行注释并编辑宿主机上的 config.yml

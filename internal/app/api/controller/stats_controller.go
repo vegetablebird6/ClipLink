@@ -1,9 +1,8 @@
 package controller
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
@@ -26,30 +25,26 @@ func (c *StatsController) GetChannelStats(ctx *gin.Context) {
 	// 从上下文中获取channelID
 	channelID, exists := ctx.Get("channelID")
 	if !exists || channelID == nil || channelID == "" {
-		// 尝试从路径参数获取
-		channelID = ctx.Param("channelID")
-		if channelID == "" {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "channel ID is required"})
-			return
-		}
+		response.BadRequest(ctx, "channel ID is required")
+		return
 	}
 
 	// 获取通道信息
 	channel, err := c.channelService.GetChannel(channelID.(string))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
 	// 获取统计数据
 	stats, err := c.statsService.GetChannelStats(channelID.(string))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
 	if stats == nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "channel not found"})
+		response.NotFound(ctx, "channel not found")
 		return
 	}
 
@@ -62,5 +57,5 @@ func (c *StatsController) GetChannelStats(ctx *gin.Context) {
 		"created_at":           channel.CreatedAt,
 	}
 
-	ctx.JSON(http.StatusOK, formattedStats)
+	response.Success(ctx, formattedStats, "获取成功")
 }

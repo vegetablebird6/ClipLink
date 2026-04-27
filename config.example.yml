@@ -20,6 +20,12 @@
 # security:
 #   max_body_bytes: 2097152
 
+# 日志配置（可选）
+# sql 可选值：silent、error、warn、info；生产环境建议 warn 或 silent。
+# 也可用环境变量 CLIPLINK_SQL_LOG 覆盖。
+# log:
+#   sql: warn
+
 # MySQL 数据库配置（可选）
 # 只有配置了完整的 MySQL 信息才会使用 MySQL，否则自动使用 SQLite
 # mysql:

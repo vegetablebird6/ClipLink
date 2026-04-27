@@ -37,6 +37,8 @@ func SetupRouter(
 		authenticatedRoutes := api.Group("")
 		authenticatedRoutes.Use(channelAuthMiddleware.ExtractChannelFromHeader())
 		{
+			authenticatedRoutes.GET("/channel", channelController.GetChannel)
+
 			// 注册剪贴板路由
 			RegisterClipboardRoutes(authenticatedRoutes, clipboardController)
 
@@ -48,14 +50,6 @@ func SetupRouter(
 
 			// 注册同步路由
 			RegisterSyncRoutes(authenticatedRoutes, syncController)
-		}
-
-		// 保留原有的路由以确保兼容性
-		channelGroup := api.Group("/channels/:channelID")
-		channelGroup.Use(channelAuthMiddleware.VerifyChannel())
-		{
-			channelGroup.GET("", channelController.GetChannel)
-			channelGroup.GET("/verify", channelController.VerifyChannel)
 		}
 	}
 }

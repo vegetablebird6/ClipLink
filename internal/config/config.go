@@ -31,6 +31,11 @@ type SecurityConfig struct {
 	MaxBodyBytes int64 `yaml:"max_body_bytes,omitempty"`
 }
 
+// LogConfig controls application logging verbosity.
+type LogConfig struct {
+	SQL string `yaml:"sql,omitempty"`
+}
+
 // Config 存储应用程序配置
 type Config struct {
 	// 主机名，例如 "localhost" 或 "0.0.0.0"
@@ -41,6 +46,8 @@ type Config struct {
 	CORS CORSConfig `yaml:"cors,omitempty"`
 	// 安全配置
 	Security SecurityConfig `yaml:"security,omitempty"`
+	// 日志配置
+	Log LogConfig `yaml:"log,omitempty"`
 	// MySQL配置（可选）
 	MySQL *MySQLConfig `yaml:"mysql,omitempty"`
 }
@@ -70,6 +77,9 @@ func Load() (*Config, error) {
 		},
 		Security: SecurityConfig{
 			MaxBodyBytes: 2 << 20, // 2 MiB
+		},
+		Log: LogConfig{
+			SQL: "warn",
 		},
 	}
 
@@ -222,12 +232,22 @@ func applyEnvOverrides(cfg *Config) {
 			cfg.Security.MaxBodyBytes = value
 		}
 	}
+
+	if sqlLog := os.Getenv("CLIPLINK_SQL_LOG"); sqlLog != "" {
+		cfg.Log.SQL = sqlLog
+	}
 }
 
 func normalize(cfg *Config) {
 	cfg.CORS.AllowedOrigins = splitCSV(strings.Join(cfg.CORS.AllowedOrigins, ","))
 	if cfg.Security.MaxBodyBytes <= 0 {
 		cfg.Security.MaxBodyBytes = 2 << 20
+	}
+	cfg.Log.SQL = strings.ToLower(strings.TrimSpace(cfg.Log.SQL))
+	switch cfg.Log.SQL {
+	case "silent", "error", "warn", "info":
+	default:
+		cfg.Log.SQL = "warn"
 	}
 }
 

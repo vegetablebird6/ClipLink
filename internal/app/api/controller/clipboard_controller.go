@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -21,12 +21,42 @@ func NewClipboardController(clipboardService service.ClipboardService) *Clipboar
 	}
 }
 
-// SaveClipboard 保存剪贴板内容
-func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
-	// 从上下文获取channelID
+func clipboardChannelID(ctx *gin.Context) (string, bool) {
 	channelID, exists := ctx.Get("channelID")
 	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+		response.BadRequest(ctx, "channel ID is required")
+		return "", false
+	}
+	value, ok := channelID.(string)
+	if !ok || value == "" {
+		response.BadRequest(ctx, "channel ID is required")
+		return "", false
+	}
+	return value, true
+}
+
+func paginationParams(ctx *gin.Context, defaultSize int) (int, int) {
+	page, err := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	size, err := strconv.Atoi(ctx.DefaultQuery("size", strconv.Itoa(defaultSize)))
+	if err != nil || size < 1 {
+		size = defaultSize
+	}
+	if size > 100 {
+		size = 100
+	}
+
+	return page, size
+}
+
+// SaveClipboard 保存剪贴板内容
+func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 
 	// 绑定请求体 - 适配前端发送的字段格式
@@ -39,7 +69,7 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.BadRequest(ctx, err.Error())
 		return
 	}
 
@@ -50,23 +80,22 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		req.Type,
 		req.DeviceID,
 		req.DeviceType,
-		channelID.(string),
+		channelID,
 	)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, item)
+	response.Success(ctx, item, "保存成功")
 }
 
 // GetLatestClipboard 获取最新剪贴板内容
 func (c *ClipboardController) GetLatestClipboard(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 
 	// 获取查询参数
@@ -77,115 +106,92 @@ func (c *ClipboardController) GetLatestClipboard(ctx *gin.Context) {
 	}
 
 	// 获取最新剪贴板内容
-	items, err := c.clipboardService.GetLatestClipboard(channelID.(string), limit)
+	items, err := c.clipboardService.GetLatestClipboard(channelID, limit)
 	if err != nil {
-		// 记录错误但返回空数组而不是错误
-		ctx.JSON(http.StatusOK, []*model.ClipboardItem{})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
 	// 如果没有找到记录，返回空数组
 	if len(items) == 0 {
-		ctx.JSON(http.StatusOK, []*model.ClipboardItem{})
+		response.Success(ctx, []*model.ClipboardItem{}, "获取成功")
 		return
 	}
 
 	// 针对 /current 路径，只返回第一个项目而不是数组
 	if ctx.Request.URL.Path == "/api/clipboard/current" || ctx.Request.URL.Path == "/clipboard/current" {
-		ctx.JSON(http.StatusOK, items[0])
+		response.Success(ctx, items[0], "获取成功")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, items)
+	response.Success(ctx, items, "获取成功")
 }
 
 // GetClipboardItem 获取特定剪贴板项目
 func (c *ClipboardController) GetClipboardItem(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 	itemID := ctx.Param("itemID")
 
 	// 获取剪贴板项目
-	item, err := c.clipboardService.GetClipboardItem(itemID, channelID.(string))
+	item, err := c.clipboardService.GetClipboardItem(itemID, channelID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
 	if item == nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "clipboard item not found"})
+		response.NotFound(ctx, "clipboard item not found")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, item)
+	response.Success(ctx, item, "获取成功")
 }
 
 // GetClipboardHistory 获取剪贴板历史记录
 func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
-	}
-
-	// 获取分页参数
-	pageStr := ctx.DefaultQuery("page", "1")
-	sizeStr := ctx.DefaultQuery("size", "20")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		page = 1
-	}
-
-	size, err := strconv.Atoi(sizeStr)
-	if err != nil || size < 1 || size > 100 {
-		size = 20
-	}
-
-	// 获取历史记录
-	items, total, totalPages, err := c.clipboardService.GetClipboardHistory(channelID.(string), page, size)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"items":      items,
-		"total":      total,
-		"page":       page,
-		"size":       size,
-		"totalPages": totalPages,
-	})
+	page, size := paginationParams(ctx, 20)
+
+	// 获取历史记录
+	items, total, totalPages, err := c.clipboardService.GetClipboardHistory(channelID, page, size)
+	if err != nil {
+		response.ServerError(ctx, err.Error())
+		return
+	}
+
+	response.SuccessWithPage(ctx, items, total, page, size, totalPages)
 }
 
 // DeleteClipboard 删除剪贴板项目
 func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 	itemID := ctx.Param("itemID")
 
 	// 删除剪贴板项目
-	err := c.clipboardService.DeleteClipboard(itemID, channelID.(string))
+	err := c.clipboardService.DeleteClipboard(itemID, channelID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "clipboard item deleted"})
+	response.SuccessWithMessage(ctx, "clipboard item deleted")
 }
 
 // UpdateClipboard 更新剪贴板项目
 func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 	itemID := ctx.Param("itemID")
 
@@ -200,7 +206,7 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.BadRequest(ctx, err.Error())
 		return
 	}
 
@@ -212,32 +218,31 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 		req.Type,
 		req.DeviceID,
 		req.DeviceType,
-		channelID.(string),
+		channelID,
 	)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
 	// 如果提供了收藏状态，单独处理
 	if req.IsFavorite != nil {
-		item, err = c.clipboardService.ToggleFavorite(itemID, *req.IsFavorite, channelID.(string), req.DeviceID)
+		item, err = c.clipboardService.ToggleFavorite(itemID, *req.IsFavorite, channelID, req.DeviceID)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			response.ServerError(ctx, err.Error())
 			return
 		}
 	}
 
-	ctx.JSON(http.StatusOK, item)
+	response.Success(ctx, item, "更新成功")
 }
 
 // ToggleFavorite 切换收藏状态
 func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 	itemID := ctx.Param("itemID")
 
@@ -248,26 +253,25 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.BadRequest(ctx, err.Error())
 		return
 	}
 
 	// 切换收藏状态
-	item, err := c.clipboardService.ToggleFavorite(itemID, req.IsFavorite, channelID.(string), req.DeviceID)
+	item, err := c.clipboardService.ToggleFavorite(itemID, req.IsFavorite, channelID, req.DeviceID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, item)
+	response.Success(ctx, item, "更新成功")
 }
 
 // GetFavoriteClipboard 获取收藏的剪贴板项目
 func (c *ClipboardController) GetFavoriteClipboard(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 
 	// 获取查询参数
@@ -278,165 +282,108 @@ func (c *ClipboardController) GetFavoriteClipboard(ctx *gin.Context) {
 	}
 
 	// 获取收藏项目
-	items, err := c.clipboardService.GetFavoriteClipboard(channelID.(string), limit)
+	items, err := c.clipboardService.GetFavoriteClipboard(channelID, limit)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, items)
+	response.Success(ctx, items, "获取成功")
 }
 
 // GetClipboardByType 按类型获取剪贴板项目
 func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 	clipType := ctx.Param("type")
 
-	// 获取分页参数
-	pageStr := ctx.DefaultQuery("page", "1")
-	sizeStr := ctx.DefaultQuery("size", "20")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		page = 1
-	}
-
-	size, err := strconv.Atoi(sizeStr)
-	if err != nil || size < 1 || size > 100 {
-		size = 20
-	}
+	page, size := paginationParams(ctx, 20)
 
 	// 按类型获取项目
-	var items []*model.ClipboardItem
-	var total int64
-	var totalPages int
-
-	items, total, totalPages, err = c.clipboardService.GetClipboardByType(clipType, channelID.(string), page, size)
+	items, total, totalPages, err := c.clipboardService.GetClipboardByType(clipType, channelID, page, size)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"items":      items,
-		"total":      total,
-		"page":       page,
-		"size":       size,
-		"totalPages": totalPages,
-	})
+	response.SuccessWithPage(ctx, items, total, page, size, totalPages)
 }
 
 // GetClipboardByDeviceType 按设备类型获取剪贴板项目
 func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 	deviceType := ctx.Param("deviceType")
 
-	// 获取分页参数
-	pageStr := ctx.DefaultQuery("page", "1")
-	sizeStr := ctx.DefaultQuery("size", "20")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		page = 1
-	}
-
-	size, err := strconv.Atoi(sizeStr)
-	if err != nil || size < 1 || size > 100 {
-		size = 20
-	}
+	page, size := paginationParams(ctx, 20)
 
 	// 按设备类型获取项目
-	items, total, totalPages, err := c.clipboardService.GetClipboardByDeviceType(deviceType, channelID.(string), page, size)
+	items, total, totalPages, err := c.clipboardService.GetClipboardByDeviceType(deviceType, channelID, page, size)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"items":      items,
-		"total":      total,
-		"page":       page,
-		"size":       size,
-		"totalPages": totalPages,
-	})
+	response.SuccessWithPage(ctx, items, total, page, size, totalPages)
 }
 
 // GetCurrentClipboard 获取当前剪贴板内容（专用接口，避免路由冲突）
 func (c *ClipboardController) GetCurrentClipboard(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 
 	// 获取最新的一条剪贴板内容
-	items, err := c.clipboardService.GetLatestClipboard(channelID.(string), 1)
+	items, err := c.clipboardService.GetLatestClipboard(channelID, 1)
 	if err != nil {
-		// 返回空对象而不是报错
-		ctx.JSON(http.StatusOK, gin.H{})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
 	// 如果没有找到记录，返回空对象
 	if len(items) == 0 {
-		ctx.JSON(http.StatusOK, gin.H{})
+		response.Success(ctx, nil, "获取成功")
 		return
 	}
 
 	// 返回第一条记录
-	ctx.JSON(http.StatusOK, items[0])
+	response.Success(ctx, items[0], "获取成功")
 }
 
 // SearchClipboard 搜索剪贴板项目
 func (c *ClipboardController) SearchClipboard(ctx *gin.Context) {
-	// 从上下文获取channelID
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+	channelID, ok := clipboardChannelID(ctx)
+	if !ok {
+		return
 	}
 
 	// 获取搜索关键词
 	keyword := ctx.Query("q")
 	if keyword == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "搜索关键词不能为空"})
+		response.BadRequest(ctx, "搜索关键词不能为空")
 		return
 	}
 
-	// 获取分页参数
-	pageStr := ctx.DefaultQuery("page", "1")
-	sizeStr := ctx.DefaultQuery("size", "20")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		page = 1
-	}
-
-	size, err := strconv.Atoi(sizeStr)
-	if err != nil || size < 1 || size > 100 {
-		size = 20
-	}
+	page, size := paginationParams(ctx, 20)
 
 	// 执行搜索
-	items, total, totalPages, err := c.clipboardService.SearchClipboard(keyword, channelID.(string), page, size)
+	items, total, totalPages, err := c.clipboardService.SearchClipboard(keyword, channelID, page, size)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
+	response.Success(ctx, gin.H{
 		"items":      items,
 		"total":      total,
 		"page":       page,
 		"size":       size,
 		"totalPages": totalPages,
 		"keyword":    keyword,
-	})
+	}, "搜索成功")
 }

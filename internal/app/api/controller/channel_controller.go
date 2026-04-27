@@ -1,9 +1,8 @@
 package controller
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
@@ -33,34 +32,29 @@ func (c *ChannelController) CreateChannel(ctx *gin.Context) {
 		req.ChannelID = ""
 	}
 	if req.ChannelID != "" && !validation.IsValidChannelID(req.ChannelID) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
+		response.BadRequest(ctx, "invalid channel ID")
 		return
 	}
 
 	// 创建频道（使用指定的ID或生成随机ID）
 	channel, err := c.channelService.CreateChannel(req.ChannelID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
 	// 返回新创建的频道信息
-	ctx.JSON(http.StatusOK, gin.H{
+	response.Success(ctx, gin.H{
 		"id":         channel.ID,
 		"created_at": channel.CreatedAt,
-	})
+	}, "频道创建成功")
 }
 
 // GetChannel 获取频道信息
 func (c *ChannelController) GetChannel(ctx *gin.Context) {
-	// 优先从上下文获取channelID
 	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
-	}
-
-	if channelID == nil || channelID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "channel ID is required"})
+	if !exists || channelID == nil || channelID == "" {
+		response.BadRequest(ctx, "channel ID is required")
 		return
 	}
 
@@ -68,36 +62,36 @@ func (c *ChannelController) GetChannel(ctx *gin.Context) {
 	channel, err := c.channelService.GetChannel(channelID.(string))
 	if err != nil {
 		if err == model.ErrChannelNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "channel not found"})
+			response.NotFound(ctx, "channel not found")
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, channel)
+	response.Success(ctx, channel, "获取成功")
 }
 
 // GetChannelStats 获取频道统计信息
 func (c *ChannelController) GetChannelStats(ctx *gin.Context) {
-	// 从上下文获取channelID
 	channelID, exists := ctx.Get("channelID")
 	if !exists {
-		channelID = ctx.Param("channelID") // 兼容旧路由
+		response.BadRequest(ctx, "channel ID is required")
+		return
 	}
 
 	// 获取统计信息
 	stats, err := c.channelService.GetChannelStats(channelID.(string))
 	if err != nil {
 		if err == model.ErrChannelNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "channel not found"})
+			response.NotFound(ctx, "channel not found")
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, stats)
+	response.Success(ctx, stats, "获取成功")
 }
 
 // VerifyChannel 验证频道存在且有效 - 适配前端POST请求格式
@@ -106,14 +100,14 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 	if channelID, exists := ctx.Get("channelID"); exists && channelID != nil && channelID != "" {
 		exists, err := c.channelService.VerifyChannel(channelID.(string))
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			response.ServerError(ctx, err.Error())
 			return
 		}
 		if !exists {
-			ctx.JSON(http.StatusNotFound, gin.H{"success": false, "error": "channel not found"})
+			response.NotFound(ctx, "channel not found")
 			return
 		}
-		ctx.JSON(http.StatusOK, gin.H{"success": true})
+		response.Success(ctx, nil, "频道有效")
 		return
 	}
 
@@ -123,43 +117,21 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 	}
 	if err := ctx.ShouldBindJSON(&req); err == nil && req.ChannelID != "" {
 		if !validation.IsValidChannelID(req.ChannelID) {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
+			response.BadRequest(ctx, "invalid channel ID")
 			return
 		}
 		exists, err := c.channelService.VerifyChannel(req.ChannelID)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			response.ServerError(ctx, err.Error())
 			return
 		}
 		if !exists {
-			ctx.JSON(http.StatusNotFound, gin.H{"success": false, "error": "channel not found"})
+			response.NotFound(ctx, "channel not found")
 			return
 		}
-		ctx.JSON(http.StatusOK, gin.H{"success": true})
+		response.Success(ctx, nil, "频道有效")
 		return
 	}
 
-	// 最后兼容路径参数
-	channelID := ctx.Param("channelID")
-	if channelID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "channel ID is required"})
-		return
-	}
-	if !validation.IsValidChannelID(channelID) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
-		return
-	}
-
-	exists, err := c.channelService.VerifyChannel(channelID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if !exists {
-		ctx.JSON(http.StatusNotFound, gin.H{"success": false, "error": "channel not found"})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"success": true})
+	response.BadRequest(ctx, "channel ID is required")
 }
-
-// 所有通道相关接口均支持header传递channelId，优先从header获取，兼容旧路由。

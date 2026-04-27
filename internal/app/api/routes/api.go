@@ -51,6 +51,8 @@ func setupSubRoutes(api *gin.RouterGroup) {
 	authenticatedRoutes := api.Group("")
 	authenticatedRoutes.Use(channelAuthMiddleware.ExtractChannelFromHeader())
 	{
+		authenticatedRoutes.GET("/channel", channelController.GetChannel)
+
 		// 注册剪贴板路由
 		clipboard := authenticatedRoutes.Group("/clipboard")
 		{
@@ -90,13 +92,5 @@ func setupSubRoutes(api *gin.RouterGroup) {
 			sync.GET("/history", syncController.GetSyncHistory)
 			sync.POST("/log", syncController.LogSyncAction)
 		}
-	}
-
-	// 保留原有的路由以确保兼容性
-	channelGroup := api.Group("/channels/:channelID")
-	channelGroup.Use(channelAuthMiddleware.VerifyChannel())
-	{
-		channelGroup.GET("", channelController.GetChannel)
-		channelGroup.GET("/verify", channelController.VerifyChannel)
 	}
 }

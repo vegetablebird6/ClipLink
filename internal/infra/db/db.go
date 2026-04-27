@@ -55,7 +55,7 @@ func InitWithConfig(cfg *config.Config) (*DB, error) {
 
 	// 配置GORM
 	gormConfig := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(gormLogLevel(cfg.Log.SQL)),
 	}
 
 	// 根据数据库类型选择对应的驱动
@@ -88,6 +88,21 @@ func InitWithConfig(cfg *config.Config) (*DB, error) {
 
 	// 返回兼容的DB结构体
 	return &DB{db: instance}, nil
+}
+
+func gormLogLevel(level string) logger.LogLevel {
+	switch level {
+	case "silent":
+		return logger.Silent
+	case "error":
+		return logger.Error
+	case "info":
+		return logger.Info
+	case "warn":
+		fallthrough
+	default:
+		return logger.Warn
+	}
 }
 
 // MigrateDB 执行数据库表迁移

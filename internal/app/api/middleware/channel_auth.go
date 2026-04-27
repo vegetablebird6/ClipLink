@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -25,12 +24,12 @@ func (m *ChannelAuthMiddleware) ExtractChannelFromHeader() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		channelID := c.GetHeader("X-Channel-ID")
 		if channelID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "X-Channel-ID header is required"})
+			response.BadRequest(c, "X-Channel-ID header is required")
 			c.Abort()
 			return
 		}
 		if !validation.IsValidChannelID(channelID) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
+			response.BadRequest(c, "invalid channel ID")
 			c.Abort()
 			return
 		}
@@ -38,13 +37,13 @@ func (m *ChannelAuthMiddleware) ExtractChannelFromHeader() gin.HandlerFunc {
 		// 验证频道是否存在
 		exists, err := m.channelService.VerifyChannel(channelID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			response.ServerError(c, err.Error())
 			c.Abort()
 			return
 		}
 
 		if !exists {
-			c.JSON(http.StatusNotFound, gin.H{"error": "channel not found"})
+			response.NotFound(c, "channel not found")
 			c.Abort()
 			return
 		}
@@ -62,12 +61,12 @@ func (m *ChannelAuthMiddleware) VerifyChannel() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		channelID := c.Param("channelID")
 		if channelID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "channel ID is required"})
+			response.BadRequest(c, "channel ID is required")
 			c.Abort()
 			return
 		}
 		if !validation.IsValidChannelID(channelID) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel ID"})
+			response.BadRequest(c, "invalid channel ID")
 			c.Abort()
 			return
 		}
@@ -75,13 +74,13 @@ func (m *ChannelAuthMiddleware) VerifyChannel() gin.HandlerFunc {
 		// 验证频道是否存在
 		exists, err := m.channelService.VerifyChannel(channelID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			response.ServerError(c, err.Error())
 			c.Abort()
 			return
 		}
 
 		if !exists {
-			c.JSON(http.StatusNotFound, gin.H{"error": "channel not found"})
+			response.NotFound(c, "channel not found")
 			c.Abort()
 			return
 		}

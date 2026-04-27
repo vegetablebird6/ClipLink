@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
@@ -22,8 +22,11 @@ func NewSyncController(syncService service.SyncService) *SyncController {
 
 // GetSyncHistory 获取同步历史记录
 func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
-	// 获取路径参数
-	channelID := ctx.Param("channelID")
+	channelID, exists := ctx.Get("channelID")
+	if !exists || channelID == nil || channelID == "" {
+		response.BadRequest(ctx, "channel ID is required")
+		return
+	}
 
 	// 获取分页参数
 	limitStr := ctx.DefaultQuery("limit", "20")
@@ -40,19 +43,22 @@ func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 	}
 
 	// 获取同步历史记录
-	history, err := c.syncService.GetSyncHistory(channelID, limit, offset)
+	history, err := c.syncService.GetSyncHistory(channelID.(string), limit, offset)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, history)
+	response.Success(ctx, history, "获取成功")
 }
 
 // LogSyncAction 记录同步操作
 func (c *SyncController) LogSyncAction(ctx *gin.Context) {
-	// 获取路径参数
-	channelID := ctx.Param("channelID")
+	channelID, exists := ctx.Get("channelID")
+	if !exists || channelID == nil || channelID == "" {
+		response.BadRequest(ctx, "channel ID is required")
+		return
+	}
 
 	// 绑定请求体
 	var req struct {
@@ -61,16 +67,16 @@ func (c *SyncController) LogSyncAction(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.BadRequest(ctx, err.Error())
 		return
 	}
 
 	// 记录同步操作
-	err := c.syncService.LogSyncAction(req.DeviceID, channelID, req.Content)
+	err := c.syncService.LogSyncAction(req.DeviceID, channelID.(string), req.Content)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "sync action logged"})
+	response.SuccessWithMessage(ctx, "sync action logged")
 }
