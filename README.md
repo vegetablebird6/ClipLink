@@ -405,8 +405,13 @@ npm run dev
 
 ### 后端开发
 
+> **注意**：`go build` / `go run` 前需先构建前端，否则会因缺少 dist 目录而编译失败。
+
 ```bash
-# 直接运行后端
+# 1. 先构建前端（生成 internal/static/dist/）
+./build.sh --frontend
+
+# 2. 再启动后端
 go run cmd/main.go
 
 # 或使用自定义端口
