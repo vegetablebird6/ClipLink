@@ -13,6 +13,7 @@ temp_extract
 *.db
 cliplink
 clipboard
+!runtime/cliplink
 
 node_modules
 web/node_modules
@@ -29,3 +30,4 @@ web/.env*
 
 Dockerfile*
 docker-compose*.yml
+!Dockerfile.runtime

@@ -87,3 +87,11 @@ cliplink.db
 *.db
 dist/
 dist
+
+# Claude Code 本地配置
+.claude/
+
+# llmdoc 项目文档
+llmdoc/
+
+CLAUDE.md

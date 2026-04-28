@@ -1,0 +1,22 @@
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata \
+    && addgroup -S cliplink \
+    && adduser -S -G cliplink -h /home/cliplink cliplink \
+    && mkdir -p /home/cliplink/.cliplink /app \
+    && chown -R cliplink:cliplink /home/cliplink /app
+
+WORKDIR /app
+
+COPY --chmod=755 runtime/cliplink /app/cliplink
+COPY config.example.yml /app/config.example.yml
+
+ENV GIN_MODE=release \
+    HOME=/home/cliplink
+
+EXPOSE 8080
+VOLUME ["/home/cliplink/.cliplink"]
+
+USER cliplink
+
+ENTRYPOINT ["/app/cliplink"]
