@@ -221,15 +221,28 @@ export const clipboardService = {
     }
   },
 
-  // 获取同步历史
-  getSyncHistory: async (limit: number = 10, offset: number = 0): Promise<ApiResponse<any[]>> => {
+  // 更新设备名称
+  updateDeviceName: async (deviceId: string, name: string): Promise<ApiResponse<any>> => {
     try {
-      const response = await api.get<unknown>(`/sync/history`, {
-        params: { limit, offset }
-      });
-      return handleApiResponse<any[]>(response.data);
+      const response = await api.put<unknown>(`/devices/${deviceId}/name`, { device_name: name });
+      return handleApiResponse<any>(response.data);
     } catch (error) {
-      return handleApiError<any[]>(error, '获取同步历史失败');
+      return handleApiError<any>(error, '更新设备名称失败');
+    }
+  },
+
+  // 获取同步历史（keyset 游标分页）
+  getSyncHistory: async (limit: number = 20, after?: string, afterId?: string): Promise<ApiResponse<{items: any[], has_more: boolean}>> => {
+    try {
+      const params: Record<string, string | number> = { limit };
+      if (after && afterId) {
+        params.after = after;
+        params.after_id = afterId;
+      }
+      const response = await api.get<unknown>(`/sync/history`, { params });
+      return handleApiResponse<{items: any[], has_more: boolean}>(response.data);
+    } catch (error) {
+      return handleApiError<{items: any[], has_more: boolean}>(error, '获取同步历史失败');
     }
   },
 
@@ -282,36 +295,52 @@ export const clipboardService = {
     }
   },
 
-  // 获取剪贴板历史
-  getClipboardHistory: async (page = 1, size = 12, type?: ClipboardType): Promise<ApiResponse<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number} | ClipboardItem[]>> => {
+  // 获取剪贴板历史（keyset 游标分页）
+  getClipboardHistory: async (size = 12, after?: string, afterId?: string): Promise<ApiResponse<{items: ClipboardItem[], has_more: boolean}>> => {
     try {
-      const params: Record<string, string | number | undefined> = {
-        page,
-        size
-      };
-      
-      // 如果指定了类型，添加到查询参数
-      if (type) {
-        params.type = type;
+      const params: Record<string, string | number> = { size };
+      if (after && afterId) {
+        params.after = after;
+        params.after_id = afterId;
       }
-      
+
       const response = await api.get<unknown>('/clipboard/history', { params });
       const apiResponse = handleApiResponse<any>(response.data);
-      
-      // 处理可能的不同响应格式
+
+      // 转换 items
       if (apiResponse.success && apiResponse.data) {
-        if (Array.isArray(apiResponse.data)) {
-          // 如果是数组格式，转换每个项目
-          apiResponse.data = apiResponse.data.map(convertRawClipboardItem);
-        } else if (apiResponse.data.items) {
-          // 如果是分页对象格式，转换每个项目
+        if (apiResponse.data.items) {
           apiResponse.data.items = apiResponse.data.items.map(convertRawClipboardItem);
         }
       }
-      
-      return apiResponse as ApiResponse<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number} | ClipboardItem[]>;
+
+      return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
     } catch (error) {
-      return handleApiError<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number} | ClipboardItem[]>(error, '获取剪贴板历史失败');
+      return handleApiError<{items: ClipboardItem[], has_more: boolean}>(error, '获取剪贴板历史失败');
+    }
+  },
+
+  // 按类型获取剪贴板历史（keyset 游标分页）
+  getClipboardByType: async (type: ClipboardType, size = 12, after?: string, afterId?: string): Promise<ApiResponse<{items: ClipboardItem[], has_more: boolean}>> => {
+    try {
+      const params: Record<string, string | number> = { size };
+      if (after && afterId) {
+        params.after = after;
+        params.after_id = afterId;
+      }
+
+      const response = await api.get<unknown>(`/clipboard/type/${type}`, { params });
+      const apiResponse = handleApiResponse<any>(response.data);
+
+      if (apiResponse.success && apiResponse.data) {
+        if (apiResponse.data.items) {
+          apiResponse.data.items = apiResponse.data.items.map(convertRawClipboardItem);
+        }
+      }
+
+      return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
+    } catch (error) {
+      return handleApiError<{items: ClipboardItem[], has_more: boolean}>(error, '按类型获取剪贴板历史失败');
     }
   },
 

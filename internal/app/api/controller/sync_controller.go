@@ -2,6 +2,7 @@ package controller
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xiaojiu/cliplink/internal/common/response"
@@ -20,7 +21,7 @@ func NewSyncController(syncService service.SyncService) *SyncController {
 	}
 }
 
-// GetSyncHistory 获取同步历史记录
+// GetSyncHistory 获取同步事件记录（keyset 游标分页）
 func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 	channelID, exists := ctx.Get("channelID")
 	if !exists || channelID == nil || channelID == "" {
@@ -30,26 +31,39 @@ func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 
 	// 获取分页参数
 	limitStr := ctx.DefaultQuery("limit", "20")
-	offsetStr := ctx.DefaultQuery("offset", "0")
-
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit < 1 || limit > 100 {
 		limit = 20
 	}
 
-	offset, err := strconv.Atoi(offsetStr)
-	if err != nil || offset < 0 {
-		offset = 0
+	// 解析 keyset 游标
+	var afterCreatedAt *time.Time
+	var afterID *uint
+	afterStr := ctx.Query("after")
+	afterIDStr := ctx.Query("after_id")
+	if afterStr != "" && afterIDStr != "" {
+		if t, parseErr := time.Parse(time.RFC3339Nano, afterStr); parseErr == nil {
+			afterCreatedAt = &t
+			if idVal, idErr := strconv.ParseUint(afterIDStr, 10, 64); idErr == nil {
+				uintID := uint(idVal)
+				afterID = &uintID
+			}
+		}
 	}
 
-	// 获取同步历史记录
-	history, err := c.syncService.GetSyncHistory(channelID.(string), limit, offset)
+	// 获取同步事件记录
+	events, err := c.syncService.GetSyncHistory(channelID.(string), afterCreatedAt, afterID, limit)
 	if err != nil {
 		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	response.Success(ctx, history, "获取成功")
+	// 判断 has_more：多查了 1 条，如果取到 limit+1 条说明还有更多
+	hasMore := len(events) > limit
+	if hasMore {
+		events = events[:limit]
+	}
+	response.SuccessWithKeyset(ctx, events, hasMore)
 }
 
 // LogSyncAction 记录同步操作

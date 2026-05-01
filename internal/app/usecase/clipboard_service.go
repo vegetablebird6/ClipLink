@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"strings"
-	"time"
+	stdtime "time"
 
 	"github.com/google/uuid"
 
@@ -28,18 +28,18 @@ func computeContentHash(content string) string {
 
 // clipboardService 剪贴板服务实现
 type clipboardService struct {
-	clipboardRepo   repository.ClipboardRepository
-	syncHistoryRepo repository.SyncHistoryRepository
+	clipboardRepo repository.ClipboardRepository
+	syncEventRepo repository.SyncEventRepository
 }
 
 // NewClipboardService 创建新的剪贴板服务
 func NewClipboardService(
 	clipboardRepo repository.ClipboardRepository,
-	syncHistoryRepo repository.SyncHistoryRepository,
+	syncEventRepo repository.SyncEventRepository,
 ) service.ClipboardService {
 	return &clipboardService{
-		clipboardRepo:   clipboardRepo,
-		syncHistoryRepo: syncHistoryRepo,
+		clipboardRepo: clipboardRepo,
+		syncEventRepo: syncEventRepo,
 	}
 }
 
@@ -51,6 +51,9 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 	if !validation.IsValidDeviceType(deviceType) {
 		return nil, model.ErrInvalidInput
 	}
+	if !validation.IsValidContentFormat(contentFormat) {
+		return nil, model.ErrInvalidInput
+	}
 
 	item := &model.ClipboardItem{
 		ID:            uuid.New().String(),
@@ -60,8 +63,8 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 		DeviceID:      deviceID,
 		DeviceType:    deviceType,
 		ChannelID:     channelID,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
+		CreatedAt:     stdtime.Now(),
+		UpdatedAt:     stdtime.Now(),
 		ContentHTML:   contentHTML,
 		ContentFormat: contentFormat,
 		ContentHash:   computeContentHash(content),
@@ -81,19 +84,22 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 		}
 	}
 
-	// 记录同步历史
+	// 记录同步事件
 	contentSummary := content
 	if len(contentSummary) > 100 {
 		contentSummary = contentSummary[:100]
 	}
-	syncHistory := &model.SyncHistory{
-		Action:    model.ActionSync,
-		Content:   contentSummary,
-		DeviceID:  deviceID,
-		ChannelID: channelID,
-		CreatedAt: time.Now(),
+	syncEvent := &model.SyncEvent{
+		Action:     model.ActionSync,
+		Content:    contentSummary,
+		DeviceID:   deviceID,
+		ChannelID:  channelID,
+		TargetType: model.TargetTypeClipboard,
+		TargetID:   item.ID,
+		Summary:    "同步剪贴板内容",
+		CreatedAt:  stdtime.Now(),
 	}
-	_ = s.syncHistoryRepo.Save(syncHistory)
+	_ = s.syncEventRepo.Save(syncEvent)
 
 	return item, nil
 }
@@ -108,9 +114,9 @@ func (s *clipboardService) GetClipboardItem(id string, channelID string) (*model
 	return s.clipboardRepo.FindByID(id, channelID)
 }
 
-// GetClipboardHistory 获取剪贴板历史记录
-func (s *clipboardService) GetClipboardHistory(channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
-	return s.clipboardRepo.FindWithPagination(channelID, page, size)
+// GetClipboardHistory 获取剪贴板历史记录（keyset 游标分页）
+func (s *clipboardService) GetClipboardHistory(channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
+	return s.clipboardRepo.FindWithKeyset(channelID, afterCreatedAt, afterID, size)
 }
 
 // DeleteClipboard 删除剪贴板项目
@@ -126,20 +132,33 @@ func (s *clipboardService) DeleteClipboard(id string, channelID string) error {
 		return err
 	}
 
-	// 记录同步历史
-	syncHistory := &model.SyncHistory{
-		Action:    model.ActionDelete,
-		Content:   "删除剪贴板内容: " + item.Type,
-		DeviceID:  item.DeviceID,
-		ChannelID: channelID,
-		CreatedAt: time.Now(),
+	// 记录同步事件
+	syncEvent := &model.SyncEvent{
+		Action:     model.ActionDelete,
+		Content:    "删除剪贴板内容: " + item.Type,
+		DeviceID:   item.DeviceID,
+		ChannelID:  channelID,
+		TargetType: model.TargetTypeClipboard,
+		TargetID:   id,
+		Summary:    "删除剪贴板内容",
+		CreatedAt:  stdtime.Now(),
 	}
 
-	return s.syncHistoryRepo.Save(syncHistory)
+	return s.syncEventRepo.Save(syncEvent)
 }
 
 // UpdateClipboard 更新剪贴板项目
 func (s *clipboardService) UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string, contentHTML, contentFormat string) (*model.ClipboardItem, error) {
+	if contentType != "" && !validation.IsValidClipboardType(contentType) {
+		return nil, model.ErrInvalidInput
+	}
+	if deviceType != "" && !validation.IsValidDeviceType(deviceType) {
+		return nil, model.ErrInvalidInput
+	}
+	if !validation.IsValidContentFormat(contentFormat) {
+		return nil, model.ErrInvalidInput
+	}
+
 	// 更新内容
 	updates := map[string]any{
 		"title":          title,
@@ -147,7 +166,7 @@ func (s *clipboardService) UpdateClipboard(id, title, content, contentType, devi
 		"type":           contentType,
 		"device_id":      deviceID,
 		"device_type":    deviceType,
-		"updated_at":     time.Now(),
+		"updated_at":     stdtime.Now(),
 		"content_html":   contentHTML,
 		"content_format": contentFormat,
 		"content_hash":   computeContentHash(content),
@@ -158,16 +177,19 @@ func (s *clipboardService) UpdateClipboard(id, title, content, contentType, devi
 		return nil, err
 	}
 
-	// 记录同步历史
-	syncHistory := &model.SyncHistory{
-		Action:    model.ActionUpdate,
-		Content:   "更新剪贴板内容: " + contentType,
-		DeviceID:  deviceID,
-		ChannelID: channelID,
-		CreatedAt: time.Now(),
+	// 记录同步事件
+	syncEvent := &model.SyncEvent{
+		Action:     model.ActionUpdate,
+		Content:    "更新剪贴板内容: " + contentType,
+		DeviceID:   deviceID,
+		ChannelID:  channelID,
+		TargetType: model.TargetTypeClipboard,
+		TargetID:   id,
+		Summary:    "更新剪贴板内容",
+		CreatedAt:  stdtime.Now(),
 	}
 
-	if err := s.syncHistoryRepo.Save(syncHistory); err != nil {
+	if err := s.syncEventRepo.Save(syncEvent); err != nil {
 		return nil, err
 	}
 
@@ -186,7 +208,7 @@ func (s *clipboardService) ToggleFavorite(id string, isFavorite bool, channelID 
 	// 设置收藏状态为指定值
 	updates := map[string]any{
 		"favorite":   isFavorite,
-		"updated_at": time.Now(),
+		"updated_at": stdtime.Now(),
 	}
 
 	// 更新到数据库
@@ -194,17 +216,20 @@ func (s *clipboardService) ToggleFavorite(id string, isFavorite bool, channelID 
 		return nil, err
 	}
 
-	// 记录同步历史（如果提供了设备ID）
+	// 记录同步事件（如果提供了设备ID）
 	if len(deviceID) > 0 && deviceID[0] != "" {
-		syncHistory := &model.SyncHistory{
-			Action:    model.ActionUpdate,
-			Content:   item.Title,
-			DeviceID:  deviceID[0],
-			ChannelID: channelID,
-			CreatedAt: time.Now(),
+		syncEvent := &model.SyncEvent{
+			Action:     model.ActionUpdate,
+			Content:    item.Title,
+			DeviceID:   deviceID[0],
+			ChannelID:  channelID,
+			TargetType: model.TargetTypeClipboard,
+			TargetID:   id,
+			Summary:    "切换收藏状态",
+			CreatedAt:  stdtime.Now(),
 		}
-		// 忽略同步历史保存错误，不影响主流程
-		_ = s.syncHistoryRepo.Save(syncHistory)
+		// 忽略同步事件保存错误，不影响主流程
+		_ = s.syncEventRepo.Save(syncEvent)
 	}
 
 	// 获取更新后的数据
@@ -216,19 +241,19 @@ func (s *clipboardService) GetFavoriteClipboard(channelID string, limit int) ([]
 	return s.clipboardRepo.FindFavorites(channelID, limit)
 }
 
-// GetClipboardByType 按内容类型获取剪贴板历史记录
-func (s *clipboardService) GetClipboardByType(contentType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
-	return s.clipboardRepo.FindByType(contentType, channelID, page, size)
+// GetClipboardByType 按内容类型获取剪贴板历史记录（keyset 游标分页）
+func (s *clipboardService) GetClipboardByType(contentType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
+	return s.clipboardRepo.FindByType(contentType, channelID, afterCreatedAt, afterID, size)
 }
 
-// GetClipboardByDeviceType 按设备类型获取剪贴板历史记录
-func (s *clipboardService) GetClipboardByDeviceType(deviceType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
-	return s.clipboardRepo.FindByDeviceType(deviceType, channelID, page, size)
+// GetClipboardByDeviceType 按设备类型获取剪贴板历史记录（keyset 游标分页）
+func (s *clipboardService) GetClipboardByDeviceType(deviceType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
+	return s.clipboardRepo.FindByDeviceType(deviceType, channelID, afterCreatedAt, afterID, size)
 }
 
-// GetClipboardByTypeAndDeviceType 同时按内容类型和设备类型获取剪贴板历史记录
-func (s *clipboardService) GetClipboardByTypeAndDeviceType(contentType, deviceType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
-	return s.clipboardRepo.FindByTypeAndDeviceType(contentType, deviceType, channelID, page, size)
+// GetClipboardByTypeAndDeviceType 同时按内容类型和设备类型获取剪贴板历史记录（keyset 游标分页）
+func (s *clipboardService) GetClipboardByTypeAndDeviceType(contentType, deviceType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
+	return s.clipboardRepo.FindByTypeAndDeviceType(contentType, deviceType, channelID, afterCreatedAt, afterID, size)
 }
 
 // SearchClipboard 按关键词搜索剪贴板项目

@@ -1,41 +1,43 @@
 package persistence
 
 import (
+	"time"
+
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/infra/db"
 )
 
-// syncHistoryRepository 同步历史仓库实现
-type syncHistoryRepository struct{}
+// syncEventRepository 同步事件仓库实现
+type syncEventRepository struct{}
 
-// NewSyncHistoryRepository 创建新的同步历史仓库
-func NewSyncHistoryRepository() repository.SyncHistoryRepository {
-	return &syncHistoryRepository{}
+// NewSyncEventRepository 创建新的同步事件仓库
+func NewSyncEventRepository() repository.SyncEventRepository {
+	return &syncEventRepository{}
 }
 
-// Save 保存同步历史
-func (r *syncHistoryRepository) Save(history *model.SyncHistory) error {
-	return db.GetDB().Create(history).Error
+// Save 保存同步事件
+func (r *syncEventRepository) Save(event *model.SyncEvent) error {
+	return db.GetDB().Create(event).Error
 }
 
-// FindByChannel 查找通道下的同步历史
-func (r *syncHistoryRepository) FindByChannel(channelID string, limit, offset int) ([]*model.SyncHistory, error) {
-	var histories []*model.SyncHistory
-	query := db.GetDB().Model(&model.SyncHistory{})
-
-	if channelID != "" {
-		query = query.Where("channel_id = ?", channelID)
+// FindByChannel 查找通道下的同步事件（keyset 游标分页）
+// 查询 limit+1 条，调用方用 len(events) > limit 判断 has_more。
+func (r *syncEventRepository) FindByChannel(channelID string, afterCreatedAt *time.Time, afterID *uint, limit int) ([]*model.SyncEvent, error) {
+	var events []*model.SyncEvent
+	query := db.GetDB().Where("channel_id = ?", channelID)
+	if afterCreatedAt != nil && afterID != nil {
+		query = query.Where("(created_at < ?) OR (created_at = ? AND id < ?)",
+			*afterCreatedAt, *afterCreatedAt, *afterID)
 	}
-
-	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&histories).Error
-	return histories, err
+	err := query.Order("created_at DESC, id DESC").Limit(limit + 1).Find(&events).Error
+	return events, err
 }
 
-// Count 统计通道下的同步历史数量
-func (r *syncHistoryRepository) Count(channelID string) (int64, error) {
+// Count 统计通道下的同步事件数量
+func (r *syncEventRepository) Count(channelID string) (int64, error) {
 	var count int64
-	query := db.GetDB().Model(&model.SyncHistory{})
+	query := db.GetDB().Model(&model.SyncEvent{})
 
 	if channelID != "" {
 		query = query.Where("channel_id = ?", channelID)

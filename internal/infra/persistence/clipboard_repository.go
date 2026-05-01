@@ -50,135 +50,59 @@ func (r *clipboardRepository) FindLatest(channelID string, limit int) ([]*model.
 	return items, err
 }
 
-// FindWithPagination 分页获取剪贴板项目
-func (r *clipboardRepository) FindWithPagination(channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error) {
-	offset := (page - 1) * size
+// FindWithKeyset 分页获取剪贴板项目（keyset 游标分页）
+// 查询 size+1 条，调用方用 len(items) > size 判断 has_more，然后裁掉第 size+1 条。
+func (r *clipboardRepository) FindWithKeyset(channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
 	var items []*model.ClipboardItem
-	var total int64
-
-	// 获取符合条件的记录总数
-	query := db.GetDB().Model(&model.ClipboardItem{})
-	if channelID != "" {
-		query = query.Where("channel_id = ?", channelID)
+	query := db.GetDB().Where("channel_id = ?", channelID)
+	if afterCreatedAt != nil && afterID != nil {
+		query = query.Where("(created_at < ?) OR (created_at = ? AND id < ?)",
+			*afterCreatedAt, *afterCreatedAt, *afterID)
 	}
-
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, 0, err
-	}
-
-	// 计算总页数
-	totalPages := int(total / int64(size))
-	if total%int64(size) > 0 {
-		totalPages++
-	}
-
-	// 获取分页数据
-	if err := query.Order("created_at DESC").Offset(offset).Limit(size).Find(&items).Error; err != nil {
-		return nil, 0, 0, err
-	}
-
-	return items, total, totalPages, nil
+	err := query.Order("created_at DESC, id DESC").Limit(size + 1).Find(&items).Error
+	return items, err
 }
 
-// FindByType 按类型查找剪贴板项目
-func (r *clipboardRepository) FindByType(contentType, channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error) {
-	offset := (page - 1) * size
+// FindByType 按类型查找剪贴板项目（keyset 游标分页）
+func (r *clipboardRepository) FindByType(contentType, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
 	var items []*model.ClipboardItem
-	var total int64
-
-	// 构建查询
-	query := db.GetDB().Model(&model.ClipboardItem{}).Where("type = ?", contentType)
-	if channelID != "" {
-		query = query.Where("channel_id = ?", channelID)
+	query := db.GetDB().Where("channel_id = ? AND type = ?", channelID, contentType)
+	if afterCreatedAt != nil && afterID != nil {
+		query = query.Where("(created_at < ?) OR (created_at = ? AND id < ?)",
+			*afterCreatedAt, *afterCreatedAt, *afterID)
 	}
-
-	// 获取总记录数
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, 0, err
-	}
-
-	// 计算总页数
-	totalPages := int(total / int64(size))
-	if total%int64(size) > 0 {
-		totalPages++
-	}
-
-	// 获取分页数据
-	if err := query.Order("created_at DESC").Offset(offset).Limit(size).Find(&items).Error; err != nil {
-		return nil, 0, 0, err
-	}
-
-	return items, total, totalPages, nil
+	err := query.Order("created_at DESC, id DESC").Limit(size + 1).Find(&items).Error
+	return items, err
 }
 
-// FindByDeviceType 按设备类型查找剪贴板项目
-func (r *clipboardRepository) FindByDeviceType(deviceType, channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error) {
-	offset := (page - 1) * size
+// FindByDeviceType 按设备类型查找剪贴板项目（keyset 游标分页）
+func (r *clipboardRepository) FindByDeviceType(deviceType, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
 	var items []*model.ClipboardItem
-	var total int64
-
-	// 构建查询
-	query := db.GetDB().Model(&model.ClipboardItem{}).Where("device_type = ?", deviceType)
-	if channelID != "" {
-		query = query.Where("channel_id = ?", channelID)
+	query := db.GetDB().Where("channel_id = ? AND device_type = ?", channelID, deviceType)
+	if afterCreatedAt != nil && afterID != nil {
+		query = query.Where("(created_at < ?) OR (created_at = ? AND id < ?)",
+			*afterCreatedAt, *afterCreatedAt, *afterID)
 	}
-
-	// 获取总记录数
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, 0, err
-	}
-
-	// 计算总页数
-	totalPages := int(total / int64(size))
-	if total%int64(size) > 0 {
-		totalPages++
-	}
-
-	// 获取分页数据
-	if err := query.Order("created_at DESC").Offset(offset).Limit(size).Find(&items).Error; err != nil {
-		return nil, 0, 0, err
-	}
-
-	return items, total, totalPages, nil
+	err := query.Order("created_at DESC, id DESC").Limit(size + 1).Find(&items).Error
+	return items, err
 }
 
-// FindByTypeAndDeviceType 同时按内容类型和设备类型查找剪贴板项目
-func (r *clipboardRepository) FindByTypeAndDeviceType(contentType, deviceType, channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error) {
+// FindByTypeAndDeviceType 同时按内容类型和设备类型查找剪贴板项目（keyset 游标分页）
+func (r *clipboardRepository) FindByTypeAndDeviceType(contentType, deviceType, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
 	var items []*model.ClipboardItem
-	var total int64
-
-	query := db.GetDB().Model(&model.ClipboardItem{})
-
-	if channelID != "" {
-		query = query.Where("channel_id = ?", channelID)
-	}
-
+	query := db.GetDB().Where("channel_id = ?", channelID)
 	if contentType != "" {
 		query = query.Where("type = ?", contentType)
 	}
-
 	if deviceType != "" {
 		query = query.Where("device_type = ?", deviceType)
 	}
-
-	// 获取总记录数
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, 0, err
+	if afterCreatedAt != nil && afterID != nil {
+		query = query.Where("(created_at < ?) OR (created_at = ? AND id < ?)",
+			*afterCreatedAt, *afterCreatedAt, *afterID)
 	}
-
-	// 计算总页数
-	totalPages := int(total / int64(size))
-	if total%int64(size) > 0 {
-		totalPages++
-	}
-
-	// 获取分页数据
-	offset := (page - 1) * size
-	if err := query.Order("created_at DESC").Offset(offset).Limit(size).Find(&items).Error; err != nil {
-		return nil, 0, 0, err
-	}
-
-	return items, total, totalPages, nil
+	err := query.Order("created_at DESC, id DESC").Limit(size + 1).Find(&items).Error
+	return items, err
 }
 
 // FindFavorites 查找收藏的剪贴板项目
@@ -387,7 +311,7 @@ func (r *clipboardRepository) CountByType(contentType, channelID string) (int64,
 	return count, err
 }
 
-// SearchByKeyword 按关键词搜索剪贴板项目（支持标题和内容搜索）
+// SearchByKeyword 按关键词搜索剪贴板项目（支持标题和内容搜索，offset 分页）
 func (r *clipboardRepository) SearchByKeyword(keyword, channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error) {
 	offset := (page - 1) * size
 	var items []*model.ClipboardItem

@@ -58,6 +58,7 @@ export default function Home() {
     isLoadingMore,
     hasMore,
     fetchClipboardData,
+    fetchTabData,
     loadMoreData,
     handleSaveClipboardContent,
     handleCopy,
@@ -368,9 +369,13 @@ export default function Home() {
       setSearchPage(1);
       setHasMoreSearch(false);
     }
-    
+
     setActiveTab(tab);
-    // 过滤逻辑已移到上方的 useEffect 中
+
+    // 对非搜索 tab，从服务端按 tab 类型拉取数据（本地过滤仅用于搜索结果）
+    if (tab !== 'search') {
+      fetchTabData(tab);
+    }
   };
 
   // 包装loadMoreData函数，传递当前activeTab

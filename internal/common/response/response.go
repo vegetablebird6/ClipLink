@@ -121,6 +121,12 @@ type PageResult struct {
 	TotalPages int         `json:"totalPages"` // 总页数
 }
 
+// KeysetResult keyset 游标分页结果
+type KeysetResult struct {
+	Items   interface{} `json:"items"`   // 分页数据
+	HasMore bool        `json:"has_more"` // 是否还有更多数据
+}
+
 // SuccessWithPage 返回分页数据
 func SuccessWithPage(c *gin.Context, items interface{}, total int64, page, size int, totalPages int) {
 	// 处理nil或者nil切片
@@ -154,5 +160,29 @@ func SuccessWithPage(c *gin.Context, items interface{}, total int64, page, size 
 		Page:       page,
 		Size:       size,
 		TotalPages: totalPages,
+	}, "获取成功")
+}
+
+// SuccessWithKeyset 返回 keyset 游标分页数据
+func SuccessWithKeyset(c *gin.Context, items interface{}, hasMore bool) {
+	if items == nil {
+		items = []interface{}{}
+	} else {
+		v := reflect.ValueOf(items)
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				items = []interface{}{}
+			} else {
+				v = v.Elem()
+			}
+		}
+		if v.Kind() == reflect.Slice && v.IsNil() {
+			items = []interface{}{}
+		}
+	}
+
+	Success(c, KeysetResult{
+		Items:   items,
+		HasMore: hasMore,
 	}, "获取成功")
 }

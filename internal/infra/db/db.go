@@ -107,14 +107,22 @@ func gormLogLevel(level string) logger.LogLevel {
 
 // MigrateDB 执行数据库表迁移
 func MigrateDB() error {
-	// 统一迁移所有表结构
-	return instance.AutoMigrate(
+	// 重命名旧表 sync_histories → sync_events（忽略不存在的错误，首次运行时无旧表）
+	_ = instance.Migrator().RenameTable("sync_histories", "sync_events")
+
+	// 统一迁移所有表结构（AutoMigrate 处理列变更，不管理索引）
+	if err := instance.AutoMigrate(
 		&model.ClipboardItem{},
 		&model.Channel{},
 		&model.Device{},
 		&model.DeviceChannel{},
-		&model.SyncHistory{},
-	)
+		&model.SyncEvent{},
+	); err != nil {
+		return err
+	}
+
+	// 索引由 raw SQL 管理，列顺序精确控制
+	return EnsureIndexes()
 }
 
 // Close 关闭数据库连接

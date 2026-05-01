@@ -78,13 +78,14 @@ func (s *deviceService) GetDeviceByID(deviceID string) (*model.Device, error) {
 	return s.deviceRepo.FindByID(deviceID)
 }
 
-// UpdateDevice 更新设备信息
+// UpdateDevice 更新设备信息。deviceType 为空时只更新 name。
 func (s *deviceService) UpdateDevice(deviceID string, name string, deviceType string) (*model.Device, error) {
-	// 构建更新内容
 	updates := map[string]interface{}{
 		"name":       name,
-		"type":       deviceType,
 		"updated_at": time.Now(),
+	}
+	if deviceType != "" {
+		updates["type"] = deviceType
 	}
 
 	// 更新设备

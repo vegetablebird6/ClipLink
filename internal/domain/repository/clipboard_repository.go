@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 )
 
@@ -15,17 +17,17 @@ type ClipboardRepository interface {
 	// FindLatest 获取最新的剪贴板项目
 	FindLatest(channelID string, limit int) ([]*model.ClipboardItem, error)
 
-	// FindWithPagination 分页获取剪贴板项目
-	FindWithPagination(channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error)
+	// FindWithKeyset 分页获取剪贴板项目（keyset 游标分页）
+	FindWithKeyset(channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
-	// FindByType 按类型查找剪贴板项目
-	FindByType(contentType, channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error)
+	// FindByType 按类型查找剪贴板项目（keyset 游标分页）
+	FindByType(contentType, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
-	// FindByDeviceType 按设备类型查找剪贴板项目
-	FindByDeviceType(deviceType, channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error)
+	// FindByDeviceType 按设备类型查找剪贴板项目（keyset 游标分页）
+	FindByDeviceType(deviceType, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
-	// FindByTypeAndDeviceType 同时按内容类型和设备类型查找剪贴板项目
-	FindByTypeAndDeviceType(contentType, deviceType, channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error)
+	// FindByTypeAndDeviceType 同时按内容类型和设备类型查找剪贴板项目（keyset 游标分页）
+	FindByTypeAndDeviceType(contentType, deviceType, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
 	// FindFavorites 查找收藏的剪贴板项目
 	FindFavorites(channelID string, limit int) ([]*model.ClipboardItem, error)
@@ -48,6 +50,6 @@ type ClipboardRepository interface {
 	// CountByType 按类型统计剪贴板项目数量
 	CountByType(contentType, channelID string) (int64, error)
 
-	// SearchByKeyword 按关键词搜索剪贴板项目（支持标题和内容搜索）
+	// SearchByKeyword 按关键词搜索剪贴板项目（offset 分页，结果按相关度排序）
 	SearchByKeyword(keyword, channelID string, page, size int) ([]*model.ClipboardItem, int64, int, error)
 }

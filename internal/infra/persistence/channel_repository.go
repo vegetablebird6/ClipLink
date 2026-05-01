@@ -53,11 +53,11 @@ func (r *channelRepository) Delete(channelID string, orphanDeviceOlderThan time.
 		}
 		result.ClipboardItemsDeleted = clipboardResult.RowsAffected
 
-		syncHistoryResult := tx.Where("channel_id = ?", channelID).Delete(&model.SyncHistory{})
-		if syncHistoryResult.Error != nil {
-			return syncHistoryResult.Error
+		syncEventsResult := tx.Where("channel_id = ?", channelID).Delete(&model.SyncEvent{})
+		if syncEventsResult.Error != nil {
+			return syncEventsResult.Error
 		}
-		result.SyncHistoryDeleted = syncHistoryResult.RowsAffected
+		result.SyncEventsDeleted = syncEventsResult.RowsAffected
 
 		deviceLinksResult := tx.Where("channel_id = ?", channelID).Delete(&model.DeviceChannel{})
 		if deviceLinksResult.Error != nil {

@@ -32,8 +32,8 @@ func TestChannelRepositoryDeleteCascadesChannelDataAndOldOrphanDevices(t *testin
 		&model.Channel{ID: otherChannelID, CreatedAt: now, UpdatedAt: now},
 		&model.ClipboardItem{ID: "clip-delete", ChannelID: deleteChannelID, Content: "delete", Type: model.TypeText, CreatedAt: now, UpdatedAt: now},
 		&model.ClipboardItem{ID: "clip-other", ChannelID: otherChannelID, Content: "keep", Type: model.TypeText, CreatedAt: now, UpdatedAt: now},
-		&model.SyncHistory{Action: model.ActionSync, Content: "delete", ChannelID: deleteChannelID, CreatedAt: now},
-		&model.SyncHistory{Action: model.ActionSync, Content: "keep", ChannelID: otherChannelID, CreatedAt: now},
+		&model.SyncEvent{Action: model.ActionSync, Content: "delete", ChannelID: deleteChannelID, CreatedAt: now},
+		&model.SyncEvent{Action: model.ActionSync, Content: "keep", ChannelID: otherChannelID, CreatedAt: now},
 		&model.Device{ID: "old-linked-delete", LastSeen: now.Add(-45 * 24 * time.Hour), CreatedAt: now, UpdatedAt: now},
 		&model.Device{ID: "recent-linked-delete", LastSeen: now.Add(-2 * 24 * time.Hour), CreatedAt: now, UpdatedAt: now},
 		&model.Device{ID: "old-linked-other", LastSeen: now.Add(-45 * 24 * time.Hour), CreatedAt: now, UpdatedAt: now},
@@ -54,7 +54,7 @@ func TestChannelRepositoryDeleteCascadesChannelDataAndOldOrphanDevices(t *testin
 		t.Fatalf("delete channel: %v", err)
 	}
 
-	if result.ClipboardItemsDeleted != 1 || result.SyncHistoryDeleted != 1 || result.DeviceLinksDeleted != 2 || result.OrphanDevicesDeleted != 2 {
+	if result.ClipboardItemsDeleted != 1 || result.SyncEventsDeleted != 1 || result.DeviceLinksDeleted != 2 || result.OrphanDevicesDeleted != 2 {
 		t.Fatalf("unexpected delete result: %#v", result)
 	}
 
@@ -62,8 +62,8 @@ func TestChannelRepositoryDeleteCascadesChannelDataAndOldOrphanDevices(t *testin
 	assertCount(t, &model.Channel{}, "id = ?", otherChannelID, 1)
 	assertCount(t, &model.ClipboardItem{}, "channel_id = ?", deleteChannelID, 0)
 	assertCount(t, &model.ClipboardItem{}, "channel_id = ?", otherChannelID, 1)
-	assertCount(t, &model.SyncHistory{}, "channel_id = ?", deleteChannelID, 0)
-	assertCount(t, &model.SyncHistory{}, "channel_id = ?", otherChannelID, 1)
+	assertCount(t, &model.SyncEvent{}, "channel_id = ?", deleteChannelID, 0)
+	assertCount(t, &model.SyncEvent{}, "channel_id = ?", otherChannelID, 1)
 	assertCount(t, &model.DeviceChannel{}, "channel_id = ?", deleteChannelID, 0)
 	assertCount(t, &model.DeviceChannel{}, "channel_id = ?", otherChannelID, 1)
 	assertCount(t, &model.Device{}, "id = ?", "old-linked-delete", 0)

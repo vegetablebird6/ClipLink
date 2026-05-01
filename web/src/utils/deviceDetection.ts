@@ -40,4 +40,33 @@ export function getDeviceTypeLabel(deviceType: DeviceType): string {
     default:
       return '其他设备';
   }
-} 
+}
+
+/**
+ * 生成友好的默认设备名称，格式：OS Browser
+ * 无法识别时 fallback 到设备类型的中文描述
+ */
+export function generateDeviceName(): string {
+  if (typeof navigator === 'undefined') return '未知设备';
+
+  const ua = navigator.userAgent;
+
+  // OS
+  let os = '未知';
+  if (/iPhone/.test(ua))        os = 'iPhone';
+  else if (/iPad/.test(ua))     os = 'iPad';
+  else if (/Android/.test(ua))  os = 'Android';
+  else if (/Windows/.test(ua))  os = 'Windows';
+  else if (/Mac OS X/.test(ua)) os = 'Mac';
+  else if (/Linux/.test(ua))    os = 'Linux';
+
+  // Browser（顺序重要：Edge/Opera 在 Chrome 之前匹配）
+  let browser = '';
+  if (/Edg\//.test(ua))          browser = 'Edge';
+  else if (/OPR\//.test(ua))     browser = 'Opera';
+  else if (/Chrome\//.test(ua))  browser = 'Chrome';
+  else if (/Firefox\//.test(ua)) browser = 'Firefox';
+  else if (/Safari\//.test(ua))  browser = 'Safari';
+
+  return browser ? `${os} ${browser}` : os;
+}

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xiaojiu/cliplink/internal/common/response"
@@ -53,6 +54,45 @@ func paginationParams(ctx *gin.Context, defaultSize int) (int, int) {
 	return page, size
 }
 
+// keysetCursor 解析 keyset 游标分页参数：after（ISO 时间戳）和 after_id（上页最后一条 ID）
+func keysetCursor(ctx *gin.Context) (*time.Time, *string) {
+	afterStr := ctx.Query("after")
+	afterID := ctx.Query("after_id")
+	if afterStr == "" || afterID == "" {
+		return nil, nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, afterStr)
+	if err != nil {
+		// 兼容 ISO 8601 无时区格式
+		t, err = time.Parse("2006-01-02T15:04:05.999999999", afterStr)
+		if err != nil {
+			return nil, nil
+		}
+	}
+	return &t, &afterID
+}
+
+// keysetSize 解析 keyset 分页的 size 参数
+func keysetSize(ctx *gin.Context, defaultSize int) int {
+	size, err := strconv.Atoi(ctx.DefaultQuery("size", strconv.Itoa(defaultSize)))
+	if err != nil || size < 1 {
+		size = defaultSize
+	}
+	if size > 100 {
+		size = 100
+	}
+	return size
+}
+
+// keysetHasMore 判断 keyset 分页是否还有更多数据，并裁掉 size+1 条中的额外记录。
+// 调用约定：repository 查 size+1 条，items 可能有 size 或 size+1 条。
+func keysetHasMore[T any](items []T, size int) ([]T, bool) {
+	if len(items) > size {
+		return items[:size], true
+	}
+	return items, false
+}
+
 // SaveClipboard 保存剪贴板内容
 func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 	channelID, ok := clipboardChannelID(ctx)
@@ -83,6 +123,10 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 	}
 	if !validation.IsValidDeviceType(req.DeviceType) {
 		response.BadRequest(ctx, "invalid device type: "+req.DeviceType)
+		return
+	}
+	if !validation.IsValidContentFormat(req.ContentFormat) {
+		response.BadRequest(ctx, "invalid content format: "+req.ContentFormat)
 		return
 	}
 
@@ -166,23 +210,24 @@ func (c *ClipboardController) GetClipboardItem(ctx *gin.Context) {
 	response.Success(ctx, item, "获取成功")
 }
 
-// GetClipboardHistory 获取剪贴板历史记录
+// GetClipboardHistory 获取剪贴板历史记录（keyset 游标分页）
 func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
 	channelID, ok := clipboardChannelID(ctx)
 	if !ok {
 		return
 	}
 
-	page, size := paginationParams(ctx, 20)
+	size := keysetSize(ctx, 20)
+	afterCreatedAt, afterID := keysetCursor(ctx)
 
-	// 获取历史记录
-	items, total, totalPages, err := c.clipboardService.GetClipboardHistory(channelID, page, size)
+	items, err := c.clipboardService.GetClipboardHistory(channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	response.SuccessWithPage(ctx, items, total, page, size, totalPages)
+	items, hasMore := keysetHasMore(items, size)
+	response.SuccessWithKeyset(ctx, items, hasMore)
 }
 
 // DeleteClipboard 删除剪贴板项目
@@ -225,6 +270,19 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
+		return
+	}
+
+	if req.Type != "" && !validation.IsValidClipboardType(req.Type) {
+		response.BadRequest(ctx, "invalid clipboard type: "+req.Type)
+		return
+	}
+	if req.DeviceType != "" && !validation.IsValidDeviceType(req.DeviceType) {
+		response.BadRequest(ctx, "invalid device type: "+req.DeviceType)
+		return
+	}
+	if !validation.IsValidContentFormat(req.ContentFormat) {
+		response.BadRequest(ctx, "invalid content format: "+req.ContentFormat)
 		return
 	}
 
@@ -311,7 +369,7 @@ func (c *ClipboardController) GetFavoriteClipboard(ctx *gin.Context) {
 	response.Success(ctx, items, "获取成功")
 }
 
-// GetClipboardByType 按类型获取剪贴板项目
+// GetClipboardByType 按类型获取剪贴板项目（keyset 游标分页）
 func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
 	channelID, ok := clipboardChannelID(ctx)
 	if !ok {
@@ -323,19 +381,20 @@ func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
 		return
 	}
 
-	page, size := paginationParams(ctx, 20)
+	size := keysetSize(ctx, 20)
+	afterCreatedAt, afterID := keysetCursor(ctx)
 
-	// 按类型获取项目
-	items, total, totalPages, err := c.clipboardService.GetClipboardByType(clipType, channelID, page, size)
+	items, err := c.clipboardService.GetClipboardByType(clipType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	response.SuccessWithPage(ctx, items, total, page, size, totalPages)
+	items, hasMore := keysetHasMore(items, size)
+	response.SuccessWithKeyset(ctx, items, hasMore)
 }
 
-// GetClipboardByDeviceType 按设备类型获取剪贴板项目
+// GetClipboardByDeviceType 按设备类型获取剪贴板项目（keyset 游标分页）
 func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
 	channelID, ok := clipboardChannelID(ctx)
 	if !ok {
@@ -347,16 +406,17 @@ func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
 		return
 	}
 
-	page, size := paginationParams(ctx, 20)
+	size := keysetSize(ctx, 20)
+	afterCreatedAt, afterID := keysetCursor(ctx)
 
-	// 按设备类型获取项目
-	items, total, totalPages, err := c.clipboardService.GetClipboardByDeviceType(deviceType, channelID, page, size)
+	items, err := c.clipboardService.GetClipboardByDeviceType(deviceType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		response.ServerError(ctx, err.Error())
 		return
 	}
 
-	response.SuccessWithPage(ctx, items, total, page, size, totalPages)
+	items, hasMore := keysetHasMore(items, size)
+	response.SuccessWithKeyset(ctx, items, hasMore)
 }
 
 // GetCurrentClipboard 获取当前剪贴板内容（专用接口，避免路由冲突）

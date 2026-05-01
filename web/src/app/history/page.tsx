@@ -21,14 +21,12 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
-  // 分页相关状态
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // keyset 游标分页状态
   const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const pageSize = 12;
-  
-  // 搜索相关状态
+
+  // 搜索相关状态（搜索仍使用 offset 分页）
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState<ClipboardItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -36,53 +34,44 @@ export default function HistoryPage() {
   const [searchPage, setSearchPage] = useState(1);
   const [searchTotalPages, setSearchTotalPages] = useState(1);
   const [hasMoreSearch, setHasMoreSearch] = useState(false);
-  
-  // 添加一个ref，用于标记是否已初始化
+
   const isInitializedRef = useRef<boolean>(false);
 
-  // 获取剪贴板历史记录
-  const fetchHistory = useCallback(async (page = 1, type?: ClipboardType) => {
-    if (page === 1) {
+  // 获取剪贴板历史记录（keyset 游标分页）
+  const fetchHistory = useCallback(async (isLoadMore = false) => {
+    if (!isLoadMore) {
       setIsLoading(true);
     } else {
       setIsLoadingMore(true);
     }
-    
+
     try {
-      const response = await clipboardService.getClipboardHistory(page, pageSize, type);
-      
+      // 计算 cursor：取当前列表最后一条的 created_at + id
+      let after: string | undefined;
+      let afterId: string | undefined;
+      if (isLoadMore && historyItems.length > 0) {
+        const lastItem = historyItems[historyItems.length - 1];
+        after = lastItem.createdAt;
+        afterId = lastItem.id;
+      }
+
+      const response = await clipboardService.getClipboardHistory(pageSize, after, afterId);
+
       if (response.success && response.data) {
-        let items: ClipboardItem[] = [];
-        let currentPageValue = page;
-        let pagesValue = 1;
-        
-        if (Array.isArray(response.data)) {
-          // 数组格式
-          items = response.data;
-          currentPageValue = page;
-          pagesValue = 1;
-        } else if ('items' in response.data) {
-          // 对象格式
-          items = response.data.items;
-          currentPageValue = response.data.page;
-          pagesValue = response.data.totalPages;
-        }
-        
-        if (page === 1) {
-          // 首次加载或刷新
-          setHistoryItems(items);
-        } else {
-          // 加载更多时确保不存在重复ID
+        const items = response.data.items || [];
+        const responseHasMore = response.data.has_more || false;
+
+        if (isLoadMore) {
           setHistoryItems(prevItems => {
             const existingIds = new Set(prevItems.map(item => item.id));
             const uniqueNewItems = items.filter(item => !existingIds.has(item.id));
             return [...prevItems, ...uniqueNewItems];
           });
+        } else {
+          setHistoryItems(items);
         }
-        
-        setCurrentPage(currentPageValue);
-        setTotalPages(pagesValue);
-        setHasMore(currentPageValue < pagesValue);
+
+        setHasMore(responseHasMore);
       } else {
         showToast(response.message || '获取历史记录失败', 'error');
       }
@@ -92,22 +81,22 @@ export default function HistoryPage() {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [showToast, pageSize]);
+  }, [showToast, historyItems]);
 
-  // 搜索剪贴板项目
+  // 搜索剪贴板项目（offset 分页）
   const searchClipboard = useCallback(async (keyword: string, page = 1) => {
     if (page === 1) {
       setIsSearching(true);
     } else {
       setIsLoadingMore(true);
     }
-    
+
     try {
       const response = await clipboardService.searchClipboard(keyword, page, pageSize);
-      
+
       if (response.success && response.data) {
         const items = response.data.items;
-        
+
         if (page === 1) {
           setSearchResults(items);
         } else {
@@ -117,7 +106,7 @@ export default function HistoryPage() {
             return [...prevItems, ...uniqueNewItems];
           });
         }
-        
+
         setSearchPage(response.data.page);
         setSearchTotalPages(response.data.totalPages);
         setHasMoreSearch(response.data.page < response.data.totalPages);
@@ -145,24 +134,22 @@ export default function HistoryPage() {
   // 加载更多数据
   const loadMoreData = useCallback(() => {
     if (isSearchMode) {
-      // 搜索模式下加载更多搜索结果
       if (searchPage < searchTotalPages && !isLoadingMore && searchKeyword) {
         searchClipboard(searchKeyword, searchPage + 1);
       }
     } else {
-      // 普通模式下加载更多历史记录
-      if (currentPage < totalPages && !isLoadingMore) {
-        fetchHistory(currentPage + 1);
+      if (hasMore && !isLoadingMore) {
+        fetchHistory(true);
       }
     }
-  }, [isSearchMode, searchPage, searchTotalPages, isLoadingMore, searchKeyword, searchClipboard, currentPage, totalPages, fetchHistory]);
+  }, [isSearchMode, searchPage, searchTotalPages, isLoadingMore, searchKeyword, searchClipboard, hasMore, fetchHistory]);
 
   // 刷新数据
   const refreshData = useCallback(() => {
     if (isSearchMode && searchKeyword) {
       searchClipboard(searchKeyword, 1);
     } else {
-      fetchHistory(1);
+      fetchHistory(false);
     }
   }, [isSearchMode, searchKeyword, searchClipboard, fetchHistory]);
 
@@ -194,9 +181,8 @@ export default function HistoryPage() {
 
   // 初始化加载
   useEffect(() => {
-    // 只在初次渲染时加载数据
     if (!isInitializedRef.current) {
-      fetchHistory(1);
+      fetchHistory(false);
       isInitializedRef.current = true;
     }
   }, [fetchHistory]);
@@ -221,11 +207,10 @@ export default function HistoryPage() {
     if (!window.confirm('确定要删除这个历史记录吗？')) {
       return;
     }
-    
+
     try {
       const response = await clipboardService.deleteClipboard(item.id);
       if (response.success) {
-        // 更新列表
         setHistoryItems(prevItems => prevItems.filter(i => i.id !== item.id));
         if (isSearchMode) {
           setSearchResults(prevItems => prevItems.filter(i => i.id !== item.id));
@@ -244,10 +229,9 @@ export default function HistoryPage() {
     try {
       const response = await clipboardService.toggleFavorite(item.id, !item.isFavorite);
       if (response.success && response.data) {
-        // 更新列表中的项目
-        const updateItem = (items: ClipboardItem[]) => 
+        const updateItem = (items: ClipboardItem[]) =>
           items.map(i => i.id === item.id ? { ...i, isFavorite: !i.isFavorite } : i);
-        
+
         setHistoryItems(updateItem);
         if (isSearchMode) {
           setSearchResults(updateItem);
@@ -264,14 +248,13 @@ export default function HistoryPage() {
   // 保存编辑
   const handleSave = async (data: SaveClipboardRequest): Promise<boolean> => {
     if (!editingItem) return false;
-    
+
     try {
       const response = await clipboardService.updateClipboard(editingItem.id, data);
       if (response.success && response.data) {
-        // 更新列表中的项目
-        const updateItem = (items: ClipboardItem[]) => 
+        const updateItem = (items: ClipboardItem[]) =>
           items.map(i => i.id === editingItem.id ? response.data! : i);
-        
+
         setHistoryItems(updateItem);
         if (isSearchMode) {
           setSearchResults(updateItem);
@@ -304,17 +287,17 @@ export default function HistoryPage() {
               {isSearchMode ? `搜索 "${searchKeyword}" 的结果` : '查看您的剪贴板历史记录'}
             </p>
           </div>
-          <button 
+          <button
             onClick={refreshData}
             className="px-3 py-1 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 text-sm transition-colors"
           >
             刷新
           </button>
         </div>
-        
+
         {/* 搜索栏 */}
         <div className="max-w-md">
-          <SearchBar 
+          <SearchBar
             onSearch={handleSearch}
             onClear={handleClearSearch}
             isSearching={isSearching}
@@ -322,13 +305,13 @@ export default function HistoryPage() {
           />
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
         <div className="h-full overflow-y-auto custom-scrollbar p-4">
           {isLoading ? (
             <ClipboardGridSkeleton />
           ) : (
-            <ClipboardGrid 
+            <ClipboardGrid
               items={filteredItems}
               onCopy={handleCopy}
               onEdit={handleEdit}
@@ -342,8 +325,8 @@ export default function HistoryPage() {
           )}
         </div>
       </div>
-      
-      <EditModal 
+
+      <EditModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
@@ -352,8 +335,8 @@ export default function HistoryPage() {
         onSave={handleSave}
         initialData={editingItem}
       />
-      
-      <PreviewModal 
+
+      <PreviewModal
         isOpen={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
@@ -363,4 +346,4 @@ export default function HistoryPage() {
       />
     </>
   );
-} 
+}

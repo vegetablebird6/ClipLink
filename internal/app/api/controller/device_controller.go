@@ -176,6 +176,17 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 	}
 	deviceID := ctx.Param("deviceID")
 
+	// 先校验设备是否属于当前通道
+	inChannel, err := c.deviceService.IsDeviceInChannel(deviceID, channelID.(string))
+	if err != nil {
+		response.ServerError(ctx, err.Error())
+		return
+	}
+	if !inChannel {
+		response.NotFound(ctx, "device not found in channel")
+		return
+	}
+
 	// 绑定请求体 - 使用snake_case命名风格保持一致性
 	var req struct {
 		Name string `json:"device_name" binding:"required"`
@@ -187,8 +198,7 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 	}
 
 	// 更新设备名称
-	device, err := c.deviceService.UpdateDevice(deviceID, req.Name, "")
-	if err != nil {
+	if _, err := c.deviceService.UpdateDevice(deviceID, req.Name, ""); err != nil {
 		response.ServerError(ctx, err.Error())
 		return
 	}
@@ -196,16 +206,8 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 	// 获取设备在通道中的完整信息
 	deviceDTO, err := c.deviceService.GetDeviceInChannel(deviceID, channelID.(string))
 	if err != nil {
-		// 如果获取失败，返回基本设备信息
-		deviceDTO = &model.DeviceDTO{
-			ID:        device.ID,
-			Name:      device.Name,
-			Type:      device.Type,
-			ChannelID: channelID.(string),
-			LastSeen:  device.LastSeen,
-			IsOnline:  device.IsOnline,
-			CreatedAt: device.CreatedAt,
-		}
+		response.ServerError(ctx, err.Error())
+		return
 	}
 
 	response.Success(ctx, deviceDTO, "设备名称已更新")

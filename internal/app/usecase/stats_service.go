@@ -7,10 +7,10 @@ import (
 
 // statsService 统计服务实现
 type statsService struct {
-	deviceRepo      repository.DeviceRepository
-	clipboardRepo   repository.ClipboardRepository
-	channelRepo     repository.ChannelRepository
-	syncHistoryRepo repository.SyncHistoryRepository
+	deviceRepo    repository.DeviceRepository
+	clipboardRepo repository.ClipboardRepository
+	channelRepo   repository.ChannelRepository
+	syncEventRepo repository.SyncEventRepository
 }
 
 // NewStatsService 创建新的统计服务
@@ -18,13 +18,13 @@ func NewStatsService(
 	deviceRepo repository.DeviceRepository,
 	clipboardRepo repository.ClipboardRepository,
 	channelRepo repository.ChannelRepository,
-	syncHistoryRepo repository.SyncHistoryRepository,
+	syncEventRepo repository.SyncEventRepository,
 ) service.StatsService {
 	return &statsService{
-		deviceRepo:      deviceRepo,
-		clipboardRepo:   clipboardRepo,
-		channelRepo:     channelRepo,
-		syncHistoryRepo: syncHistoryRepo,
+		deviceRepo:    deviceRepo,
+		clipboardRepo: clipboardRepo,
+		channelRepo:   channelRepo,
+		syncEventRepo: syncEventRepo,
 	}
 }
 
@@ -88,7 +88,7 @@ func (s *statsService) GetChannelStats(channelID string) (map[string]interface{}
 	}
 
 	// 获取同步次数
-	syncCount, err := s.syncHistoryRepo.Count(channelID)
+	syncCount, err := s.syncEventRepo.Count(channelID)
 	if err != nil {
 		return nil, err
 	}

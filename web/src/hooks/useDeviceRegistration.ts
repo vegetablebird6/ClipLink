@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useChannel } from '@/contexts/ChannelContext';
 import { clipboardService } from '@/services/api';
-import { detectDeviceType } from '@/utils/deviceDetection';
+import { detectDeviceType, generateDeviceName } from '@/utils/deviceDetection';
 import { v4 as uuidv4 } from 'uuid';
 
 // 本地存储的设备ID键名
@@ -16,11 +16,10 @@ function getOrGenerateDeviceName(): string {
   // 尝试从本地存储获取设备名称
   const storedName = typeof window !== 'undefined' ? localStorage.getItem(DEVICE_NAME_KEY) : null;
   if (storedName) return storedName;
-  
-  // 生成默认设备名称
-  const deviceType = detectDeviceType();
-  const defaultName = `${deviceType === 'desktop' ? '电脑' : deviceType === 'tablet' ? '平板' : '手机'}-${Math.random().toString(36).substring(2, 6)}`;
-  
+
+  // 生成默认设备名称（OS + Browser 格式）
+  const defaultName = generateDeviceName();
+
   // 存储生成的名称
   if (typeof window !== 'undefined') localStorage.setItem(DEVICE_NAME_KEY, defaultName);
   return defaultName;

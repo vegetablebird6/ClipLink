@@ -70,14 +70,14 @@ func BuildRouterWithConfig(cfg *config.Config) (*gin.Engine, error) {
 	channelRepo := persistence.NewChannelRepository()
 	clipboardRepo := persistence.NewClipboardRepository()
 	deviceRepo := persistence.NewDeviceRepository()
-	syncHistoryRepo := persistence.NewSyncHistoryRepository()
+	syncEventRepo := persistence.NewSyncEventRepository()
 
 	// 6. 创建服务
 	channelService := usecase.NewChannelService(channelRepo, clipboardRepo, deviceRepo)
-	clipboardService := usecase.NewClipboardService(clipboardRepo, syncHistoryRepo)
+	clipboardService := usecase.NewClipboardService(clipboardRepo, syncEventRepo)
 	deviceService := usecase.NewDeviceService(deviceRepo)
-	statsService := usecase.NewStatsService(deviceRepo, clipboardRepo, channelRepo, syncHistoryRepo)
-	syncService := usecase.NewSyncService(syncHistoryRepo)
+	statsService := usecase.NewStatsService(deviceRepo, clipboardRepo, channelRepo, syncEventRepo)
+	syncService := usecase.NewSyncService(syncEventRepo)
 
 	// 7. 注册 API 路由
 	routes.SetupRouter(

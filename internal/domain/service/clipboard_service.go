@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 )
 
@@ -15,8 +17,8 @@ type ClipboardService interface {
 	// GetClipboardItem 获取剪贴板项目
 	GetClipboardItem(id string, channelID string) (*model.ClipboardItem, error)
 
-	// GetClipboardHistory 获取剪贴板历史记录
-	GetClipboardHistory(channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+	// GetClipboardHistory 获取剪贴板历史记录（keyset 游标分页）
+	GetClipboardHistory(channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
 	// DeleteClipboard 删除剪贴板项目
 	DeleteClipboard(id string, channelID string) error
@@ -30,16 +32,16 @@ type ClipboardService interface {
 	// GetFavoriteClipboard 获取收藏的剪贴板项目
 	GetFavoriteClipboard(channelID string, limit int) ([]*model.ClipboardItem, error)
 
-	// GetClipboardByType 按内容类型获取剪贴板历史记录
-	GetClipboardByType(contentType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+	// GetClipboardByType 按内容类型获取剪贴板历史记录（keyset 游标分页）
+	GetClipboardByType(contentType string, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
-	// GetClipboardByDeviceType 按设备类型获取剪贴板历史记录
-	GetClipboardByDeviceType(deviceType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+	// GetClipboardByDeviceType 按设备类型获取剪贴板历史记录（keyset 游标分页）
+	GetClipboardByDeviceType(deviceType string, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
-	// GetClipboardByTypeAndDeviceType 同时按内容类型和设备类型获取剪贴板历史记录
-	GetClipboardByTypeAndDeviceType(contentType, deviceType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+	// GetClipboardByTypeAndDeviceType 同时按内容类型和设备类型获取剪贴板历史记录（keyset 游标分页）
+	GetClipboardByTypeAndDeviceType(contentType, deviceType string, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
-	// SearchClipboard 按关键词搜索剪贴板项目
+	// SearchClipboard 按关键词搜索剪贴板项目（offset 分页）
 	SearchClipboard(keyword, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
 
 	// CleanupDuplicateContents 清理重复内容

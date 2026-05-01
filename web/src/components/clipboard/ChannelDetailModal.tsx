@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faEye, 
-  faEyeSlash, 
-  faCopy, 
-  faQrcode, 
+import {
+  faEye,
+  faEyeSlash,
+  faCopy,
+  faQrcode,
   faTimes,
   faKey,
   faShareNodes,
@@ -19,7 +19,8 @@ import {
   faTablet,
   faSignOutAlt,
   faExclamationTriangle,
-  faTrash
+  faTrash,
+  faPencil
 } from '@fortawesome/free-solid-svg-icons';
 import { useToast } from '@/contexts/ToastContext';
 import AnimatedModal from '../ui/AnimatedModal';
@@ -59,6 +60,9 @@ interface SyncRecord {
   content: string;
   device_id: string;
   channel_id: string;
+  target_type: string;
+  target_id: string;
+  summary: string;
   created_at: string;
 }
 
@@ -107,11 +111,20 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   const [channelStats, setChannelStats] = useState<ChannelStats | null>(null);
   const [connectedDevices, setConnectedDevices] = useState<Device[]>([]);
   const [syncHistory, setSyncHistory] = useState<SyncRecord[]>([]);
-  const [syncHistoryOffset, setSyncHistoryOffset] = useState(0);
   const [hasMoreSyncHistory, setHasMoreSyncHistory] = useState(true);
   const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
   const [isApiTesting, setIsApiTesting] = useState(false);
   const [apiTestResults, setApiTestResults] = useState<any>(null);
+
+  // 当前设备 ID（用于标记"当前设备"和控制编辑权限）
+  const currentDeviceId = typeof window !== 'undefined'
+    ? localStorage.getItem('clipboard_device_id')
+    : null;
+
+  // 设备名称内联编辑状态
+  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
+  const [editingDeviceName, setEditingDeviceName] = useState('');
+  const editCancelRef = useRef(false);
 
   // 添加API调试功能
   const runApiTests = async () => {
@@ -169,24 +182,33 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
     }
   };
 
-  // 获取同步历史
-  const fetchSyncHistory = async (offset: number = 0, append: boolean = false) => {
+  // 获取同步历史（keyset 游标分页）
+  const fetchSyncHistory = async (append: boolean = false) => {
     if (!channelId || !isChannelVerified) {
       return;
     }
 
     try {
       if (append) setIsLoadingMoreHistory(true);
-      const response: any = await clipboardService.getSyncHistory(10, offset);
-      if (response.success) {
-        const records = response.data || [];
+
+      // 计算 cursor
+      let after: string | undefined;
+      let afterId: string | undefined;
+      if (append && syncHistory.length > 0) {
+        const last = syncHistory[syncHistory.length - 1];
+        after = last.created_at;
+        afterId = String(last.id);
+      }
+
+      const response: any = await clipboardService.getSyncHistory(10, after, afterId);
+      if (response.success && response.data) {
+        const records = response.data.items || response.data || [];
         if (append) {
           setSyncHistory(prev => [...prev, ...records]);
         } else {
           setSyncHistory(records);
         }
-        setSyncHistoryOffset(offset + records.length);
-        setHasMoreSyncHistory(records.length === 10);
+        setHasMoreSyncHistory(response.data.has_more ?? (records.length === 10));
       } else {
         showToast(response.message || '获取同步历史失败', 'error');
       }
@@ -351,6 +373,54 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
     const device = connectedDevices.find(d => d.id === deviceId);
     return device ? device.name : deviceId;
   };
+
+  // 设备类型中文标签
+  const getDeviceTypeLabel = (type: string) => {
+    switch (type) {
+      case 'desktop': return '桌面';
+      case 'phone':   return '手机';
+      case 'tablet':  return '平板';
+      default:        return '设备';
+    }
+  };
+
+  // 设备 ID 短码（取后 8 位）
+  const getDeviceShortId = (id: string) => id.replace(/-/g, '').slice(-8);
+
+  // 提交设备名称（Enter 或 blur 触发，立即退出编辑态防止重复调用）
+  const commitDeviceName = useCallback(async (deviceId: string) => {
+    if (editCancelRef.current) {
+      editCancelRef.current = false;
+      return;
+    }
+    const name = editingDeviceName.trim();
+    // 立即退出编辑态，input 卸载后不会再次触发 blur
+    setEditingDeviceId(null);
+    if (!name) {
+      return;
+    }
+    try {
+      const res = await clipboardService.updateDeviceName(deviceId, name);
+      if (res.success) {
+        setConnectedDevices(prev =>
+          prev.map(d => d.id === deviceId ? { ...d, name } : d)
+        );
+        if (deviceId === currentDeviceId) {
+          localStorage.setItem('clipboard_device_name', name);
+        }
+      } else {
+        showToast(res.message || '更新失败', 'error');
+      }
+    } catch {
+      showToast('更新设备名称失败', 'error');
+    }
+  }, [editingDeviceName, currentDeviceId, showToast]);
+
+  // 取消编辑（Escape 触发）
+  const cancelEdit = useCallback(() => {
+    editCancelRef.current = true;
+    setEditingDeviceId(null);
+  }, []);
   
   // 遮罩通道ID
   const maskedChannelId = channelId ? '•'.repeat(Math.min(channelId.length, 20)) : '';
@@ -713,28 +783,61 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                     
                     {connectedDevices.length > 0 ? (
                       <div className="space-y-3">
-                        {connectedDevices.map(device => (
-                          <div 
+                        {connectedDevices.map(device => {
+                          const isCurrentDevice = device.id === currentDeviceId;
+                          const isEditing = editingDeviceId === device.id;
+                          return (
+                          <div
                             key={device.id}
                             className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all hover:shadow-md"
                           >
-                            <div className="flex items-center">
-                              <div className={`p-2.5 rounded-full ${
+                            <div className="flex items-center min-w-0">
+                              <div className={`p-2.5 rounded-full shrink-0 ${
                                 device.type === 'desktop' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
                                 device.type === 'phone' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
                                 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
                               }`}>
                                 <FontAwesomeIcon icon={getDeviceIcon(device.type)} />
                               </div>
-                              <div className="ml-3">
-                                <div className="font-medium text-gray-900 dark:text-white">{device.name}</div>
-                                <div className="text-sm text-gray-500 dark:text-gray-400">
-                                  {device.is_online ? '当前在线' : `最后活动：${formatTime(device.last_seen)}`}
+                              <div className="ml-3 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  {isEditing ? (
+                                    <input
+                                      autoFocus
+                                      value={editingDeviceName}
+                                      onChange={e => setEditingDeviceName(e.target.value)}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') { e.preventDefault(); commitDeviceName(device.id); }
+                                        if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                                      }}
+                                      onBlur={() => commitDeviceName(device.id)}
+                                      className="font-medium text-gray-900 dark:text-white bg-transparent border-b border-blue-400 outline-none w-40"
+                                    />
+                                  ) : (
+                                    <span className="font-medium text-gray-900 dark:text-white truncate">{device.name}</span>
+                                  )}
+                                  {isCurrentDevice && !isEditing && (
+                                    <button
+                                      onClick={() => { setEditingDeviceId(device.id); setEditingDeviceName(device.name); }}
+                                      className="text-gray-400 hover:text-blue-500 transition-colors"
+                                      title="编辑设备名称"
+                                    >
+                                      <FontAwesomeIcon icon={faPencil} className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                  {isCurrentDevice && (
+                                    <span className="shrink-0 text-[11px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-medium">
+                                      当前设备
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                  {getDeviceTypeLabel(device.type)} · {getDeviceShortId(device.id)}
                                 </div>
                               </div>
                             </div>
-                            
-                            <div className="flex items-center">
+
+                            <div className="flex items-center shrink-0 ml-3">
                               <div className={`h-2.5 w-2.5 rounded-full mr-2 ${
                                 device.is_online ? 'bg-green-400 dark:bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
                               }`}></div>
@@ -743,7 +846,8 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                               </span>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-10 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
@@ -833,7 +937,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                     {hasMoreSyncHistory && (
                       <div className="text-center mt-6">
                         <button
-                          onClick={() => fetchSyncHistory(syncHistoryOffset, true)}
+                          onClick={() => fetchSyncHistory(true)}
                           disabled={isLoadingMoreHistory}
                           className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
                         >

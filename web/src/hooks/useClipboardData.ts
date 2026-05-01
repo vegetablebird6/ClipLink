@@ -19,8 +19,6 @@ interface UseClipboardDataReturn {
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
-  currentPage: number;
-  totalPages: number;
   fetchClipboardData: () => Promise<void>;
   fetchTabData: (tab: ClipboardFilterType) => Promise<void>;
   loadMoreData: (activeTab: ClipboardFilterType) => Promise<void>;
@@ -44,8 +42,6 @@ export const useClipboardData = ({
   const [clipboardItems, setClipboardItems] = useState<ClipboardItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   
   const { showToast } = useToast();
@@ -83,37 +79,22 @@ export const useClipboardData = ({
       showToast('请先验证通道', 'warning');
       return;
     }
-    
+
     try {
       setIsLoading(true);
       const [latestRes, historyRes] = await Promise.all([
         clipboardService.getLatestClipboard(),
-        clipboardService.getClipboardHistory(1, pageSize)
+        clipboardService.getClipboardHistory(pageSize)
       ]);
-      
+
       if (latestRes.success && latestRes.data) {
         setCurrentClipboard(latestRes.data);
       }
-      
+
       if (historyRes.success && historyRes.data) {
-        let items: ClipboardItem[] = [];
-        let pageValue = 1;
-        let pagesValue = 1;
-        
-        if (Array.isArray(historyRes.data)) {
-          items = historyRes.data;
-          pageValue = 1;
-          pagesValue = 1;
-        } else if ('items' in historyRes.data) {
-          items = historyRes.data.items;
-          pageValue = historyRes.data.page;
-          pagesValue = historyRes.data.totalPages;
-        }
-        
+        const items = historyRes.data.items || [];
         setClipboardItems(dedupeItemsForDisplay(items));
-        setCurrentPage(pageValue);
-        setTotalPages(pagesValue);
-        setHasMore(pageValue < pagesValue);
+        setHasMore(historyRes.data.has_more || false);
       }
     } catch (error) {
       showToast('获取数据失败', 'error');
@@ -127,43 +108,37 @@ export const useClipboardData = ({
       showToast('请先验证通道', 'warning');
       return;
     }
-    
-    if (currentPage >= totalPages || isLoadingMore) return;
-    
+
+    if (!hasMore || isLoadingMore) return;
+
     try {
       setIsLoadingMore(true);
-      const nextPage = currentPage + 1;
-      
+
+      // 取最后一条作为 cursor
+      const lastItem = clipboardItems[clipboardItems.length - 1];
+      const after = lastItem?.createdAt;
+      const afterId = lastItem?.id;
+
       let response;
       if (activeTab === 'favorite') {
-        response = await clipboardService.getFavorites(nextPage, pageSize);
+        response = await clipboardService.getFavorites(1, pageSize);
       } else if (activeTab === 'all') {
-        response = await clipboardService.getClipboardHistory(nextPage, pageSize);
+        response = await clipboardService.getClipboardHistory(pageSize, after, afterId);
       } else {
-        response = await clipboardService.getClipboardHistory(
-          nextPage, 
-          pageSize, 
-          activeTab as ClipboardType
-        );
+        response = await clipboardService.getClipboardByType(activeTab as ClipboardType, pageSize, after, afterId);
       }
-      
+
       if (response.success && response.data) {
         const existingIds = new Set(clipboardItems.map(item => item.id));
-        
+
         if ('items' in response.data) {
-          const { items, page, totalPages: pages } = response.data;
-          
+          const items = response.data.items || [];
           const uniqueNewItems = dedupeItemsForDisplay(items).filter(item => !existingIds.has(item.id));
-          
           setClipboardItems(prevItems => [...prevItems, ...uniqueNewItems]);
-          setCurrentPage(page);
-          setTotalPages(pages);
-          setHasMore(page < pages);
+          setHasMore('has_more' in response.data ? (response.data as {has_more?: boolean}).has_more || false : items.length === pageSize);
         } else if (Array.isArray(response.data)) {
           const uniqueFilteredItems = dedupeItemsForDisplay(response.data).filter(item => !existingIds.has(item.id));
-          
           setClipboardItems(prevItems => [...prevItems, ...uniqueFilteredItems]);
-          setCurrentPage(nextPage);
           setHasMore(false);
         }
       }
@@ -172,7 +147,7 @@ export const useClipboardData = ({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [currentPage, totalPages, isLoadingMore, showToast, clipboardItems, pageSize, isChannelVerified, dedupeItemsForDisplay]);
+  }, [hasMore, isLoadingMore, showToast, clipboardItems, pageSize, isChannelVerified, dedupeItemsForDisplay]);
   
   const handleSaveClipboardContent = useCallback(async (payload: RichClipboardContent) => {
     if (!isChannelVerified) {
@@ -416,42 +391,30 @@ export const useClipboardData = ({
       showToast('请先验证通道', 'warning');
       return;
     }
-    
+
     try {
       setIsLoading(true);
       let response;
-      
+
       if (tab === 'favorite') {
         response = await clipboardService.getFavorites(1, pageSize);
       } else if (tab === 'all') {
-        response = await clipboardService.getClipboardHistory(1, pageSize);
+        response = await clipboardService.getClipboardHistory(pageSize);
       } else {
-        response = await clipboardService.getClipboardHistory(
-          1, 
-          pageSize, 
-          tab as ClipboardType
-        );
+        response = await clipboardService.getClipboardByType(tab as ClipboardType, pageSize);
       }
-      
+
       if (response.success && response.data) {
         let items: ClipboardItem[] = [];
-        let pageValue = 1;
-        let pagesValue = 1;
-        
+
         if (Array.isArray(response.data)) {
           items = response.data;
-          pageValue = 1;
-          pagesValue = 1;
         } else if ('items' in response.data) {
-          items = response.data.items;
-          pageValue = response.data.page;
-          pagesValue = response.data.totalPages;
+          items = response.data.items || [];
         }
-        
+
         setClipboardItems(dedupeItemsForDisplay(items));
-        setCurrentPage(pageValue);
-        setTotalPages(pagesValue);
-        setHasMore(pageValue < pagesValue);
+        setHasMore('has_more' in response.data ? (response.data as {has_more?: boolean}).has_more || false : false);
       }
     } catch (error) {
       showToast('获取数据失败', 'error');
@@ -472,8 +435,6 @@ export const useClipboardData = ({
     isLoading,
     isLoadingMore,
     hasMore,
-    currentPage,
-    totalPages,
     fetchClipboardData,
     fetchTabData,
     loadMoreData,
