@@ -2,7 +2,6 @@ package persistence
 
 import (
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/xiaojiu/cliplink/internal/domain/model"
@@ -16,7 +15,6 @@ type clipboardRepository struct{}
 
 type duplicateCandidate struct {
 	ID          string
-	Content     string
 	ContentHash string
 	CreatedAt   time.Time
 }
@@ -232,31 +230,6 @@ func (r *clipboardRepository) Delete(id, channelID string) error {
 	return nil
 }
 
-// DeleteDuplicates 删除同通道下内容相同的重复项，保留指定项目。
-// Deprecated: 使用 DeleteByContentHash + DeleteLegacyDuplicatesByContent 替代。
-func (r *clipboardRepository) DeleteDuplicates(channelID, content, keepID string) error {
-	if channelID == "" || content == "" || keepID == "" {
-		return nil
-	}
-
-	return db.GetDB().
-		Where("channel_id = ? AND id <> ? AND TRIM(content) = ?", channelID, keepID, strings.TrimSpace(content)).
-		Delete(&model.ClipboardItem{}).Error
-}
-
-// DeleteLegacyDuplicatesByContent 删除同通道下尚未回填 hash 的旧记录中的重复项，保留指定项目。
-// 限定 content_hash 为空，避免扫描已有 hash 的现代数据。
-func (r *clipboardRepository) DeleteLegacyDuplicatesByContent(channelID, content, keepID string) error {
-	if channelID == "" || content == "" || keepID == "" {
-		return nil
-	}
-
-	return db.GetDB().
-		Where("channel_id = ? AND id <> ? AND TRIM(content) = ? AND (content_hash = '' OR content_hash IS NULL)",
-			channelID, keepID, strings.TrimSpace(content)).
-		Delete(&model.ClipboardItem{}).Error
-}
-
 // DeleteByContentHash 基于内容哈希删除同通道下的重复项，保留指定项目。
 // 使用 (channel_id, content_hash) 复合索引，避免全表扫描。
 func (r *clipboardRepository) DeleteByContentHash(channelID, contentHash, keepID string) (int64, error) {
@@ -276,6 +249,7 @@ const cleanupBatchSize = 1000
 // CleanupDuplicateContents 清理同通道下已存在的重复内容，保留每组最新项目。
 // 使用 keyset 分批扫描（不删除），seen map 跨批保留以正确处理跨批重复项，
 // 最后统一批量删除，避免 OFFSET 边扫边删导致跳过记录。
+// 未上线前不兼容旧数据：只处理非空 content_hash 记录。
 func (r *clipboardRepository) CleanupDuplicateContents(channelID string) (int64, error) {
 	if channelID == "" {
 		return 0, nil
@@ -331,7 +305,6 @@ func (r *clipboardRepository) CleanupDuplicateContents(channelID string) (int64,
 // duplicateBatchResult 用于接收 keyset 分页查询的完整行（含 created_at 作为游标）
 type duplicateBatchResult struct {
 	ID          string
-	Content     string
 	ContentHash string
 	CreatedAt   time.Time
 }
@@ -342,8 +315,8 @@ func (r *clipboardRepository) fetchDuplicateBatch(channelID string, cursorCreate
 
 	query := db.GetDB().
 		Model(&model.ClipboardItem{}).
-		Select("id", "content", "content_hash", "created_at").
-		Where("channel_id = ?", channelID)
+		Select([]string{"id", "content_hash", "created_at"}).
+		Where("channel_id = ? AND content_hash <> '' AND content_hash IS NOT NULL", channelID)
 
 	if !cursorCreatedAt.IsZero() {
 		query = query.Where("(created_at < ?) OR (created_at = ? AND id < ?)",
@@ -363,7 +336,6 @@ func (r *clipboardRepository) fetchDuplicateBatch(channelID string, cursorCreate
 	for i, row := range rows {
 		candidates[i] = duplicateCandidate{
 			ID:          row.ID,
-			Content:     row.Content,
 			ContentHash: row.ContentHash,
 		}
 		lastCreatedAt = row.CreatedAt
@@ -377,15 +349,15 @@ func (r *clipboardRepository) fetchDuplicateBatch(channelID string, cursorCreate
 // seen map 在调用方维护，跨批保留，确保跨批重复项也能被正确识别。
 func (r *clipboardRepository) collectDuplicates(candidates []duplicateCandidate, seen map[string]struct{}, duplicateIDs *[]string) {
 	for _, c := range candidates {
-		normalized := strings.TrimSpace(c.Content)
-		if normalized == "" {
+		key := c.ContentHash
+		if key == "" {
 			continue
 		}
-		if _, exists := seen[normalized]; exists {
+		if _, exists := seen[key]; exists {
 			*duplicateIDs = append(*duplicateIDs, c.ID)
 			continue
 		}
-		seen[normalized] = struct{}{}
+		seen[key] = struct{}{}
 	}
 }
 
