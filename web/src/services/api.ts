@@ -109,7 +109,9 @@ const convertRawClipboardItem = (raw: ClipboardItemResponse): ClipboardItem => {
     createdAt: raw.created_at || raw.createdAt || '',
     updatedAt: raw.updated_at || raw.updatedAt || '',
     device_id: raw.device_id,
-    device_type: raw.device_type
+    device_type: raw.device_type,
+    content_html: raw.content_html || undefined,
+    content_format: raw.content_format || undefined,
   };
 };
 

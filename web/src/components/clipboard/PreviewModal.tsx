@@ -9,6 +9,8 @@ import AnimatedModal from '@/components/ui/AnimatedModal';
 import { ClipboardItem, ClipboardType } from '@/types/clipboard';
 import { detectLanguage } from '@/utils/codeHelper';
 import { useToast } from '@/contexts/ToastContext';
+import { writeClipboardRich } from '@/utils/richClipboard';
+import RichTextRenderer from './RichTextRenderer';
 
 interface PreviewModalProps {
   isOpen: boolean;
@@ -23,7 +25,7 @@ export default function PreviewModal({ isOpen, onClose, item }: PreviewModalProp
     if (!item) return;
 
     try {
-      await navigator.clipboard.writeText(item.content);
+      await writeClipboardRich(item);
       showToast('已复制到剪贴板', 'success');
     } catch {
       showToast('复制失败', 'error');
@@ -32,6 +34,11 @@ export default function PreviewModal({ isOpen, onClose, item }: PreviewModalProp
 
   const renderContent = () => {
     if (!item) return null;
+
+    // 富文本内容优先渲染
+    if (item.content_format === 'html' && item.content_html) {
+      return <RichTextRenderer html={item.content_html} />;
+    }
 
     if (item.type === ClipboardType.CODE) {
       return (

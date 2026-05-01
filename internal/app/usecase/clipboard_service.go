@@ -28,17 +28,19 @@ func NewClipboardService(
 }
 
 // SaveClipboard 保存剪贴板项目
-func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string, cleanDuplicates bool) (*model.ClipboardItem, error) {
+func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string, cleanDuplicates bool, contentHTML, contentFormat string) (*model.ClipboardItem, error) {
 	item := &model.ClipboardItem{
-		ID:         uuid.New().String(),
-		Title:      title,
-		Content:    content,
-		Type:       contentType,
-		DeviceID:   deviceID,
-		DeviceType: deviceType,
-		ChannelID:  channelID,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		ID:            uuid.New().String(),
+		Title:         title,
+		Content:       content,
+		Type:          contentType,
+		DeviceID:      deviceID,
+		DeviceType:    deviceType,
+		ChannelID:     channelID,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		ContentHTML:   contentHTML,
+		ContentFormat: contentFormat,
 	}
 
 	// 保存到数据库
@@ -96,15 +98,17 @@ func (s *clipboardService) DeleteClipboard(id string, channelID string) error {
 }
 
 // UpdateClipboard 更新剪贴板项目
-func (s *clipboardService) UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string) (*model.ClipboardItem, error) {
+func (s *clipboardService) UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string, contentHTML, contentFormat string) (*model.ClipboardItem, error) {
 	// 更新内容
 	updates := map[string]interface{}{
-		"title":       title,
-		"content":     content,
-		"type":        contentType,
-		"device_id":   deviceID,
-		"device_type": deviceType,
-		"updated_at":  time.Now(),
+		"title":          title,
+		"content":        content,
+		"type":           contentType,
+		"device_id":      deviceID,
+		"device_type":    deviceType,
+		"updated_at":     time.Now(),
+		"content_html":   contentHTML,
+		"content_format": contentFormat,
 	}
 
 	// 更新到数据库

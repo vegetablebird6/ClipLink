@@ -6,6 +6,7 @@ import { ClipboardFilterType } from '@/components/clipboard/TabBar';
 import { detectClipboardType } from '@/utils/clipboardTypeDetector';
 import { getClipboardTypeName } from '@/utils/clipboardTypeDetector';
 import { settingsManager } from '@/utils/settings';
+import { RichClipboardContent, writeClipboardRich } from '@/utils/richClipboard';
 
 interface UseClipboardDataProps {
   pageSize?: number;
@@ -23,14 +24,14 @@ interface UseClipboardDataReturn {
   fetchClipboardData: () => Promise<void>;
   fetchTabData: (tab: ClipboardFilterType) => Promise<void>;
   loadMoreData: (activeTab: ClipboardFilterType) => Promise<void>;
-  handleSaveClipboardContent: (content: string) => Promise<boolean>;
+  handleSaveClipboardContent: (payload: RichClipboardContent) => Promise<boolean>;
   handleCopy: (item?: ClipboardItem) => void;
   handleEdit: (item?: ClipboardItem) => void;
   handleDelete: (item: ClipboardItem) => Promise<void>;
   handleToggleFavorite: (item: ClipboardItem) => Promise<void>;
   handleSave: (data: SaveClipboardRequest) => Promise<boolean>;
   handleRefresh: () => Promise<void>;
-  handleSaveManualInput: (content: string, type?: ClipboardType, isManualInput?: boolean) => Promise<boolean>;
+  handleSaveManualInput: (content: string, type?: ClipboardType, isManualInput?: boolean, contentHTML?: string, contentFormat?: 'plain' | 'html') => Promise<boolean>;
   setClipboardItems: React.Dispatch<React.SetStateAction<ClipboardItem[]>>;
   setCurrentClipboard: React.Dispatch<React.SetStateAction<ClipboardItem | undefined>>;
 }
@@ -173,22 +174,24 @@ export const useClipboardData = ({
     }
   }, [currentPage, totalPages, isLoadingMore, showToast, clipboardItems, pageSize, isChannelVerified, dedupeItemsForDisplay]);
   
-  const handleSaveClipboardContent = useCallback(async (content: string) => {
+  const handleSaveClipboardContent = useCallback(async (payload: RichClipboardContent) => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
       return false;
     }
-    
+
     try {
-      if (!content || content.trim() === '') {
+      if (!payload.text || payload.text.trim() === '') {
         return false;
       }
-      
-      const detectedType = detectClipboardType(content);
-      
+
+      const detectedType = detectClipboardType(payload.text);
+
       const response = await clipboardService.saveClipboard({
-        content: content,
-        type: detectedType
+        content: payload.text,
+        type: detectedType,
+        content_html: payload.html,
+        content_format: payload.format,
       });
       
       if (!response || !response.success) {
@@ -201,13 +204,15 @@ export const useClipboardData = ({
         const rawData = response.data as any;
         const clipboardItem: ClipboardItem = {
           id: rawData.id || 'temp-' + Date.now(),
-          content: rawData.content || content,
+          content: rawData.content || payload.text,
           type: rawData.type || ClipboardType.TEXT,
           title: rawData.title || '',
           isFavorite: rawData.favorite || rawData.isFavorite || false,
           created_at: rawData.created_at || new Date().toISOString(),
           createdAt: rawData.created_at || new Date().toISOString(),
-          updatedAt: rawData.updated_at || new Date().toISOString()
+          updatedAt: rawData.updated_at || new Date().toISOString(),
+          content_html: rawData.content_html || payload.html,
+          content_format: rawData.content_format || payload.format,
         };
         
         setCurrentClipboard(clipboardItem);
@@ -215,13 +220,15 @@ export const useClipboardData = ({
       } else {
         const tempItem: ClipboardItem = {
           id: 'temp-' + Date.now(),
-          content: content,
+          content: payload.text,
           type: ClipboardType.TEXT,
           title: '',
           isFavorite: false,
           created_at: new Date().toISOString(),
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          content_html: payload.html,
+          content_format: payload.format,
         };
         setCurrentClipboard(tempItem);
         setClipboardItems(prev => [tempItem, ...removeDuplicateContentFromList(prev, tempItem)]);
@@ -237,10 +244,10 @@ export const useClipboardData = ({
   
   const handleCopy = useCallback((item?: ClipboardItem) => {
     if (!item) return;
-    
-    navigator.clipboard.writeText(item.content)
+
+    writeClipboardRich(item)
       .then(() => showToast('已复制到剪贴板', 'success'))
-      .catch(err => {
+      .catch(() => {
         showToast('复制失败', 'error');
       });
   }, [showToast]);
@@ -356,31 +363,35 @@ export const useClipboardData = ({
   }, [fetchClipboardData]);
   
   const handleSaveManualInput = useCallback(async (
-    content: string, 
-    type?: ClipboardType, 
-    isManualInput: boolean = true
+    content: string,
+    type?: ClipboardType,
+    isManualInput: boolean = true,
+    contentHTML?: string,
+    contentFormat?: 'plain' | 'html'
   ): Promise<boolean> => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
       return false;
     }
-    
+
     // @ts-expect-error 全局定义
     if (window.__clipboardSync?.recordUserEdit) {
       // @ts-expect-error 全局定义
       window.__clipboardSync.recordUserEdit();
     }
-    
+
       const contentType = type || detectClipboardType(content);
-      
+
     if (contentType !== ClipboardType.TEXT && !type) {
       showToast(`检测到${getClipboardTypeName(contentType)}内容`, 'info');
       }
-      
+
     try {
       const response = await clipboardService.saveClipboard({
         content,
-        type: contentType
+        type: contentType,
+        content_html: contentHTML,
+        content_format: contentFormat,
       });
       
       if (response.success && response.data) {

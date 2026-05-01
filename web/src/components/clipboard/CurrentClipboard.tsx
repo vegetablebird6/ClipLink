@@ -15,6 +15,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { ClipboardItem, ClipboardType } from '@/types/clipboard';
 import { useToast } from '@/contexts/ToastContext';
+import { writeClipboardRich, readClipboardRich } from '@/utils/richClipboard';
 
 interface CurrentClipboardProps {
   clipboard?: ClipboardItem;
@@ -24,7 +25,7 @@ interface CurrentClipboardProps {
   syncEnabled: boolean;
   hasPermission: boolean;
   onRequestPermission: () => void;
-  onSaveManualInput?: (content: string, type?: ClipboardType, isManualInput?: boolean) => Promise<boolean>;
+  onSaveManualInput?: (content: string, type?: ClipboardType, isManualInput?: boolean, contentHTML?: string, contentFormat?: 'plain' | 'html') => Promise<boolean>;
   onManualRead?: () => void;
   isIOSDevice?: boolean;
 }
@@ -91,9 +92,9 @@ export default function CurrentClipboard({
 
   const handleCopy = async () => {
     if (!clipboard) return;
-    
+
     try {
-      await navigator.clipboard.writeText(clipboard.content);
+      await writeClipboardRich(clipboard);
       onCopy();
     } catch (err) {
       showToast('复制失败', 'error');
@@ -139,14 +140,14 @@ export default function CurrentClipboard({
   
   const handlePaste = async () => {
     try {
-      const text = await navigator.clipboard.readText();
-      if (!text || text.trim() === '') {
+      const payload = await readClipboardRich();
+      if (!payload.text || payload.text.trim() === '') {
         showToast('剪贴板为空', 'warning');
         return;
       }
-      
+
       if (onSaveManualInput) {
-        const success = await onSaveManualInput(text, undefined, true);
+        const success = await onSaveManualInput(payload.text, undefined, true, payload.html, payload.format);
         if (success) {
           showToast('内容已保存', 'success');
         }

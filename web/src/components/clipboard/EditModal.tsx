@@ -109,13 +109,17 @@ export default function EditModal({
     
     try {
       // 构建保存数据
+      // 编辑富文本内容时，保存为纯文本（降级）
+      const wasRichText = initialData?.content_format === 'html';
       const saveData: SaveClipboardRequest = {
         id: initialData?.id,
         title: title.trim() || undefined,
         content: content.trim(),
         isFavorite,
         type,
-        device_type: deviceType
+        device_type: deviceType,
+        content_html: wasRichText ? '' : initialData?.content_html,
+        content_format: wasRichText ? 'plain' : initialData?.content_format,
       };
       
       // 使用提供的onSave函数保存
@@ -215,6 +219,11 @@ export default function EditModal({
     
     return (
       <div className="relative">
+        {initialData?.content_format === 'html' && (
+          <div className="mb-2 px-3 py-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs dark:bg-amber-900/20 dark:border-amber-700/40 dark:text-amber-300">
+            编辑后将保存为纯文本，富文本格式将丢失
+          </div>
+        )}
         <textarea 
           id="edit-content" 
           rows={type === ClipboardType.CODE ? 10 : 6} 

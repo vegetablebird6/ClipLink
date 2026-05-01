@@ -3,20 +3,24 @@
 import { useState, useEffect } from 'react';
 import AnimatedModal from '../ui/AnimatedModal';
 import { ClipboardType } from '@/types/clipboard';
-import { useClipboardFilter } from '@/hooks';
+import { readClipboardRich } from '@/utils/richClipboard';
 
 interface AddContentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (content: string, type?: ClipboardType, title?: string, isFavorite?: boolean) => void;
+  onSave: (content: string, type?: ClipboardType, title?: string, isFavorite?: boolean, contentHTML?: string, contentFormat?: 'plain' | 'html') => Promise<boolean>;
   initialContent?: string;
+  initialContentHTML?: string;
+  initialContentFormat?: 'plain' | 'html';
 }
 
-export default function AddContentModal({ 
-  isOpen, 
-  onClose, 
+export default function AddContentModal({
+  isOpen,
+  onClose,
   onSave,
-  initialContent = ''
+  initialContent = '',
+  initialContentHTML,
+  initialContentFormat,
 }: AddContentModalProps) {
   const [content, setContent] = useState(initialContent);
   const [title, setTitle] = useState('');
@@ -24,13 +28,17 @@ export default function AddContentModal({
   const [isFavorite, setIsFavorite] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [contentHTML, setContentHTML] = useState<string>();
+  const [contentFormat, setContentFormat] = useState<'plain' | 'html'>();
 
   // 监听initialContent变化，更新content状态
   useEffect(() => {
     if (initialContent) {
       setContent(initialContent);
+      setContentHTML(initialContentHTML);
+      setContentFormat(initialContentFormat);
     }
-  }, [initialContent]);
+  }, [initialContent, initialContentHTML, initialContentFormat]);
 
   // 重置表单状态
   useEffect(() => {
@@ -40,16 +48,10 @@ export default function AddContentModal({
       setSelectedType(ClipboardType.TEXT);
       setIsFavorite(false);
       setError('');
+      setContentHTML(initialContentHTML);
+      setContentFormat(initialContentFormat);
     }
-  }, [isOpen, initialContent]);
-
-  const { handleFilteredContent } = useClipboardFilter({
-    hasClipboardPermission: true,
-    isIOSDevice: false,
-    isChannelVerified: true,
-    onSaveContent: async () => true,
-    debug: false
-  });
+  }, [isOpen, initialContent, initialContentHTML, initialContentFormat]);
 
   // 获取类型名称
   const getTypeName = (type: ClipboardType): string => {
@@ -89,13 +91,19 @@ export default function AddContentModal({
     
     try {
       // 调用父组件传入的保存函数
-      onSave(content, selectedType, title || undefined, isFavorite);
-      
-      // 清空表单
-      setContent('');
-      setTitle('');
-      setSelectedType(ClipboardType.TEXT);
-      setIsFavorite(false);
+      const ok = await onSave(content, selectedType, title || undefined, isFavorite, contentHTML, contentFormat);
+
+      if (ok) {
+        // 清空表单
+        setContent('');
+        setTitle('');
+        setSelectedType(ClipboardType.TEXT);
+        setIsFavorite(false);
+        setContentHTML(undefined);
+        setContentFormat(undefined);
+      } else {
+        setError('保存失败，请重试');
+      }
     } catch (err) {
       setError('保存失败，请重试');
       console.error('保存内容失败:', err);
@@ -104,19 +112,26 @@ export default function AddContentModal({
     }
   };
 
-  // 快速粘贴剪贴板内容
+  // 快速粘贴剪贴板内容（支持富文本）
   const handlePaste = async () => {
     try {
-      const clipboardText = await navigator.clipboard.readText();
-      if (clipboardText) {
-        setContent(clipboardText);
-        
+      const payload = await readClipboardRich();
+      if (payload.text) {
+        setContent(payload.text);
+        if (payload.format === 'html' && payload.html) {
+          setContentHTML(payload.html);
+          setContentFormat('html');
+        } else {
+          setContentHTML(undefined);
+          setContentFormat(undefined);
+        }
+
         // 简单的内容类型检测
-        if (clipboardText.startsWith('http://') || clipboardText.startsWith('https://')) {
+        if (payload.text.startsWith('http://') || payload.text.startsWith('https://')) {
           setSelectedType(ClipboardType.LINK);
-        } else if (clipboardText.includes('{') && clipboardText.includes('}') || 
-                  clipboardText.includes('<') && clipboardText.includes('>') ||
-                  clipboardText.includes('function') || clipboardText.includes('class')) {
+        } else if (payload.text.includes('{') && payload.text.includes('}') ||
+                  payload.text.includes('<') && payload.text.includes('>') ||
+                  payload.text.includes('function') || payload.text.includes('class')) {
           setSelectedType(ClipboardType.CODE);
         }
       }
@@ -322,7 +337,12 @@ export default function AddContentModal({
               <textarea
                 id="contentInput"
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  // 用户手动编辑，HTML 已与纯文本不一致，降级为纯文本
+                  setContentHTML(undefined);
+                  setContentFormat(undefined);
+                }}
                 placeholder="输入要保存的内容..."
                 rows={4}
                 className="w-full px-3 py-2 glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 border border-white/30 dark:border-dark-border-secondary/50 rounded-lg text-sm text-neutral-900 dark:text-dark-text-primary placeholder-neutral-500 dark:placeholder-dark-text-muted focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 transition-all duration-200 backdrop-blur-xs resize-none"

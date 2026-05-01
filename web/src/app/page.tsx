@@ -73,8 +73,10 @@ export default function Home() {
   });
 
   // 处理确认保存的回调
-  const handleConfirmSave = (content: string) => {
-    setConfirmContent(content);
+  const handleConfirmSave = (payload: { text: string; html?: string; format: 'plain' | 'html' }) => {
+    setConfirmContent(payload.text);
+    setConfirmContentHTML(payload.html);
+    setConfirmContentFormat(payload.format);
     setIsAddContentModalOpen(true);
   };
 
@@ -98,7 +100,9 @@ export default function Home() {
     syncClipboard,
     handleDeletedContent,
     handleFilteredContent,
+    shouldAllowContent,
     trackProcessedContent,
+    clearPendingConfirm,
     processedContents,
     deletedContents
   } = useClipboardFilter({
@@ -133,6 +137,8 @@ export default function Home() {
   const [previewItem, setPreviewItem] = useState<ClipboardItem | undefined>();
   const [isAddContentModalOpen, setIsAddContentModalOpen] = useState(false);
   const [confirmContent, setConfirmContent] = useState<string>('');
+  const [confirmContentHTML, setConfirmContentHTML] = useState<string>();
+  const [confirmContentFormat, setConfirmContentFormat] = useState<'plain' | 'html'>();
 
   useEffect(() => {
     // 确保currentClipboard始终有值（如果有数据的话）
@@ -246,12 +252,7 @@ export default function Home() {
       // 创建新项目 - 自己处理
       
       if (data.content) {
-        try {
-          const filtered = await handleFilteredContent(data.content);
-          if (!filtered) {
-            return false;
-          }
-        } catch (error) {
+        if (!shouldAllowContent(data.content)) {
           return false;
         }
       }
@@ -279,13 +280,14 @@ export default function Home() {
   };
   
   const handleSaveManualInput = async (
-    content: string, 
-    type?: ClipboardType, 
-    isManualInput?: boolean
+    content: string,
+    type?: ClipboardType,
+    isManualInput?: boolean,
+    contentHTML?: string,
+    contentFormat?: 'plain' | 'html'
   ) => {
-    const filtered = await handleFilteredContent(content);
-    if (!filtered) return false;
-    const result = await originalHandleSaveManualInput(content, type, isManualInput);
+    if (!shouldAllowContent(content)) return false;
+    const result = await originalHandleSaveManualInput(content, type, isManualInput, contentHTML, contentFormat);
     if (result && content) {
       trackProcessedContent(content);
       window.dispatchEvent(new Event('clipboard-updated'));
@@ -497,26 +499,34 @@ export default function Home() {
         isOpen={isAddContentModalOpen}
         onClose={() => {
           setIsAddContentModalOpen(false);
-          setConfirmContent(''); // 清空确认内容
+          setConfirmContent('');
+          setConfirmContentHTML(undefined);
+          setConfirmContentFormat(undefined);
         }}
-        onSave={async (content, type, title, isFavorite) => {
-          // 使用handleSave函数，包含收藏状态
+        onSave={async (content, type, title, isFavorite, contentHTML, contentFormat) => {
           const saveData = {
             content,
             type: type || ClipboardType.TEXT,
             title,
-            isFavorite
+            isFavorite,
+            content_html: contentHTML,
+            content_format: contentFormat,
           };
-          
+
+          // 先清除 pending 标记，再调用 handleSave（shouldSyncContent 不会重复拦截）
+          clearPendingConfirm(content);
           const result = await handleSave(saveData);
           if (result) {
-            // 关闭模态框
             setIsAddContentModalOpen(false);
-            setConfirmContent(''); // 清空确认内容
-            // 注意：不需要再次刷新数据，handleSave已经更新了状态
+            setConfirmContent('');
+            setConfirmContentHTML(undefined);
+            setConfirmContentFormat(undefined);
           }
+          return result;
         }}
-        initialContent={confirmContent} // 传入确认内容
+        initialContent={confirmContent}
+        initialContentHTML={confirmContentHTML}
+        initialContentFormat={confirmContentFormat}
       />
       
       {/* 模态框组件 */}

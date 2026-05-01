@@ -28,6 +28,8 @@ export interface RawClipboardItem {
   updated_at?: string;
   device_id: string;
   device_type?: DeviceType;
+  content_html?: string;
+  content_format?: 'plain' | 'html';
 }
 
 // 前端使用的剪贴板项目接口
@@ -42,6 +44,8 @@ export interface ClipboardItem {
   updatedAt?: string;    // 兼容旧代码
   device_id?: string;    // 可选字段
   device_type?: DeviceType; // 可选的设备类型字段
+  content_html?: string;
+  content_format?: 'plain' | 'html';
 }
 
 // 创建或更新剪贴板的请求
@@ -54,6 +58,8 @@ export interface SaveClipboardRequest {
   device_id?: string;
   device_type?: DeviceType; // 添加设备类型字段
   clean_duplicates?: boolean;
+  content_html?: string;
+  content_format?: 'plain' | 'html';
 }
 
 // API响应类型 - 新的统一格式

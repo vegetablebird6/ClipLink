@@ -1,21 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ClipboardItem, ClipboardType, SaveClipboardRequest } from '@/types/clipboard';
 import { settingsManager } from '@/utils/settings';
+import { RichClipboardContent, readClipboardRich } from '@/utils/richClipboard';
 
 interface ClipboardFilterOptions {
   hasClipboardPermission: boolean;
   isIOSDevice: boolean;
   isChannelVerified: boolean;
-  onSaveContent: (content: string) => Promise<boolean>;
-  onConfirmSave?: (content: string) => void;
+  onSaveContent: (payload: RichClipboardContent) => Promise<boolean>;
+  onConfirmSave?: (payload: RichClipboardContent) => void;
   debug?: boolean;
 }
 
 interface UseClipboardFilterReturn {
   syncClipboard: (force?: boolean) => Promise<void>;
   handleDeletedContent: (content: string) => void;
-  handleFilteredContent: (content: string) => Promise<boolean>;
+  handleFilteredContent: (content: string | RichClipboardContent) => Promise<boolean>;
+  /** 纯过滤判断，不触发保存。用于新建路径自行控制保存时机。 */
+  shouldAllowContent: (content: string) => boolean;
   trackProcessedContent: (content: string) => void;
+  /** 确认保存完成后，清除待确认标记 */
+  clearPendingConfirm: (content: string) => void;
   processedContents: Set<string>;
   deletedContents: Set<string>;
   resetFilter: () => void;
@@ -44,6 +49,8 @@ export function useClipboardFilter({
   const [deletedContents, setDeletedContents] = useState<Set<string>>(new Set());
   const lastSyncTimeRef = useRef<number>(0);
   const hasVisibilityChangedRef = useRef<boolean>(false);
+  // 确认弹窗待处理内容（防重复弹窗，不阻塞实际保存）
+  const pendingConfirmRef = useRef<Set<string>>(new Set());
 
   // 追踪已处理内容
   const trackProcessedContent = useCallback((content: string) => {
@@ -86,36 +93,49 @@ export function useClipboardFilter({
       }
       return false;
     }
+    if (pendingConfirmRef.current.has(trimmedContent)) {
+      if (debug) {
+        console.log('[ClipboardFilter] 内容正在等待确认，跳过同步:', trimmedContent);
+      }
+      return false;
+    }
     return true;
   }, [deletedContents, processedContents, debug]);
 
   // 处理过滤后的内容
-  const handleFilteredContent = useCallback(async (content: string): Promise<boolean> => {
-    if (isEmptyContent(content)) return false;
-    if (!shouldSyncContent(content)) return false;
-    
+  const handleFilteredContent = useCallback(async (content: string | RichClipboardContent): Promise<boolean> => {
+    const payload: RichClipboardContent = typeof content === 'string'
+      ? { text: content, format: 'plain' as const }
+      : content;
+    const text = payload.text;
+
+    if (isEmptyContent(text)) return false;
+    if (!shouldSyncContent(text)) return false;
+
     // 添加与上次保存的最小时间间隔检查
     const now = Date.now();
     const minTimeBetweenSaves = 500; // 最小间隔为500毫秒
     if (now - lastSyncTimeRef.current < minTimeBetweenSaves) {
       if (debug) {
-        console.log('[ClipboardFilter] 距离上次同步时间太短，跳过:', trimContent(content));
+        console.log('[ClipboardFilter] 距离上次同步时间太短，跳过:', trimContent(text));
       }
       return false;
     }
-    
+
     // 检查是否需要确认
     const confirmBeforeSave = settingsManager.getSetting('confirmBeforeSave');
     if (confirmBeforeSave && onConfirmSave) {
-      // 如果需要确认，调用确认回调而不是直接保存
-      onConfirmSave(content);
-      trackProcessedContent(content); // 标记为已处理，避免重复弹窗
+      // 标记为待确认，避免重复弹窗；不加入 processedContents，否则 shouldAllowContent 会在实际保存时拒绝
+      const trimmed = trimContent(text);
+      pendingConfirmRef.current.add(trimmed);
+      // 如果需要确认，传递完整 payload（保留 HTML）
+      onConfirmSave(payload);
       return true;
     }
-    
-    const result = await onSaveContent(content);
+
+    const result = await onSaveContent(payload);
     if (result) {
-      trackProcessedContent(content);
+      trackProcessedContent(text);
       lastSyncTimeRef.current = now;
       
       // 触发剪贴板更新事件，通知应用有新内容
@@ -124,7 +144,7 @@ export function useClipboardFilter({
       }
       
       if (debug) {
-        console.log('[ClipboardFilter] 新内容已同步:', trimContent(content));
+        console.log('[ClipboardFilter] 新内容已同步:', trimContent(text));
       }
     }
     return result;
@@ -153,8 +173,9 @@ export function useClipboardFilter({
       hasVisibilityChangedRef.current = false;
     }
     try {
-      const text = await navigator.clipboard.readText();
-      await handleFilteredContent(text);
+      const payload = await readClipboardRich();
+      // 传递完整富文本 payload，保留 HTML 内容
+      await handleFilteredContent(payload);
     } catch (error) {
       if (debug) {
         console.warn('[ClipboardFilter] 同步错误:', error);
@@ -209,12 +230,32 @@ export function useClipboardFilter({
     }
   }, [debug]);
 
+  // 纯过滤判断：内容是否应被保存（不触发保存，不更新时间戳）
+  // 注意：不检查 pendingConfirmRef，pending 只用于 shouldSyncContent 防重复弹窗
+  const shouldAllowContent = useCallback((content: string): boolean => {
+    if (isEmptyContent(content)) return false;
+    const trimmed = trimContent(content);
+    if (deletedContents.has(trimmed)) return false;
+    if (processedContents.has(trimmed)) return false;
+    const now = Date.now();
+    if (now - lastSyncTimeRef.current < 500) return false;
+    return true;
+  }, [deletedContents, processedContents]);
+
+  // 确认保存完成后，清除待确认标记
+  const clearPendingConfirm = useCallback((content: string) => {
+    const trimmed = trimContent(content);
+    pendingConfirmRef.current.delete(trimmed);
+  }, []);
+
   // 返回 API
   return {
     syncClipboard,
     handleDeletedContent,
     handleFilteredContent,
+    shouldAllowContent,
     trackProcessedContent,
+    clearPendingConfirm,
     processedContents,
     deletedContents,
     resetFilter

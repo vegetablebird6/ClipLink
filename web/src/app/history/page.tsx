@@ -8,6 +8,7 @@ import SearchBar from '@/components/clipboard/SearchBar';
 import { ClipboardItem, SaveClipboardRequest, ClipboardType } from '@/types/clipboard';
 import { clipboardService } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
+import { writeClipboardRich } from '@/utils/richClipboard';
 import { ClipboardGridSkeleton } from '@/components/ui/LoadingStates';
 
 export default function HistoryPage() {
@@ -202,7 +203,7 @@ export default function HistoryPage() {
 
   // 处理复制操作
   const handleCopy = (item: ClipboardItem) => {
-    navigator.clipboard.writeText(item.content)
+    writeClipboardRich(item)
       .then(() => showToast('已复制到剪贴板', 'success'))
       .catch(() => {
         showToast('复制失败', 'error');

@@ -1,11 +1,12 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/contexts/ToastContext';
+import { RichClipboardContent, readClipboardRich } from '@/utils/richClipboard';
 
 interface UseClipboardSyncProps {
   hasClipboardPermission: boolean;
   isIOSDevice: boolean;
   isChannelVerified: boolean;
-  onContentRead: (content: string) => Promise<boolean>;
+  onContentRead: (payload: RichClipboardContent) => Promise<boolean>;
 }
 
 interface UseClipboardSyncReturn {
@@ -137,20 +138,21 @@ export const useClipboardSync = ({
     syncLockRef.current = true;
     
     try {
-      // 读取剪贴板
-      const text = await navigator.clipboard.readText();
-      
+      // 读取剪贴板（优先富文本）
+      const payload = await readClipboardRich();
+      const text = payload.text;
+
       // 重置错误计数
       errorCountRef.current = 0;
-      
+
       // 内容检查
       if (!text || text.trim() === '' || text.trim() === lastClipboardContentRef.current.trim()) {
         syncLockRef.current = false;
         return;
       }
-      
+
       // 保存新内容
-      const saved = await onContentRead(text);
+      const saved = await onContentRead(payload);
       if (saved) {
         lastClipboardContentRef.current = text.trim();
         // 记录同步时间

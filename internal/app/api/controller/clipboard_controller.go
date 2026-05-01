@@ -67,6 +67,8 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		DeviceID        string `json:"device_id" binding:"required"`
 		DeviceType      string `json:"device_type" binding:"required"`
 		CleanDuplicates bool   `json:"clean_duplicates"`
+		ContentHTML     string `json:"content_html"`
+		ContentFormat   string `json:"content_format"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -83,6 +85,8 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		req.DeviceType,
 		channelID,
 		req.CleanDuplicates,
+		req.ContentHTML,
+		req.ContentFormat,
 	)
 
 	if err != nil {
@@ -199,12 +203,14 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 
 	// 绑定请求体 - 适配前端发送的字段格式
 	var req struct {
-		Title      string `json:"title"`
-		Content    string `json:"content"`
-		Type       string `json:"type"`
-		DeviceID   string `json:"device_id"`
-		DeviceType string `json:"device_type"`
-		IsFavorite *bool  `json:"isFavorite"` // 使用指针类型，允许为空
+		Title         string `json:"title"`
+		Content       string `json:"content"`
+		Type          string `json:"type"`
+		DeviceID      string `json:"device_id"`
+		DeviceType    string `json:"device_type"`
+		IsFavorite    *bool  `json:"isFavorite"` // 使用指针类型，允许为空
+		ContentHTML   string `json:"content_html"`
+		ContentFormat string `json:"content_format"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -221,6 +227,8 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 		req.DeviceID,
 		req.DeviceType,
 		channelID,
+		req.ContentHTML,
+		req.ContentFormat,
 	)
 
 	if err != nil {

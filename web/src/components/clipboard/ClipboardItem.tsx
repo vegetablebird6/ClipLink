@@ -18,6 +18,7 @@ import { faStar as faStarRegular, faCopy } from '@fortawesome/free-regular-svg-i
 import { ClipboardItem as ClipboardItemType, ClipboardType, DeviceType } from '@/types/clipboard';
 import { useToast } from '@/contexts/ToastContext';
 import { formatClipboardContent } from '@/utils/clipboardHelpers';
+import { writeClipboardRich } from '@/utils/richClipboard';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { detectLanguage } from '@/utils/codeHelper';
@@ -48,10 +49,10 @@ export default function ClipboardItemCard({
   
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(item.content);
+      await writeClipboardRich(item);
       setCopied(true);
       onCopy(item);
-      
+
       setTimeout(() => {
         setCopied(false);
       }, 2000);

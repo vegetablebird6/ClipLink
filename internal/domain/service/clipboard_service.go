@@ -7,7 +7,7 @@ import (
 // ClipboardService 剪贴板服务接口
 type ClipboardService interface {
 	// SaveClipboard 保存剪贴板项目
-	SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string, cleanDuplicates bool) (*model.ClipboardItem, error)
+	SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string, cleanDuplicates bool, contentHTML, contentFormat string) (*model.ClipboardItem, error)
 
 	// GetLatestClipboard 获取最新的剪贴板项目
 	GetLatestClipboard(channelID string, limit int) ([]*model.ClipboardItem, error)
@@ -22,7 +22,7 @@ type ClipboardService interface {
 	DeleteClipboard(id string, channelID string) error
 
 	// UpdateClipboard 更新剪贴板项目
-	UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string) (*model.ClipboardItem, error)
+	UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string, contentHTML, contentFormat string) (*model.ClipboardItem, error)
 
 	// ToggleFavorite 切换收藏状态
 	ToggleFavorite(id string, isFavorite bool, channelID string, deviceID ...string) (*model.ClipboardItem, error)
