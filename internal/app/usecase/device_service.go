@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
@@ -24,6 +25,10 @@ func NewDeviceService(deviceRepo repository.DeviceRepository) service.DeviceServ
 
 // RegisterDevice 注册新设备
 func (s *deviceService) RegisterDevice(name, deviceType, deviceID string) (*model.Device, error) {
+	if !validation.IsValidDeviceType(deviceType) {
+		return nil, model.ErrInvalidInput
+	}
+
 	// 如果没有提供deviceID，则生成一个新的
 	if deviceID == "" {
 		deviceID = uuid.New().String()

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/xiaojiu/cliplink/internal/common/response"
+	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -73,6 +74,15 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
+		return
+	}
+
+	if !validation.IsValidClipboardType(req.Type) {
+		response.BadRequest(ctx, "invalid clipboard type: "+req.Type)
+		return
+	}
+	if !validation.IsValidDeviceType(req.DeviceType) {
+		response.BadRequest(ctx, "invalid device type: "+req.DeviceType)
 		return
 	}
 
@@ -308,6 +318,10 @@ func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
 		return
 	}
 	clipType := ctx.Param("type")
+	if !validation.IsValidClipboardType(clipType) {
+		response.BadRequest(ctx, "invalid clipboard type: "+clipType)
+		return
+	}
 
 	page, size := paginationParams(ctx, 20)
 
@@ -328,6 +342,10 @@ func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
 		return
 	}
 	deviceType := ctx.Param("deviceType")
+	if !validation.IsValidDeviceType(deviceType) {
+		response.BadRequest(ctx, "invalid device type: "+deviceType)
+		return
+	}
 
 	page, size := paginationParams(ctx, 20)
 

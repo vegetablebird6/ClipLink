@@ -29,12 +29,12 @@ type DeviceDTO struct {
 
 // SyncHistory 同步历史模型，用于记录内容同步历史
 type SyncHistory struct {
-	ID        uint      `json:"id" gorm:"primarykey"`    // 自增ID
-	Action    string    `json:"action"`                  // 动作类型（sync, connect, disconnect, update, delete）
-	Content   string    `json:"content"`                 // 操作内容，对于sync是同步的内容摘要
-	DeviceID  string    `json:"device_id"`               // 执行设备ID
-	ChannelID string    `json:"channel_id" gorm:"index"` // 关联的通道ID
-	CreatedAt time.Time `json:"created_at"`              // 操作时间
+	ID        uint      `json:"id" gorm:"primarykey"`                                    // 自增ID
+	ChannelID string    `json:"channel_id" gorm:"index:idx_sync_channel_created"`       // 关联的通道ID
+	Action    string    `json:"action"`                                                  // 动作类型（sync, connect, disconnect, update, delete）
+	Content   string    `json:"content"`                                                 // 操作内容，对于sync是同步的内容摘要
+	DeviceID  string    `json:"device_id"`                                               // 执行设备ID
+	CreatedAt time.Time `json:"created_at" gorm:"index:idx_sync_channel_created"`       // 操作时间
 }
 
 // 同步动作类型常量

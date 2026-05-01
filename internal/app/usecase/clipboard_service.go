@@ -8,12 +8,15 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
-// computeContentHash 计算内容的 SHA-256 哈希（先 trim 再哈希）
+// computeContentHash 计算内容的 SHA-256 哈希。
+// 去重语义：基于 trim 后的纯文本 content 计算，同文本不同 HTML 样式视为同一内容。
+// 空字符串返回空，不参与去重。
 func computeContentHash(content string) string {
 	trimmed := strings.TrimSpace(content)
 	if trimmed == "" {
@@ -42,6 +45,13 @@ func NewClipboardService(
 
 // SaveClipboard 保存剪贴板项目
 func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, deviceType, channelID string, cleanDuplicates bool, contentHTML, contentFormat string) (*model.ClipboardItem, error) {
+	if !validation.IsValidClipboardType(contentType) {
+		return nil, model.ErrInvalidInput
+	}
+	if !validation.IsValidDeviceType(deviceType) {
+		return nil, model.ErrInvalidInput
+	}
+
 	item := &model.ClipboardItem{
 		ID:            uuid.New().String(),
 		Title:         title,

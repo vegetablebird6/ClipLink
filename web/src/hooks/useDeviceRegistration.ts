@@ -3,26 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useChannel } from '@/contexts/ChannelContext';
 import { clipboardService } from '@/services/api';
+import { detectDeviceType } from '@/utils/deviceDetection';
 import { v4 as uuidv4 } from 'uuid';
 
 // 本地存储的设备ID键名
 const DEVICE_ID_KEY = 'clipboard_device_id';
 // 本地存储的设备名称键名
 const DEVICE_NAME_KEY = 'clipboard_device_name';
-
-// 检测设备类型
-function detectDeviceType(): 'mobile' | 'tablet' | 'desktop' {
-  if (typeof navigator === 'undefined' || typeof window === 'undefined') {
-    return 'desktop'; // SSR默认返回desktop
-  }
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isMobile = /mobile|android|iphone|ipod|blackberry|windows phone/i.test(userAgent);
-  const isTablet = /tablet|ipad/i.test(userAgent) || 
-    (isMobile && Math.min(window.screen.width, window.screen.height) > 540);
-  if (isTablet) return 'tablet';
-  if (isMobile) return 'mobile';
-  return 'desktop';
-}
 
 // 获取或生成设备名称
 function getOrGenerateDeviceName(): string {

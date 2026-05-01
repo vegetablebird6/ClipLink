@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/xiaojiu/cliplink/internal/common/response"
+	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -38,6 +39,11 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
+		return
+	}
+
+	if !validation.IsValidDeviceType(req.DeviceType) {
+		response.BadRequest(ctx, "invalid device type: "+req.DeviceType)
 		return
 	}
 
