@@ -423,6 +423,7 @@ export default function Home() {
     setSearchPage(1);
     setHasMoreSearch(false);
     setActiveTab('all');
+    fetchTabData('all');
   };
 
   // 加载更多搜索结果
