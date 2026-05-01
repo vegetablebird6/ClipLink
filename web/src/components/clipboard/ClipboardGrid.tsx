@@ -149,7 +149,7 @@ export default function ClipboardGrid({
               }}
             >
               {/* 类型标识和标题 */}
-              <div className="flex items-center justify-between mb-2.5 flex-shrink-0">
+              <div className="flex items-center justify-between mb-2.5 shrink-0">
                 <div className="flex items-center">
                   <span 
                     className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-medium mr-2 shadow-sm ${
@@ -201,7 +201,7 @@ export default function ClipboardGrid({
             </div>
             
             {/* 底部操作按钮和时间 - 固定在底部 */}
-            <div className="glass-effect bg-white/60 dark:bg-dark-surface-secondary/60 border-t border-white/20 dark:border-dark-border-primary/20 p-2.5 flex justify-between items-center flex-shrink-0">
+            <div className="glass-effect bg-white/60 dark:bg-dark-surface-secondary/60 border-t border-white/20 dark:border-dark-border-primary/20 p-2.5 flex justify-between items-center shrink-0">
               {/* 时间 */}
               <div className="flex items-center text-xs text-neutral-500 dark:text-dark-text-muted">
                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,7 +261,7 @@ export default function ClipboardGrid({
               e.stopPropagation();
               if (onLoadMore) onLoadMore();
             }}
-            className={`inline-flex items-center px-5 py-2.5 border text-sm font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-all duration-200 ${
+            className={`inline-flex items-center px-5 py-2.5 border text-sm font-medium rounded-lg shadow-sm focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-all duration-200 ${
               isLoadingMore 
                 ? 'bg-neutral-200 text-neutral-600 border-neutral-400 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700 cursor-not-allowed'
                 : 'bg-white text-neutral-800 border-neutral-300 hover:bg-neutral-100 hover:border-neutral-400 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-700 dark:hover:bg-neutral-700/80 hover:shadow-md'

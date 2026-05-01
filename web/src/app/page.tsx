@@ -434,7 +434,7 @@ export default function Home() {
     <>      
       <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gradient-dark overflow-hidden">
         {/* 固定的当前剪贴板区域 */}
-        <div className="flex-shrink-0 px-3 pt-1.5">
+        <div className="shrink-0 px-3 pt-1.5">
           <CurrentClipboard 
             clipboard={ensureCurrentClipboard}
             onCopy={() => {
@@ -454,7 +454,7 @@ export default function Home() {
         </div>
         
         {/* 搜索栏区域 */}
-        <div className="flex-shrink-0 px-3 mb-2">
+        <div className="shrink-0 px-3 mb-2">
           <SearchBar 
             onSearch={handleSearch}
             onClear={handleClearSearch}
@@ -463,7 +463,7 @@ export default function Home() {
         </div>
         
         {/* 固定的TabBar区域 */}
-        <div className="flex-shrink-0 px-3">
+        <div className="shrink-0 px-3">
           <TabBar 
             activeTab={activeTab} 
             onTabChange={handleTabChange}

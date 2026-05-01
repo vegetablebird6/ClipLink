@@ -132,7 +132,7 @@ export default function ClipboardItemCard({
         return (
           <div className="p-3 bg-white h-24 overflow-y-auto">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+              <div className="w-10 h-10 shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
                 <FontAwesomeIcon icon={faLink} />
               </div>
               <div className="flex-1 min-w-0">
@@ -146,7 +146,7 @@ export default function ClipboardItemCard({
         return (
           <div className="p-3 bg-white h-24 overflow-y-auto">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+              <div className="w-10 h-10 shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
                 <FontAwesomeIcon icon={faLock} />
               </div>
               <div className="flex-1 min-w-0">
@@ -170,7 +170,7 @@ export default function ClipboardItemCard({
         return (
           <div className="p-3 bg-white h-24 overflow-y-auto">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+              <div className="w-10 h-10 shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
                 <FontAwesomeIcon icon={faImage} />
               </div>
               <div className="flex-1 min-w-0">
@@ -184,7 +184,7 @@ export default function ClipboardItemCard({
         return (
           <div className="p-3 bg-white h-24 overflow-y-auto">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+              <div className="w-10 h-10 shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
                 <FontAwesomeIcon icon={faFile} />
               </div>
               <div className="flex-1 min-w-0">

@@ -6,10 +6,10 @@ ClipFlow是一个跨设备剪贴板同步工具，允许用户在不同设备之
 
 ## 技术栈
 
-- React - 用户界面库
-- Next.js - React框架
+- React 19 - 用户界面库
+- Next.js 16 - React框架
 - TypeScript - 类型安全的JavaScript超集
-- Tailwind CSS - 实用优先的CSS框架
+- Tailwind CSS 4 - 实用优先的CSS框架
 - Axios - HTTP客户端
 - Font Awesome - 图标库
 
@@ -40,7 +40,8 @@ web/
 │   ├── services/               # API服务
 │   └── types/                  # TypeScript类型定义
 ├── public/                     # 静态资源
-├── tailwind.config.ts          # Tailwind CSS配置
+├── tailwind.config.js          # Tailwind CSS兼容配置
+├── postcss.config.js           # Tailwind CSS v4 PostCSS插件配置
 └── package.json                # 项目依赖
 ```
 
@@ -63,6 +64,23 @@ npm run dev
 ```bash
 npm run build
 npm start
+```
+
+### Tailwind CSS 4
+
+Tailwind v4 的入口在 `src/app/globals.css`：
+
+```css
+@import 'tailwindcss';
+@config '../../tailwind.config.js';
+@plugin 'tailwind-scrollbar';
+```
+
+PostCSS 使用 `@tailwindcss/postcss`，不再需要 `postcss-import` 和 `autoprefixer`。修改样式体系后建议运行：
+
+```bash
+npm exec tsc -- --noEmit
+npm run build
 ```
 
 ## API接口

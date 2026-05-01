@@ -66,7 +66,7 @@ export default function SyncPage() {
             <div className="flex items-center">
               <button 
                 onClick={toggleSync}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-surface-primary ${
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-dark-surface-primary ${
                   syncEnabled ? 'bg-brand-600 dark:bg-brand-dark-500 shadow-glow-brand' : 'bg-neutral-200 dark:bg-dark-surface-tertiary'
                 }`}
               >
@@ -141,7 +141,7 @@ export default function SyncPage() {
                 </div>
                 <div>
                   {device.isOnline && (
-                    <button className="inline-flex items-center px-3 py-1.5 bg-neutral-100 dark:bg-dark-surface-tertiary text-neutral-700 dark:text-dark-text-secondary text-xs font-medium rounded-md hover:bg-neutral-200 dark:hover:bg-dark-surface-hover focus:outline-none transition-all duration-200 border border-neutral-200 dark:border-dark-border-secondary">
+                    <button className="inline-flex items-center px-3 py-1.5 bg-neutral-100 dark:bg-dark-surface-tertiary text-neutral-700 dark:text-dark-text-secondary text-xs font-medium rounded-md hover:bg-neutral-200 dark:hover:bg-dark-surface-hover focus:outline-hidden transition-all duration-200 border border-neutral-200 dark:border-dark-border-secondary">
                       <FontAwesomeIcon icon={faCloudArrowDown} className="mr-1.5" />
                       同步
                     </button>
@@ -152,7 +152,7 @@ export default function SyncPage() {
           </div>
           
           <div className="mt-6 flex justify-center">
-            <button className="inline-flex items-center px-4 py-2 bg-brand-600 hover:bg-brand-700 dark:bg-brand-dark-500 dark:hover:bg-brand-dark-400 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all duration-200 shadow-sm hover:shadow-md dark:shadow-glow-brand">
+            <button className="inline-flex items-center px-4 py-2 bg-brand-600 hover:bg-brand-700 dark:bg-brand-dark-500 dark:hover:bg-brand-dark-400 text-white text-sm font-medium rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-all duration-200 shadow-sm hover:shadow-md dark:shadow-glow-brand">
               <FontAwesomeIcon icon={faCloudArrowUp} className="mr-1.5" />
               立即同步所有设备
             </button>

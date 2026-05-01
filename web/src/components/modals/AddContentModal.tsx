@@ -143,7 +143,7 @@ export default function AddContentModal({
         <div className="glass-effect bg-gradient-to-r from-white/70 to-white/50 dark:from-dark-surface-secondary/70 dark:to-dark-surface-secondary/50 border-b border-white/20 dark:border-dark-border-primary/30">
           <div className="p-4 pr-12">
             <div className="flex items-center">
-              <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-brand-500 to-brand-600 dark:from-brand-dark-400 dark:to-brand-dark-600 rounded-lg flex items-center justify-center mr-3">
+              <div className="shrink-0 w-8 h-8 bg-gradient-to-br from-brand-500 to-brand-600 dark:from-brand-dark-400 dark:to-brand-dark-600 rounded-lg flex items-center justify-center mr-3">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
@@ -287,7 +287,7 @@ export default function AddContentModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="为内容添加标题..."
-                  className="w-full px-3 py-2 glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 border border-white/30 dark:border-dark-border-secondary/50 rounded-lg text-sm text-neutral-900 dark:text-dark-text-primary placeholder-neutral-500 dark:placeholder-dark-text-muted focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 transition-all duration-200 backdrop-blur-sm"
+                  className="w-full px-3 py-2 glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 border border-white/30 dark:border-dark-border-secondary/50 rounded-lg text-sm text-neutral-900 dark:text-dark-text-primary placeholder-neutral-500 dark:placeholder-dark-text-muted focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 transition-all duration-200 backdrop-blur-xs"
                 />
               </div>
               
@@ -299,7 +299,7 @@ export default function AddContentModal({
                 <button
                   type="button"
                   onClick={() => setIsFavorite(!isFavorite)}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 ${
                     isFavorite 
                       ? 'bg-gradient-to-r from-brand-500 to-brand-600 dark:from-brand-dark-400 dark:to-brand-dark-600' 
                       : 'bg-gray-200 dark:bg-gray-700'
@@ -325,15 +325,15 @@ export default function AddContentModal({
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="输入要保存的内容..."
                 rows={4}
-                className="w-full px-3 py-2 glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 border border-white/30 dark:border-dark-border-secondary/50 rounded-lg text-sm text-neutral-900 dark:text-dark-text-primary placeholder-neutral-500 dark:placeholder-dark-text-muted focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 transition-all duration-200 backdrop-blur-sm resize-none"
+                className="w-full px-3 py-2 glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 border border-white/30 dark:border-dark-border-secondary/50 rounded-lg text-sm text-neutral-900 dark:text-dark-text-primary placeholder-neutral-500 dark:placeholder-dark-text-muted focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 transition-all duration-200 backdrop-blur-xs resize-none"
               />
             </div>
             
             {/* 密码类型提示 */}
             {selectedType === ClipboardType.PASSWORD && (
-              <div className="glass-effect bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 rounded-lg p-3 backdrop-blur-sm">
+              <div className="glass-effect bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 rounded-lg p-3 backdrop-blur-xs">
                 <div className="flex items-start">
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     <svg className="h-4 w-4 text-amber-500 dark:text-amber-400" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
@@ -350,7 +350,7 @@ export default function AddContentModal({
             
             {/* 错误提示 */}
             {error && (
-              <div className="glass-effect bg-red-50/80 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/30 rounded-lg p-3 backdrop-blur-sm">
+              <div className="glass-effect bg-red-50/80 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/30 rounded-lg p-3 backdrop-blur-xs">
                 <div className="flex items-center">
                   <svg className="h-4 w-4 text-red-500 dark:text-red-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />

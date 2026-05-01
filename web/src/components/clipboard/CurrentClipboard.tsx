@@ -254,7 +254,7 @@ export default function CurrentClipboard({
       </div>
       
       {!clipboard ? (
-        <div className="flex flex-col items-center justify-center p-4 glass-effect bg-white/40 dark:bg-dark-surface-secondary/40 backdrop-blur-sm border border-white/20 dark:border-dark-border-secondary/20 rounded-xl text-center">
+        <div className="flex flex-col items-center justify-center p-4 glass-effect bg-white/40 dark:bg-dark-surface-secondary/40 backdrop-blur-xs border border-white/20 dark:border-dark-border-secondary/20 rounded-xl text-center">
           <div className="w-10 h-10 mb-2 rounded-xl glass-effect bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 flex items-center justify-center shadow-sm">
             <svg className="w-5 h-5 text-neutral-400 dark:text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -283,7 +283,7 @@ export default function CurrentClipboard({
             clipboard.type === 'link' ? 'glass-effect bg-gradient-to-r from-blue-50/80 to-white/80 dark:from-blue-950/10 dark:to-dark-surface-secondary/80 border-blue-200/50 dark:border-blue-900/50' :
             clipboard.type === 'password' ? 'glass-effect bg-gradient-to-r from-red-50/80 to-white/80 dark:from-red-950/10 dark:to-dark-surface-secondary/80 border-red-200/50 dark:border-red-900/50' :
             'glass-effect bg-gradient-to-r from-white/80 to-white/60 dark:from-dark-surface-secondary/80 dark:to-dark-surface-secondary/60 border-white/30 dark:border-dark-border-secondary/30'
-          } backdrop-blur-sm`}>
+          } backdrop-blur-xs`}>
             <div className="overflow-hidden break-words text-sm text-neutral-700 dark:text-dark-text-secondary max-h-16 leading-relaxed">
               {clipboard.content}
             </div>
@@ -353,7 +353,7 @@ export default function CurrentClipboard({
                 value={inputContent}
                 onChange={(e) => setInputContent(e.target.value)}
                 placeholder="请输入要保存的内容..."
-                className="w-full p-3 border border-white/30 dark:border-dark-border-secondary/50 rounded-lg glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 outline-none text-neutral-800 dark:text-dark-text-primary min-h-[150px] backdrop-blur-sm transition-all duration-200"
+                className="w-full p-3 border border-white/30 dark:border-dark-border-secondary/50 rounded-lg glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 outline-hidden text-neutral-800 dark:text-dark-text-primary min-h-[150px] backdrop-blur-xs transition-all duration-200"
               ></textarea>
             </div>
             <div className="p-4 glass-effect bg-white/60 dark:bg-dark-surface-secondary/60 border-t border-white/20 dark:border-dark-border-primary/30 flex justify-end space-x-3">

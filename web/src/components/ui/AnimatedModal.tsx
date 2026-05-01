@@ -107,8 +107,8 @@ export default function AnimatedModal({
     >
       {/* 背景蒙层 - 修复虚影问题 */}
       <div 
-        className={`absolute inset-0 bg-black transition-all duration-300 ease-out ${
-          isAnimating ? 'bg-opacity-50' : 'bg-opacity-0'
+        className={`absolute inset-0 transition-all duration-300 ease-out ${
+          isAnimating ? 'bg-black/50' : 'bg-black/0'
         }`} 
         onClick={onClose}
         aria-hidden="true"
@@ -116,7 +116,7 @@ export default function AnimatedModal({
       
       {/* 毛玻璃效果层 */}
       <div 
-        className={`absolute inset-0 backdrop-blur-sm transition-all duration-300 ease-out ${
+        className={`absolute inset-0 backdrop-blur-xs transition-all duration-300 ease-out ${
           isAnimating ? 'opacity-100' : 'opacity-0'
         }`}
         aria-hidden="true"

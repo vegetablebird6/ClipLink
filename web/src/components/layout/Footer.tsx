@@ -6,7 +6,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="fixed bottom-1 left-1/2 transform -translate-x-1/2 bg-white bg-opacity-80 rounded-full px-3 py-1.5 text-xs text-gray-500 shadow-sm border border-gray-200 hidden md:flex items-center z-10">
+    <footer className="fixed bottom-1 left-1/2 transform -translate-x-1/2 bg-white/80 rounded-full px-3 py-1.5 text-xs text-gray-500 shadow-sm border border-gray-200 hidden md:flex items-center z-10">
       <div className="mr-2">
         &copy; {currentYear} ClipLink
       </div>

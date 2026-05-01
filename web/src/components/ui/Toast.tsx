@@ -33,11 +33,11 @@ export default function Toast({ id, message, type, duration = 3000, onClose }: T
       className={`${bgColorClasses[type]} text-white px-4 py-3 rounded-lg shadow-md flex items-center justify-between w-full animate-fade-in`}
       role="alert"
     >
-      <div className="flex items-center flex-grow mr-2">
+      <div className="flex items-center grow mr-2">
         <p className="text-sm font-medium truncate">{message}</p>
       </div>
       <button 
-        className="flex-shrink-0 text-white hover:text-gray-100"
+        className="shrink-0 text-white hover:text-gray-100"
         onClick={() => onClose(id)}
         aria-label="关闭"
       >

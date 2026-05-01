@@ -846,7 +846,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
         
         {/* 退出通道确认对话框 */}
         {confirmExitVisible && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700">
               <div className="flex items-center mb-4">
                 <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full mr-3">
@@ -876,7 +876,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
         )}
 
         {confirmDeleteVisible && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200 dark:border-gray-700">
               <div className="flex items-center mb-4">
                 <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full mr-3">

@@ -4,6 +4,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-22%2B-green)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-19.2%2B-blue)](https://reactjs.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16.2%2B-lightgrey)](https://nextjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.2%2B-38B2AC)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ClipLink 是一个功能强大的跨平台剪贴板内容同步工具，允许您在不同设备（如电脑和手机）之间通过网页界面共享剪贴板内容。该项目采用前后端分离架构，后端使用 Go 语言构建，数据通过 SQLite 存储并通过网络同步，前端使用 Next.js 和 React 构建。通过内置的编译脚本，可以将前端静态资源嵌入到 Go 二进制文件中，实现前后端一体化部署。
@@ -392,6 +393,8 @@ ClipLink 支持两种数据库类型：
 
 ### 前端开发
 
+前端使用 Next.js 16、React 19、Tailwind CSS 4 和 npm。Tailwind v4 通过 `@tailwindcss/postcss` 接入 PostCSS，样式入口位于 `web/src/app/globals.css`。
+
 ```bash
 # 进入前端目录
 cd web
@@ -401,6 +404,10 @@ npm install
 
 # 开发模式运行
 npm run dev
+
+# 类型检查与生产构建
+npm exec tsc -- --noEmit
+npm run build
 ```
 
 ### 后端开发

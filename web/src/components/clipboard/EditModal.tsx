@@ -182,7 +182,7 @@ export default function EditModal({
             <span className="text-xs text-gray-500 ml-2">{codeLanguage}</span>
             <button
               type="button"
-              className="p-1 text-xs text-gray-500 hover:text-gray-700 focus:outline-none"
+              className="p-1 text-xs text-gray-500 hover:text-gray-700 focus:outline-hidden"
               onClick={() => setPreviewMode(false)}
             >
               <FontAwesomeIcon icon={faEyeSlash} className="mr-1" />
@@ -218,7 +218,7 @@ export default function EditModal({
         <textarea 
           id="edit-content" 
           rows={type === ClipboardType.CODE ? 10 : 6} 
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
           placeholder="请输入内容"
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -227,7 +227,7 @@ export default function EditModal({
         {type === ClipboardType.CODE && (
           <button
             type="button"
-            className="absolute top-2 right-2 p-1 text-xs bg-gray-200 text-gray-600 rounded hover:bg-gray-300 hover:text-gray-800 focus:outline-none flex items-center"
+            className="absolute top-2 right-2 p-1 text-xs bg-gray-200 text-gray-600 rounded hover:bg-gray-300 hover:text-gray-800 focus:outline-hidden flex items-center"
             onClick={() => setPreviewMode(true)}
           >
             <FontAwesomeIcon icon={faEye} className="mr-1" />
@@ -241,12 +241,12 @@ export default function EditModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-10">
       <div className="bg-white rounded-lg w-full max-w-lg mx-4 shadow-lg">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="font-semibold text-gray-900">编辑剪贴板内容</h3>
           <button 
-            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+            className="text-gray-400 hover:text-gray-600 focus:outline-hidden"
             onClick={onClose}
           >
             <FontAwesomeIcon icon={faXmark} className="text-lg" />
@@ -259,7 +259,7 @@ export default function EditModal({
               <input 
                 type="text" 
                 id="edit-title" 
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                 placeholder="请输入标题(可选)"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -372,7 +372,7 @@ export default function EditModal({
             <div className="flex justify-end gap-2">
               <button 
                 type="button"
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none"
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-hidden"
                 onClick={onClose}
                 disabled={isSubmitting}
               >
@@ -380,7 +380,7 @@ export default function EditModal({
               </button>
               <button 
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-hidden"
                 disabled={isSubmitting || !content.trim()}
               >
                 {isSubmitting ? '保存中...' : '保存更改'}
