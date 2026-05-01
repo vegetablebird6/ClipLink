@@ -62,8 +62,15 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 		return nil, err
 	}
 
-	if cleanDuplicates && item.ContentHash != "" {
-		if _, err := s.clipboardRepo.DeleteByContentHash(channelID, item.ContentHash, item.ID); err != nil {
+	if cleanDuplicates {
+		// 优先用 hash 索引快速删除已有 hash 的重复项
+		if item.ContentHash != "" {
+			if _, err := s.clipboardRepo.DeleteByContentHash(channelID, item.ContentHash, item.ID); err != nil {
+				return nil, err
+			}
+		}
+		// 兜底：用 TRIM(content) 删除尚未回填 hash 的旧记录
+		if err := s.clipboardRepo.DeleteDuplicates(channelID, content, item.ID); err != nil {
 			return nil, err
 		}
 	}

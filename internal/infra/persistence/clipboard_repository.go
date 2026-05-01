@@ -257,88 +257,69 @@ func (r *clipboardRepository) DeleteByContentHash(channelID, contentHash, keepID
 	return result.RowsAffected, result.Error
 }
 
-// cleanupBatchSize 批量清理时每批查询的记录数
-const cleanupBatchSize = 1000
+// deleteBatchSize 批量删除时每批处理的 ID 数量，避免单条 SQL 过长
+const deleteBatchSize = 500
 
 // CleanupDuplicateContents 清理同通道下已存在的重复内容，保留每组最新项目。
-// 采用分批查询 + 按 content_hash 分组策略，避免一次性全量加载到内存。
+// 先全量扫描找出所有重复项 ID，再分批删除，避免 OFFSET 分页与删除并发导致跳过记录。
 func (r *clipboardRepository) CleanupDuplicateContents(channelID string) (int64, error) {
 	if channelID == "" {
 		return 0, nil
 	}
 
+	// 第一步：全量扫描，找出所有重复项（不删除）
+	var candidates []duplicateCandidate
+	if err := db.GetDB().
+		Model(&model.ClipboardItem{}).
+		Select("id", "content", "content_hash").
+		Where("channel_id = ?", channelID).
+		Order("created_at DESC").
+		Find(&candidates).Error; err != nil {
+		return 0, err
+	}
+
+	duplicateIDs := r.findDuplicateIDs(candidates)
+	if len(duplicateIDs) == 0 {
+		return 0, nil
+	}
+
+	// 第二步：分批删除，避免单条 SQL IN (...) 过长
 	var totalDeleted int64
-	offset := 0
-
-	for {
-		var candidates []duplicateCandidate
-		if err := db.GetDB().
-			Model(&model.ClipboardItem{}).
-			Select("id", "content", "content_hash", "created_at").
-			Where("channel_id = ?", channelID).
-			Order("created_at DESC").
-			Offset(offset).Limit(cleanupBatchSize).
-			Find(&candidates).Error; err != nil {
-			return totalDeleted, err
+	for i := 0; i < len(duplicateIDs); i += deleteBatchSize {
+		end := i + deleteBatchSize
+		if end > len(duplicateIDs) {
+			end = len(duplicateIDs)
 		}
-
-		if len(candidates) == 0 {
-			break
+		batch := duplicateIDs[i:end]
+		result := db.GetDB().
+			Where("id IN ?", batch).
+			Delete(&model.ClipboardItem{})
+		if result.Error != nil {
+			return totalDeleted, result.Error
 		}
-
-		duplicateIDs := r.findDuplicateIDs(candidates)
-		if len(duplicateIDs) > 0 {
-			result := db.GetDB().
-				Where("id IN ?", duplicateIDs).
-				Delete(&model.ClipboardItem{})
-			if result.Error != nil {
-				return totalDeleted, result.Error
-			}
-			totalDeleted += result.RowsAffected
-		}
-
-		if len(candidates) < cleanupBatchSize {
-			break
-		}
-		offset += cleanupBatchSize
+		totalDeleted += result.RowsAffected
 	}
 
 	return totalDeleted, nil
 }
 
-// findDuplicateIDs 从一批候选记录中找出重复项的 ID。
-// 优先使用 content_hash 分组，对空 hash 的旧记录回退到 TRIM(content) 比较。
+// findDuplicateIDs 从按 created_at DESC 排序的候选记录中找出重复项的 ID。
+// 统一使用 TRIM(content) 作为去重 key，确保有 hash 的新记录和无 hash 的旧记录
+// 只要内容相同就能被识别为同一组。
 func (r *clipboardRepository) findDuplicateIDs(candidates []duplicateCandidate) []string {
 	duplicateIDs := make([]string, 0)
+	seen := make(map[string]struct{}, len(candidates))
 
-	// 第一轮：按 content_hash 分组（快速路径）
-	seenHash := make(map[string]struct{}, len(candidates))
 	for _, c := range candidates {
-		if c.ContentHash == "" {
-			continue
-		}
-		if _, exists := seenHash[c.ContentHash]; exists {
-			duplicateIDs = append(duplicateIDs, c.ID)
-			continue
-		}
-		seenHash[c.ContentHash] = struct{}{}
-	}
-
-	// 第二轮：处理空 hash 的旧记录，回退到 TRIM(content) 比较
-	seenContent := make(map[string]struct{})
-	for _, c := range candidates {
-		if c.ContentHash != "" {
-			continue
-		}
 		normalized := strings.TrimSpace(c.Content)
 		if normalized == "" {
 			continue
 		}
-		if _, exists := seenContent[normalized]; exists {
+		if _, exists := seen[normalized]; exists {
 			duplicateIDs = append(duplicateIDs, c.ID)
 			continue
 		}
-		seenContent[normalized] = struct{}{}
+		seen[normalized] = struct{}{}
 	}
 
 	return duplicateIDs
