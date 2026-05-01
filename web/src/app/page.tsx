@@ -10,7 +10,7 @@ import { ClipboardItem, SaveClipboardRequest, ClipboardType } from '@/types/clip
 import ChannelDetailModal from '@/components/clipboard/ChannelDetailModal';
 import AddContentModal from '@/components/modals/AddContentModal';
 import { clipboardService } from '@/services/api';
-import TabBar, { ClipboardFilterType } from '@/components/clipboard/TabBar';
+import TabBar, { ClipboardFilterType, ClipboardSortOption } from '@/components/clipboard/TabBar';
 import { ClipboardGridSkeleton } from '@/components/ui/LoadingStates';
 
 import { 
@@ -39,6 +39,7 @@ export default function Home() {
 
   // TabBar 状态管理
   const [activeTab, setActiveTab] = useState<ClipboardFilterType>('all');
+  const [activeSort, setActiveSort] = useState<ClipboardSortOption>('newest');
   const [filteredItems, setFilteredItems] = useState<ClipboardItem[]>([]);
   
   // 搜索状态管理
@@ -312,21 +313,15 @@ export default function Home() {
 
   // 过滤剪贴板项目
   useEffect(() => {
-    // 如果是搜索模式，使用搜索结果
-    if (activeTab === 'search') {
-      setFilteredItems(searchResults);
-      return;
-    }
-
-    if (!clipboardItems || clipboardItems.length === 0) {
+    if (activeTab !== 'search' && (!clipboardItems || clipboardItems.length === 0)) {
       setFilteredItems([]);
       return;
     }
 
-    let filtered: ClipboardItem[] = [...clipboardItems];
+    let filtered: ClipboardItem[] = activeTab === 'search' ? [...searchResults] : [...clipboardItems];
 
     // 根据标签类型过滤
-    if (activeTab !== 'all') {
+    if (activeTab !== 'all' && activeTab !== 'search') {
       if (activeTab === 'favorite') {
         // 过滤收藏项
         filtered = filtered.filter(item => item.isFavorite);
@@ -336,8 +331,32 @@ export default function Home() {
       }
     }
 
-    setFilteredItems(filtered);
-  }, [clipboardItems, activeTab, searchResults]);
+    const getCreatedTime = (item: ClipboardItem) => {
+      const timestamp = new Date(item.createdAt || item.created_at || 0).getTime();
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
+
+    const sorted = [...filtered].sort((a, b) => {
+      if (activeSort === 'oldest') {
+        return getCreatedTime(a) - getCreatedTime(b);
+      }
+
+      if (activeSort === 'title') {
+        const titleA = (a.title || a.content || '').trim();
+        const titleB = (b.title || b.content || '').trim();
+        return titleA.localeCompare(titleB, 'zh-CN');
+      }
+
+      if (activeSort === 'type') {
+        const typeCompare = a.type.localeCompare(b.type, 'zh-CN');
+        return typeCompare === 0 ? getCreatedTime(b) - getCreatedTime(a) : typeCompare;
+      }
+
+      return getCreatedTime(b) - getCreatedTime(a);
+    });
+
+    setFilteredItems(sorted);
+  }, [clipboardItems, activeTab, searchResults, activeSort]);
 
   // 处理TabBar选项卡变更
   const handleTabChange = (tab: ClipboardFilterType) => {
@@ -352,16 +371,6 @@ export default function Home() {
     
     setActiveTab(tab);
     // 过滤逻辑已移到上方的 useEffect 中
-  };
-
-  // 处理筛选按钮点击
-  const handleFilterClick = () => {
-    console.log('Filter clicked');
-  };
-
-  // 处理排序按钮点击
-  const handleSortClick = () => {
-    console.log('Sort clicked');
   };
 
   // 包装loadMoreData函数，传递当前activeTab
@@ -468,9 +477,9 @@ export default function Home() {
         <div className="shrink-0 px-3">
           <TabBar 
             activeTab={activeTab} 
+            activeSort={activeSort}
             onTabChange={handleTabChange}
-            onFilterClick={handleFilterClick}
-            onSortClick={handleSortClick}
+            onSortChange={setActiveSort}
           />
         </div>
         

@@ -1,29 +1,26 @@
-import React from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faStar, 
-  faFilter, 
-  faArrowDownShortWide,
-  faLock
-} from '@fortawesome/free-solid-svg-icons';
+import React, { useEffect, useRef, useState } from 'react';
 import { ClipboardType } from '@/types/clipboard';
 
 // 调整类型定义，与ClipboardType更好地对应
 export type ClipboardFilterType = 'all' | ClipboardType | 'favorite' | 'search';
+export type ClipboardSortOption = 'newest' | 'oldest' | 'title' | 'type';
 
 interface TabBarProps {
   activeTab: ClipboardFilterType;
+  activeSort: ClipboardSortOption;
   onTabChange: (tab: ClipboardFilterType) => void;
-  onFilterClick: () => void;
-  onSortClick: () => void;
+  onSortChange: (sort: ClipboardSortOption) => void;
 }
 
 export default function TabBar({ 
   activeTab, 
+  activeSort,
   onTabChange, 
-  onFilterClick, 
-  onSortClick 
+  onSortChange
 }: TabBarProps) {
+  const [openMenu, setOpenMenu] = useState<'filter' | 'sort' | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   // 定义标签页数据
   const tabs = [
     {
@@ -70,8 +67,36 @@ export default function TabBar({
     }
   ];
 
+  const sortOptions: Array<{ value: ClipboardSortOption; label: string }> = [
+    { value: 'newest', label: '最新优先' },
+    { value: 'oldest', label: '最早优先' },
+    { value: 'title', label: '标题 A-Z' },
+    { value: 'type', label: '类型分组' }
+  ];
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, []);
+
+  const handleFilterSelect = (tab: ClipboardFilterType) => {
+    onTabChange(tab);
+    setOpenMenu(null);
+  };
+
+  const handleSortSelect = (sort: ClipboardSortOption) => {
+    onSortChange(sort);
+    setOpenMenu(null);
+  };
+
   return (
-    <div className="glass-effect bg-white/80 dark:bg-dark-surface-primary/80 backdrop-blur-xl border border-white/20 dark:border-dark-border-primary/30 rounded-xl shadow-lg dark:shadow-dark-md mb-2.5 overflow-hidden">
+    <div ref={menuRef} className="relative glass-effect bg-white/80 dark:bg-dark-surface-primary/80 backdrop-blur-xl border border-white/20 dark:border-dark-border-primary/30 rounded-xl shadow-lg dark:shadow-dark-md mb-2.5">
       <div className="flex items-center justify-between p-1.5">
         <div className="flex items-center space-x-0.5">
           {tabs.map((tab) => (
@@ -92,9 +117,14 @@ export default function TabBar({
         
         <div className="flex space-x-0.5">
           <button
-            className="p-1.5 rounded-lg hover:bg-white/50 dark:hover:bg-dark-surface-hover/50 text-neutral-500 dark:text-dark-text-tertiary transition-all duration-200 hover:scale-105"
+            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-105 ${
+              openMenu === 'filter' || (activeTab !== 'all' && activeTab !== 'search')
+                ? 'bg-brand-50 dark:bg-brand-dark-900/30 text-brand-600 dark:text-brand-dark-300'
+                : 'hover:bg-white/50 dark:hover:bg-dark-surface-hover/50 text-neutral-500 dark:text-dark-text-tertiary'
+            }`}
             title="筛选"
-            onClick={onFilterClick}
+            aria-expanded={openMenu === 'filter'}
+            onClick={() => setOpenMenu(openMenu === 'filter' ? null : 'filter')}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -102,9 +132,14 @@ export default function TabBar({
           </button>
           
           <button 
-            className="p-1.5 rounded-lg hover:bg-white/50 dark:hover:bg-dark-surface-hover/50 text-neutral-500 dark:text-dark-text-tertiary transition-all duration-200 hover:scale-105"
+            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-105 ${
+              openMenu === 'sort' || activeSort !== 'newest'
+                ? 'bg-brand-50 dark:bg-brand-dark-900/30 text-brand-600 dark:text-brand-dark-300'
+                : 'hover:bg-white/50 dark:hover:bg-dark-surface-hover/50 text-neutral-500 dark:text-dark-text-tertiary'
+            }`}
             title="排序"
-            onClick={onSortClick}
+            aria-expanded={openMenu === 'sort'}
+            onClick={() => setOpenMenu(openMenu === 'sort' ? null : 'sort')}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
@@ -112,28 +147,48 @@ export default function TabBar({
           </button>
         </div>
       </div>
+
+      {openMenu === 'filter' && (
+        <div className="absolute right-10 top-10 z-30 w-40 rounded-xl border border-white/30 dark:border-dark-border-primary/40 bg-white/95 dark:bg-dark-surface-primary/95 shadow-xl dark:shadow-dark-lg backdrop-blur-xl p-1.5">
+          {tabs.map((tab) => (
+            <button
+              key={`filter-${tab.value}`}
+              className={`w-full flex items-center px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === tab.value
+                  ? 'bg-brand-50 dark:bg-brand-dark-900/30 text-brand-700 dark:text-brand-dark-300'
+                  : 'text-neutral-700 dark:text-dark-text-secondary hover:bg-neutral-100/80 dark:hover:bg-dark-surface-hover/60'
+              }`}
+              onClick={() => handleFilterSelect(tab.value as ClipboardFilterType)}
+            >
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {openMenu === 'sort' && (
+        <div className="absolute right-1.5 top-10 z-30 w-36 rounded-xl border border-white/30 dark:border-dark-border-primary/40 bg-white/95 dark:bg-dark-surface-primary/95 shadow-xl dark:shadow-dark-lg backdrop-blur-xl p-1.5">
+          {sortOptions.map((option) => (
+            <button
+              key={option.value}
+              className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                activeSort === option.value
+                  ? 'bg-brand-50 dark:bg-brand-dark-900/30 text-brand-700 dark:text-brand-dark-300'
+                  : 'text-neutral-700 dark:text-dark-text-secondary hover:bg-neutral-100/80 dark:hover:bg-dark-surface-hover/60'
+              }`}
+              onClick={() => handleSortSelect(option.value)}
+            >
+              {option.label}
+              {activeSort === option.value && (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
-interface TabButtonProps {
-  label: string | React.ReactNode;
-  isActive: boolean;
-  onClick: () => void;
-  className?: string;
-}
-
-function TabButton({ label, isActive, onClick, className = '' }: TabButtonProps) {
-  return (
-    <button 
-      className={`px-2 md:px-4 py-3 border-b-2 whitespace-nowrap ${
-        isActive 
-          ? 'border-brand-500 text-brand-700 dark:text-brand-400 font-medium' 
-          : 'border-transparent text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300'
-      } text-sm ${className}`}
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  );
-} 
