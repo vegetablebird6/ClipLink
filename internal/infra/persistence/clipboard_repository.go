@@ -15,9 +15,10 @@ import (
 type clipboardRepository struct{}
 
 type duplicateCandidate struct {
-	ID        string
-	Content   string
-	CreatedAt time.Time
+	ID          string
+	Content     string
+	ContentHash string
+	CreatedAt   time.Time
 }
 
 // NewClipboardRepository 创建新的剪贴板仓库
@@ -232,6 +233,7 @@ func (r *clipboardRepository) Delete(id, channelID string) error {
 }
 
 // DeleteDuplicates 删除同通道下内容相同的重复项，保留指定项目。
+// Deprecated: 使用 DeleteByContentHash 替代，性能更优。
 func (r *clipboardRepository) DeleteDuplicates(channelID, content, keepID string) error {
 	if channelID == "" || content == "" || keepID == "" {
 		return nil
@@ -242,44 +244,104 @@ func (r *clipboardRepository) DeleteDuplicates(channelID, content, keepID string
 		Delete(&model.ClipboardItem{}).Error
 }
 
+// DeleteByContentHash 基于内容哈希删除同通道下的重复项，保留指定项目。
+// 使用 (channel_id, content_hash) 复合索引，避免全表扫描。
+func (r *clipboardRepository) DeleteByContentHash(channelID, contentHash, keepID string) (int64, error) {
+	if channelID == "" || contentHash == "" || keepID == "" {
+		return 0, nil
+	}
+
+	result := db.GetDB().
+		Where("channel_id = ? AND id <> ? AND content_hash = ?", channelID, keepID, contentHash).
+		Delete(&model.ClipboardItem{})
+	return result.RowsAffected, result.Error
+}
+
+// cleanupBatchSize 批量清理时每批查询的记录数
+const cleanupBatchSize = 1000
+
 // CleanupDuplicateContents 清理同通道下已存在的重复内容，保留每组最新项目。
+// 采用分批查询 + 按 content_hash 分组策略，避免一次性全量加载到内存。
 func (r *clipboardRepository) CleanupDuplicateContents(channelID string) (int64, error) {
 	if channelID == "" {
 		return 0, nil
 	}
 
-	var candidates []duplicateCandidate
-	if err := db.GetDB().
-		Model(&model.ClipboardItem{}).
-		Select("id", "content", "created_at").
-		Where("channel_id = ?", channelID).
-		Order("created_at DESC").
-		Find(&candidates).Error; err != nil {
-		return 0, err
+	var totalDeleted int64
+	offset := 0
+
+	for {
+		var candidates []duplicateCandidate
+		if err := db.GetDB().
+			Model(&model.ClipboardItem{}).
+			Select("id", "content", "content_hash", "created_at").
+			Where("channel_id = ?", channelID).
+			Order("created_at DESC").
+			Offset(offset).Limit(cleanupBatchSize).
+			Find(&candidates).Error; err != nil {
+			return totalDeleted, err
+		}
+
+		if len(candidates) == 0 {
+			break
+		}
+
+		duplicateIDs := r.findDuplicateIDs(candidates)
+		if len(duplicateIDs) > 0 {
+			result := db.GetDB().
+				Where("id IN ?", duplicateIDs).
+				Delete(&model.ClipboardItem{})
+			if result.Error != nil {
+				return totalDeleted, result.Error
+			}
+			totalDeleted += result.RowsAffected
+		}
+
+		if len(candidates) < cleanupBatchSize {
+			break
+		}
+		offset += cleanupBatchSize
 	}
 
-	seen := make(map[string]struct{}, len(candidates))
+	return totalDeleted, nil
+}
+
+// findDuplicateIDs 从一批候选记录中找出重复项的 ID。
+// 优先使用 content_hash 分组，对空 hash 的旧记录回退到 TRIM(content) 比较。
+func (r *clipboardRepository) findDuplicateIDs(candidates []duplicateCandidate) []string {
 	duplicateIDs := make([]string, 0)
-	for _, candidate := range candidates {
-		normalizedContent := strings.TrimSpace(candidate.Content)
-		if normalizedContent == "" {
+
+	// 第一轮：按 content_hash 分组（快速路径）
+	seenHash := make(map[string]struct{}, len(candidates))
+	for _, c := range candidates {
+		if c.ContentHash == "" {
 			continue
 		}
-		if _, exists := seen[normalizedContent]; exists {
-			duplicateIDs = append(duplicateIDs, candidate.ID)
+		if _, exists := seenHash[c.ContentHash]; exists {
+			duplicateIDs = append(duplicateIDs, c.ID)
 			continue
 		}
-		seen[normalizedContent] = struct{}{}
+		seenHash[c.ContentHash] = struct{}{}
 	}
 
-	if len(duplicateIDs) == 0 {
-		return 0, nil
+	// 第二轮：处理空 hash 的旧记录，回退到 TRIM(content) 比较
+	seenContent := make(map[string]struct{})
+	for _, c := range candidates {
+		if c.ContentHash != "" {
+			continue
+		}
+		normalized := strings.TrimSpace(c.Content)
+		if normalized == "" {
+			continue
+		}
+		if _, exists := seenContent[normalized]; exists {
+			duplicateIDs = append(duplicateIDs, c.ID)
+			continue
+		}
+		seenContent[normalized] = struct{}{}
 	}
 
-	result := db.GetDB().
-		Where("channel_id = ? AND id IN ?", channelID, duplicateIDs).
-		Delete(&model.ClipboardItem{})
-	return result.RowsAffected, result.Error
+	return duplicateIDs
 }
 
 // Count 统计剪贴板项目数量

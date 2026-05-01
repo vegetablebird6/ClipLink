@@ -24,8 +24,9 @@ type ClipboardItem struct {
 	DeviceID   string    `json:"device_id"`               // 设备ID
 	DeviceType string    `json:"device_type"`             // 设备类型（phone, tablet, desktop, other）
 	Favorite      bool      `json:"favorite"`                // 是否收藏
-	ChannelID     string    `json:"channel_id" gorm:"index"` // 通道ID，用于隔离不同用户的内容
+	ChannelID     string    `json:"channel_id" gorm:"index;index:idx_channel_content_hash"` // 通道ID，用于隔离不同用户的内容
 	UpdatedAt     time.Time `json:"updated_at"`              // 更新时间
 	ContentHTML   string    `json:"content_html" gorm:"column:content_html;type:text"` // 富文本HTML内容
 	ContentFormat string    `json:"content_format" gorm:"column:content_format;default:plain"` // 内容格式：plain 或 html
+	ContentHash   string    `json:"-" gorm:"column:content_hash;index:idx_channel_content_hash"` // 内容哈希，用于去重
 }

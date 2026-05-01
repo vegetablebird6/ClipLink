@@ -1,6 +1,9 @@
 package usecase
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,6 +12,16 @@ import (
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
+
+// computeContentHash 计算内容的 SHA-256 哈希（先 trim 再哈希）
+func computeContentHash(content string) string {
+	trimmed := strings.TrimSpace(content)
+	if trimmed == "" {
+		return ""
+	}
+	hash := sha256.Sum256([]byte(trimmed))
+	return hex.EncodeToString(hash[:])
+}
 
 // clipboardService 剪贴板服务实现
 type clipboardService struct {
@@ -41,6 +54,7 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 		UpdatedAt:     time.Now(),
 		ContentHTML:   contentHTML,
 		ContentFormat: contentFormat,
+		ContentHash:   computeContentHash(content),
 	}
 
 	// 保存到数据库
@@ -48,8 +62,8 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 		return nil, err
 	}
 
-	if cleanDuplicates {
-		if err := s.clipboardRepo.DeleteDuplicates(channelID, content, item.ID); err != nil {
+	if cleanDuplicates && item.ContentHash != "" {
+		if _, err := s.clipboardRepo.DeleteByContentHash(channelID, item.ContentHash, item.ID); err != nil {
 			return nil, err
 		}
 	}
@@ -123,6 +137,7 @@ func (s *clipboardService) UpdateClipboard(id, title, content, contentType, devi
 		"updated_at":     time.Now(),
 		"content_html":   contentHTML,
 		"content_format": contentFormat,
+		"content_hash":   computeContentHash(content),
 	}
 
 	// 更新到数据库
