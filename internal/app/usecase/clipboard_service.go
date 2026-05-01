@@ -54,6 +54,20 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 		}
 	}
 
+	// 记录同步历史
+	contentSummary := content
+	if len(contentSummary) > 100 {
+		contentSummary = contentSummary[:100]
+	}
+	syncHistory := &model.SyncHistory{
+		Action:    model.ActionSync,
+		Content:   contentSummary,
+		DeviceID:  deviceID,
+		ChannelID: channelID,
+		CreatedAt: time.Now(),
+	}
+	_ = s.syncHistoryRepo.Save(syncHistory)
+
 	return item, nil
 }
 
@@ -100,7 +114,7 @@ func (s *clipboardService) DeleteClipboard(id string, channelID string) error {
 // UpdateClipboard 更新剪贴板项目
 func (s *clipboardService) UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string, contentHTML, contentFormat string) (*model.ClipboardItem, error) {
 	// 更新内容
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"title":          title,
 		"content":        content,
 		"type":           contentType,
@@ -142,7 +156,7 @@ func (s *clipboardService) ToggleFavorite(id string, isFavorite bool, channelID 
 	}
 
 	// 设置收藏状态为指定值
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"favorite":   isFavorite,
 		"updated_at": time.Now(),
 	}
@@ -154,13 +168,8 @@ func (s *clipboardService) ToggleFavorite(id string, isFavorite bool, channelID 
 
 	// 记录同步历史（如果提供了设备ID）
 	if len(deviceID) > 0 && deviceID[0] != "" {
-		// 记录同步动作
-		action := "收藏"
-		if !isFavorite {
-			action = "取消收藏"
-		}
 		syncHistory := &model.SyncHistory{
-			Action:    action,
+			Action:    model.ActionUpdate,
 			Content:   item.Title,
 			DeviceID:  deviceID[0],
 			ChannelID: channelID,

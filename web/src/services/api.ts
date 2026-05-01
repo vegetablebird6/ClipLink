@@ -222,14 +222,14 @@ export const clipboardService = {
   },
 
   // 获取同步历史
-  getSyncHistory: async (limit: number = 10): Promise<ApiResponse<{records: any[]}>> => {
+  getSyncHistory: async (limit: number = 10, offset: number = 0): Promise<ApiResponse<any[]>> => {
     try {
       const response = await api.get<unknown>(`/sync/history`, {
-        params: { limit }
+        params: { limit, offset }
       });
-      return handleApiResponse<{records: any[]}>(response.data);
+      return handleApiResponse<any[]>(response.data);
     } catch (error) {
-      return handleApiError<{records: any[]}>(error, '获取同步历史失败');
+      return handleApiError<any[]>(error, '获取同步历史失败');
     }
   },
 

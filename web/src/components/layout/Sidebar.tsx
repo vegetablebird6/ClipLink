@@ -2,10 +2,9 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faClipboardList, 
-  faStar, 
-  faClockRotateLeft, 
+import {
+  faClipboardList,
+  faStar,
   faGear
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigationProgress } from './NavigationProgress';
@@ -44,13 +43,7 @@ export default function Sidebar() {
           label="收藏夹" 
           isActive={isActive('/favorites')} 
         />
-        <NavItem 
-          href="/history" 
-          icon={faClockRotateLeft} 
-          label="历史" 
-          isActive={isActive('/history')} 
-        />
-        {/* <NavItem 
+        {/* <NavItem
           href="/categories" 
           icon={faFolder} 
           label="分类" 

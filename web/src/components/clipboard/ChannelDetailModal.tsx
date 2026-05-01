@@ -62,6 +62,20 @@ interface SyncRecord {
   created_at: string;
 }
 
+const ACTION_LABELS: Record<string, string> = {
+  sync: '同步内容',
+  update: '更新内容',
+  delete: '删除内容',
+  connect: '连接设备',
+  disconnect: '断开设备',
+  '收藏': '收藏',
+  '取消收藏': '取消收藏',
+};
+
+function getActionLabel(action: string): string {
+  return ACTION_LABELS[action] || action;
+}
+
 export default function ChannelDetailModal({ isOpen, onClose, channelId }: ChannelDetailModalProps) {
   const [showChannelId, setShowChannelId] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -93,6 +107,8 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   const [channelStats, setChannelStats] = useState<ChannelStats | null>(null);
   const [connectedDevices, setConnectedDevices] = useState<Device[]>([]);
   const [syncHistory, setSyncHistory] = useState<SyncRecord[]>([]);
+  const [syncHistoryOffset, setSyncHistoryOffset] = useState(0);
+  const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
   const [isApiTesting, setIsApiTesting] = useState(false);
   const [apiTestResults, setApiTestResults] = useState<any>(null);
 
@@ -153,22 +169,30 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   };
 
   // 获取同步历史
-  const fetchSyncHistory = async () => {
+  const fetchSyncHistory = async (offset: number = 0, append: boolean = false) => {
     if (!channelId || !isChannelVerified) {
-      setIsLoading(false);
       return;
     }
-    
+
     try {
-      const response: any = await clipboardService.getSyncHistory(10);
+      if (append) setIsLoadingMoreHistory(true);
+      const response: any = await clipboardService.getSyncHistory(10, offset);
       if (response.success) {
-        setSyncHistory(response.data.records || []);
+        const records = response.data || [];
+        if (append) {
+          setSyncHistory(prev => [...prev, ...records]);
+        } else {
+          setSyncHistory(records);
+        }
+        setSyncHistoryOffset(offset + records.length);
       } else {
         showToast(response.message || '获取同步历史失败', 'error');
       }
     } catch (error) {
       console.error('获取同步历史失败:', error);
       showToast('获取同步历史失败', 'error');
+    } finally {
+      if (append) setIsLoadingMoreHistory(false);
     }
   };
 
@@ -764,7 +788,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                                 <div className="flex justify-between items-start mb-2">
                                   <div>
                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
-                                      {activity.action}
+                                      {getActionLabel(activity.action)}
                                     </span>
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
@@ -804,10 +828,14 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                       </div>
                     )}
                     
-                    {syncHistory.length > 8 && (
+                    {syncHistory.length >= 10 && syncHistory.length % 10 === 0 && (
                       <div className="text-center mt-6">
-                        <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                          查看更多历史
+                        <button
+                          onClick={() => fetchSyncHistory(syncHistoryOffset, true)}
+                          disabled={isLoadingMoreHistory}
+                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                        >
+                          {isLoadingMoreHistory ? '加载中...' : '查看更多历史'}
                         </button>
                       </div>
                     )}
