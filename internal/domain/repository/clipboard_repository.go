@@ -42,6 +42,9 @@ type ClipboardRepository interface {
 	// DeleteByContentHash 基于内容哈希删除同通道下的重复项，保留指定项目。
 	DeleteByContentHash(channelID, contentHash, keepID string) (int64, error)
 
+	// DeleteLegacyDuplicatesByContent 删除尚未回填 hash 的旧记录中的重复项，保留指定项目。
+	DeleteLegacyDuplicatesByContent(channelID, content, keepID string) error
+
 	// CleanupDuplicateContents 清理同通道下已存在的重复内容，保留每组最新项目。
 	CleanupDuplicateContents(channelID string) (int64, error)
 

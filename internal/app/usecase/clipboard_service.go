@@ -69,8 +69,8 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 				return nil, err
 			}
 		}
-		// 兜底：用 TRIM(content) 删除尚未回填 hash 的旧记录
-		if err := s.clipboardRepo.DeleteDuplicates(channelID, content, item.ID); err != nil {
+		// 兜底：仅对尚未回填 hash 的旧记录做 TRIM 匹配，避免扫描已有 hash 的现代数据
+		if err := s.clipboardRepo.DeleteLegacyDuplicatesByContent(channelID, content, item.ID); err != nil {
 			return nil, err
 		}
 	}
