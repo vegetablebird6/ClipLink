@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useToast } from '@/contexts/ToastContext';
 import { clipboardService } from '@/services/api';
 import { ClipboardItem, ClipboardType, SaveClipboardRequest } from '@/types/clipboard';
@@ -43,7 +43,8 @@ export const useClipboardData = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  
+  const tabSeqRef = useRef(0);
+
   const { showToast } = useToast();
 
   const removeDuplicateContentFromList = useCallback((items: ClipboardItem[], savedItem: ClipboardItem) => {
@@ -392,6 +393,8 @@ export const useClipboardData = ({
       return;
     }
 
+    const seq = ++tabSeqRef.current;
+
     try {
       setIsLoading(true);
       let response;
@@ -403,6 +406,9 @@ export const useClipboardData = ({
       } else {
         response = await clipboardService.getClipboardByType(tab as ClipboardType, pageSize);
       }
+
+      // 快速切换时丢弃过期响应，只允许最后一次请求落状态
+      if (seq !== tabSeqRef.current) return;
 
       if (response.success && response.data) {
         let items: ClipboardItem[] = [];
@@ -417,9 +423,10 @@ export const useClipboardData = ({
         setHasMore('has_more' in response.data ? (response.data as {has_more?: boolean}).has_more || false : false);
       }
     } catch (error) {
+      if (seq !== tabSeqRef.current) return;
       showToast('获取数据失败', 'error');
     } finally {
-      setIsLoading(false);
+      if (seq === tabSeqRef.current) setIsLoading(false);
     }
   }, [showToast, pageSize, isChannelVerified, dedupeItemsForDisplay]);
   
