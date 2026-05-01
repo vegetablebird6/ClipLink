@@ -17,7 +17,7 @@ export default function SyncPage() {
   const [syncInterval, setSyncInterval] = useState(5);
   const [devices, setDevices] = useState([
     { id: 1, name: '当前电脑', type: 'desktop', isOnline: true, lastSync: new Date().toISOString() },
-    { id: 2, name: 'iPhone 13', type: 'mobile', isOnline: true, lastSync: new Date().toISOString() },
+    { id: 2, name: 'iPhone 13', type: 'phone', isOnline: true, lastSync: new Date().toISOString() },
     { id: 3, name: 'iPad Pro', type: 'tablet', isOnline: false, lastSync: '2023-05-13T10:15:30Z' }
   ]);
 
@@ -29,7 +29,7 @@ export default function SyncPage() {
     switch (type) {
       case 'desktop':
         return faDesktop;
-      case 'mobile':
+      case 'phone':
         return faMobile;
       case 'tablet':
         return faTablet;

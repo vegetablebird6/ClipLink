@@ -337,7 +337,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
     switch (type) {
       case 'desktop':
         return faDesktop;
-      case 'mobile':
+      case 'phone':
         return faMobile;
       case 'tablet':
         return faTablet;
@@ -721,7 +721,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                             <div className="flex items-center">
                               <div className={`p-2.5 rounded-full ${
                                 device.type === 'desktop' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
-                                device.type === 'mobile' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                                device.type === 'phone' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
                                 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
                               }`}>
                                 <FontAwesomeIcon icon={getDeviceIcon(device.type)} />
