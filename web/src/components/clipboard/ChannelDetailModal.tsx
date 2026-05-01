@@ -108,6 +108,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   const [connectedDevices, setConnectedDevices] = useState<Device[]>([]);
   const [syncHistory, setSyncHistory] = useState<SyncRecord[]>([]);
   const [syncHistoryOffset, setSyncHistoryOffset] = useState(0);
+  const [hasMoreSyncHistory, setHasMoreSyncHistory] = useState(true);
   const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
   const [isApiTesting, setIsApiTesting] = useState(false);
   const [apiTestResults, setApiTestResults] = useState<any>(null);
@@ -185,6 +186,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
           setSyncHistory(records);
         }
         setSyncHistoryOffset(offset + records.length);
+        setHasMoreSyncHistory(records.length === 10);
       } else {
         showToast(response.message || '获取同步历史失败', 'error');
       }
@@ -828,7 +830,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                       </div>
                     )}
                     
-                    {syncHistory.length >= 10 && syncHistory.length % 10 === 0 && (
+                    {hasMoreSyncHistory && (
                       <div className="text-center mt-6">
                         <button
                           onClick={() => fetchSyncHistory(syncHistoryOffset, true)}
