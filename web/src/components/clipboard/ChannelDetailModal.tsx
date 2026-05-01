@@ -379,16 +379,16 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
 
   // 渲染未连接通道的提示内容
   const renderNoChannelContent = () => (
-    <div className="flex flex-col items-center justify-center py-8">
-      <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-full mb-4">
-        <FontAwesomeIcon icon={faKey} className="text-gray-400 dark:text-gray-500 text-3xl" />
+    <div className="flex flex-col items-center justify-center py-4 sm:py-8 px-2 sm:px-0">
+      <div className="bg-gray-100 dark:bg-gray-700 p-3 sm:p-4 rounded-full mb-3 sm:mb-4">
+        <FontAwesomeIcon icon={faKey} className="text-gray-400 dark:text-gray-500 text-2xl sm:text-3xl" />
       </div>
-      <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">未连接通道</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center max-w-md">
+      <h3 className="text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">未连接通道</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4 text-center max-w-md">
         加入已有通道不需要服务器创建密钥；只有创建新通道时才需要。
       </p>
 
-      <div className="w-full max-w-md mb-6">
+      <div className="w-full max-w-md mb-4 sm:mb-6">
         <div className="grid grid-cols-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-1">
           <button
             type="button"
@@ -429,7 +429,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
               value={inputChannelId}
               onChange={(e) => setInputChannelId(e.target.value)}
               placeholder="通道 ID"
-              className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
               disabled={isConnecting || isCreating}
             />
             {connectionError && (
@@ -460,7 +460,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
               value={createChannelId}
               onChange={(e) => setCreateChannelId(e.target.value)}
               placeholder="自定义通道 ID（可选）"
-              className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
               disabled={isConnecting || isCreating}
             />
             <input
@@ -468,7 +468,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
               value={instanceToken}
               onChange={(e) => setInstanceToken(e.target.value)}
               placeholder="服务器创建密钥"
-              className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
               disabled={isConnecting || isCreating}
               autoComplete="off"
             />
@@ -512,7 +512,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-1.5 rounded-t-lg"></div>
       
       <div className="p-0 bg-white dark:bg-gray-800 flex flex-col overflow-hidden rounded-b-lg" style={{maxHeight: '85vh'}}>
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-3">
               <FontAwesomeIcon icon={faKey} className="text-blue-600 dark:text-blue-400" />
@@ -530,7 +530,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
         ) : (
           <>
             {/* 标签页导航 */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 mx-6 rounded-t-lg overflow-hidden">
+            <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 mx-4 sm:mx-6 rounded-t-lg overflow-hidden">
               <button
                 className={`flex-1 py-3 font-medium text-sm transition-all duration-200 ${
                   activeTab === 'info' 
@@ -568,7 +568,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
               </div>
             ) : (
-              <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent" style={{maxHeight: '400px'}}>
+              <div className="p-4 sm:p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent" style={{maxHeight: 'min(400px, 50vh)'}}>
                 {/* 通道信息页面 */}
                 {activeTab === 'info' && channelStats && (
                   <>
@@ -817,26 +817,26 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
             )}
             
             {/* 底部操作栏 */}
-            <div className="mt-auto border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex flex-wrap justify-between gap-3">
-              <div className="flex flex-wrap gap-3">
-                <button 
+            <div className="mt-auto border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-wrap justify-between gap-2 sm:gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
+                <button
                   onClick={handleExitChannel}
-                  className="px-4 py-2 border border-red-300 dark:border-red-700 rounded-md text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center transition-colors"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 border border-red-300 dark:border-red-700 rounded-md text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center transition-colors"
                 >
                   <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
                   退出通道
                 </button>
                 <button
                   onClick={handleDeleteChannel}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium flex items-center transition-colors"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium flex items-center transition-colors"
                 >
                   <FontAwesomeIcon icon={faTrash} className="mr-2" />
                   删除通道
                 </button>
               </div>
-              <button 
+              <button
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 关闭
               </button>
@@ -893,7 +893,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                   value={deleteInstanceToken}
                   onChange={(e) => setDeleteInstanceToken(e.target.value)}
                   placeholder="服务器创建密钥"
-                  className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-red-500 focus:border-red-500"
+                  className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-red-500 focus:border-red-500"
                   disabled={isDeletingChannel}
                   autoComplete="off"
                 />
@@ -902,7 +902,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                   value={deleteChannelConfirm}
                   onChange={(e) => setDeleteChannelConfirm(e.target.value)}
                   placeholder="输入完整通道 ID 确认删除"
-                  className="w-full px-4 py-2 border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-red-500 focus:border-red-500"
+                  className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-red-500 focus:border-red-500"
                   disabled={isDeletingChannel}
                 />
                 {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}

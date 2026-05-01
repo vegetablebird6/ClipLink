@@ -123,7 +123,7 @@ export default function AnimatedModal({
       />
       
       {/* 模态框容器 - 居中布局 */}
-      <div className="relative flex min-h-full items-center justify-center p-4">
+      <div className="relative flex min-h-full items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
         <div 
           ref={modalRef}
           className={`relative ${maxWidth} w-full transition-all duration-300 ease-out ${
