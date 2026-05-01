@@ -11,7 +11,6 @@ import {
   faCheck,
   faTimes
 } from '@fortawesome/free-solid-svg-icons';
-import MainLayout from '@/components/layout/MainLayout';
 
 export default function SyncPage() {
   const [syncEnabled, setSyncEnabled] = useState(true);
@@ -51,7 +50,7 @@ export default function SyncPage() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="bg-white dark:bg-dark-surface-primary/95 backdrop-blur-md border-b border-neutral-200 dark:border-dark-border-primary p-4 shadow-sm dark:shadow-dark-sm">
         <h1 className="text-lg font-medium text-neutral-900 dark:text-dark-text-primary">设备同步</h1>
         <p className="text-sm text-neutral-500 dark:text-dark-text-tertiary">管理剪贴板在不同设备上的同步状态</p>
@@ -160,6 +159,6 @@ export default function SyncPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 } 

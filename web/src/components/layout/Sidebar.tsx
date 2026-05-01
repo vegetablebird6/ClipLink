@@ -6,9 +6,9 @@ import {
   faClipboardList, 
   faStar, 
   faClockRotateLeft, 
-  faFolder, 
   faGear
 } from '@fortawesome/free-solid-svg-icons';
+import { useNavigationProgress } from './NavigationProgress';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -80,9 +80,28 @@ interface NavItemProps {
 }
 
 function NavItem({ href, icon, label, isActive }: NavItemProps) {
+  const { startNavigation } = useNavigationProgress();
+
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (
+      event.defaultPrevented ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    startNavigation(href);
+  };
+
   return (
     <Link 
       href={href} 
+      prefetch
+      onClick={handleClick}
       className={`flex flex-col items-center ${isActive ? 'text-brand-600 dark:text-brand-dark-400' : 'text-neutral-500 dark:text-dark-text-tertiary hover:text-neutral-800 dark:hover:text-dark-text-secondary'} text-xs font-medium transition-all duration-200`}
     >
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-1.5 transition-all duration-200 ${

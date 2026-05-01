@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
+import React, { useState, useEffect } from 'react';
 import CurrentClipboard from '@/components/clipboard/CurrentClipboard';
 import ClipboardGrid from '@/components/clipboard/ClipboardGrid';
 import EditModal from '@/components/clipboard/EditModal';
@@ -12,6 +11,7 @@ import ChannelDetailModal from '@/components/clipboard/ChannelDetailModal';
 import AddContentModal from '@/components/modals/AddContentModal';
 import { clipboardService } from '@/services/api';
 import TabBar, { ClipboardFilterType } from '@/components/clipboard/TabBar';
+import { ClipboardGridSkeleton } from '@/components/ui/LoadingStates';
 
 import { 
   useClipboardPermission, 
@@ -36,9 +36,6 @@ export default function Home() {
     isIOSDevice,
     requestClipboardPermission,
   } = useClipboardPermission();
-
-  // 添加数据加载标记 ref
-  const initialDataLoadedRef = useRef(false);
 
   // TabBar 状态管理
   const [activeTab, setActiveTab] = useState<ClipboardFilterType>('all');
@@ -136,14 +133,6 @@ export default function Home() {
   const [previewItem, setPreviewItem] = useState<ClipboardItem | undefined>();
   const [isAddContentModalOpen, setIsAddContentModalOpen] = useState(false);
   const [confirmContent, setConfirmContent] = useState<string>('');
-
-  useEffect(() => {
-    if (isChannelVerified && !initialDataLoadedRef.current) {
-      initialDataLoadedRef.current = true;
-      
-      fetchClipboardData();
-    }
-  }, [isChannelVerified, fetchClipboardData]);
 
   useEffect(() => {
     // 确保currentClipboard始终有值（如果有数据的话）
@@ -442,7 +431,7 @@ export default function Home() {
   };
 
   return (
-    <MainLayout>      
+    <>      
       <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gradient-dark overflow-hidden">
         {/* 固定的当前剪贴板区域 */}
         <div className="flex-shrink-0 px-3 pt-1.5">
@@ -485,17 +474,21 @@ export default function Home() {
         
         {/* 可滚动的内容区域 - 仅ClipboardGrid */}
         <div className="flex-1 overflow-auto px-3 pb-1.5">
-          <ClipboardGrid 
-            items={filteredItems}
-            onCopy={handleCopy}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onToggleFavorite={handleToggleFavorite}
-            onPreview={handlePreview}
-            hasMore={activeTab === 'search' ? hasMoreSearch : hasMore}
-            onLoadMore={handleLoadMore}
-            isLoadingMore={isLoadingMore || isSearching}
-          />
+          {isLoading && filteredItems.length === 0 ? (
+            <ClipboardGridSkeleton />
+          ) : (
+            <ClipboardGrid 
+              items={filteredItems}
+              onCopy={handleCopy}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggleFavorite={handleToggleFavorite}
+              onPreview={handlePreview}
+              hasMore={activeTab === 'search' ? hasMoreSearch : hasMore}
+              onLoadMore={handleLoadMore}
+              isLoadingMore={isLoadingMore || isSearching}
+            />
+          )}
         </div>
       </div>
       
@@ -574,6 +567,6 @@ export default function Home() {
         onClose={handleCloseChannelModal} 
         channelId={channelId || ''}
       />
-    </MainLayout>
+    </>
   );
 }

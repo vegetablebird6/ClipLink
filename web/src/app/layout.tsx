@@ -8,6 +8,7 @@ import { config } from '@fortawesome/fontawesome-svg-core';
 import { ToastProvider } from "@/contexts/ToastContext";
 import { ChannelProvider } from "@/contexts/ChannelContext";
 import DeviceRegistration from "@/components/device/DeviceRegistration";
+import MainLayout from "@/components/layout/MainLayout";
 
 // 防止fontawesome图标闪烁，这个设置会内联样式，无需外部CSS
 config.autoAddCss = true;
@@ -67,7 +68,9 @@ export default function RootLayout({
           <ChannelProvider>
             {/* 设备注册组件（不可见） */}
             <DeviceRegistration />
-          {children}
+            <MainLayout>
+              {children}
+            </MainLayout>
           </ChannelProvider>
         </ToastProvider>
       </body>

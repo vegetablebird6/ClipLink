@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
 import ClipboardGrid from '@/components/clipboard/ClipboardGrid';
 import EditModal from '@/components/clipboard/EditModal';
 import PreviewModal from '@/components/clipboard/PreviewModal';
@@ -9,6 +8,7 @@ import SearchBar from '@/components/clipboard/SearchBar';
 import { ClipboardItem, SaveClipboardRequest, ClipboardType } from '@/types/clipboard';
 import { clipboardService } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
+import { ClipboardGridSkeleton } from '@/components/ui/LoadingStates';
 
 export default function HistoryPage() {
   const [historyItems, setHistoryItems] = useState<ClipboardItem[]>([]);
@@ -294,7 +294,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="flex justify-between items-center mb-4">
           <div>
@@ -325,9 +325,7 @@ export default function HistoryPage() {
       <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
         <div className="h-full overflow-y-auto custom-scrollbar p-4">
           {isLoading ? (
-            <div className="flex justify-center items-center h-40">
-              <span className="text-gray-400 dark:text-gray-500">加载中...</span>
-            </div>
+            <ClipboardGridSkeleton />
           ) : (
             <ClipboardGrid 
               items={filteredItems}
@@ -362,6 +360,6 @@ export default function HistoryPage() {
         }}
         item={previewItem}
       />
-    </MainLayout>
+    </>
   );
 } 

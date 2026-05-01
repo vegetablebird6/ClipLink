@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
 import ClipboardGrid from '@/components/clipboard/ClipboardGrid';
 import EditModal from '@/components/clipboard/EditModal';
 import PreviewModal from '@/components/clipboard/PreviewModal';
 import { ClipboardItem, SaveClipboardRequest } from '@/types/clipboard';
 import { clipboardService } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
+import { ClipboardGridSkeleton } from '@/components/ui/LoadingStates';
 
 export default function FavoritesPage() {
   const [favoriteItems, setFavoriteItems] = useState<ClipboardItem[]>([]);
@@ -173,7 +173,7 @@ export default function FavoritesPage() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4">
         <h1 className="text-lg font-medium text-gray-900 dark:text-white">收藏夹</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">在这里查看您收藏的所有剪贴板项目</p>
@@ -182,9 +182,7 @@ export default function FavoritesPage() {
       <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
         <div className="h-full overflow-y-auto custom-scrollbar p-4">
           {isLoading ? (
-            <div className="flex justify-center items-center h-40">
-              <span className="text-gray-400 dark:text-gray-500">加载中...</span>
-            </div>
+            <ClipboardGridSkeleton />
           ) : (
             <ClipboardGrid 
               items={favoriteItems}
@@ -220,6 +218,6 @@ export default function FavoritesPage() {
         }}
         item={previewItem}
       />
-    </MainLayout>
+    </>
   );
 } 

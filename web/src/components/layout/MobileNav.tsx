@@ -8,6 +8,7 @@ import {
   faClockRotateLeft, 
   faGear 
 } from '@fortawesome/free-solid-svg-icons';
+import { useNavigationProgress } from './NavigationProgress';
 
 export default function MobileNav() {
   const pathname = usePathname();
@@ -54,9 +55,28 @@ interface MobileNavItemProps {
 }
 
 function MobileNavItem({ href, icon, label, isActive }: MobileNavItemProps) {
+  const { startNavigation } = useNavigationProgress();
+
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (
+      event.defaultPrevented ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    startNavigation(href);
+  };
+
   return (
     <Link 
       href={href} 
+      prefetch
+      onClick={handleClick}
       className={`flex flex-col items-center py-2 transition-all duration-200 rounded-lg ${
         isActive 
           ? 'text-brand-600 dark:text-brand-dark-400 bg-brand-50/50 dark:bg-brand-900/20 shadow-sm dark:shadow-glow-brand' 

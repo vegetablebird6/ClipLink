@@ -183,4 +183,48 @@
   .dark-border-secondary {
     @apply border-dark-border-secondary;
   }
+
+  .skeleton-pulse {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skeleton-pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    animation: skeleton-shimmer 1.25s ease-in-out infinite;
+  }
+
+  html.dark .skeleton-pulse::after {
+    background: linear-gradient(90deg, transparent, rgba(248, 250, 252, 0.08), transparent);
+  }
+
+  .animate-route-progress {
+    animation: route-progress 1.05s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes route-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-pulse::after,
+  .animate-route-progress {
+    animation: none;
+  }
 }
