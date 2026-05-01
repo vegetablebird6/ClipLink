@@ -182,5 +182,4 @@ module.exports = {
       },
     },
   },
-  plugins: [],
 } 
