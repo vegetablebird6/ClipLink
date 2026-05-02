@@ -3,10 +3,7 @@ export enum ClipboardType {
   TEXT = 'text',
   LINK = 'link',
   CODE = 'code',
-  PASSWORD = 'password',
-  IMAGE = 'image',
-  FILE = 'file',
-  OTHER = 'other'
+  PASSWORD = 'password'
 }
 
 // 设备类型

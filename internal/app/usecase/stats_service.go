@@ -66,16 +66,6 @@ func (s *statsService) GetChannelStats(channelID string) (map[string]interface{}
 		return nil, err
 	}
 
-	imageCount, err := s.clipboardRepo.CountByType("image", channelID)
-	if err != nil {
-		return nil, err
-	}
-
-	fileCount, err := s.clipboardRepo.CountByType("file", channelID)
-	if err != nil {
-		return nil, err
-	}
-
 	// 获取设备统计
 	onlineDevices, err := s.deviceRepo.CountOnline(channelID)
 	if err != nil {
@@ -101,8 +91,6 @@ func (s *statsService) GetChannelStats(channelID string) (map[string]interface{}
 			"link":     linkCount,
 			"code":     codeCount,
 			"password": passwordCount,
-			"image":    imageCount,
-			"file":     fileCount,
 		},
 		"devices": map[string]interface{}{
 			"online": onlineDevices,

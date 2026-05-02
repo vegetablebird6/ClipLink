@@ -2,7 +2,7 @@ package validation
 
 var validClipboardTypes = map[string]bool{
 	"text": true, "link": true, "code": true,
-	"password": true, "image": true, "file": true,
+	"password": true,
 }
 
 var validDeviceTypes = map[string]bool{

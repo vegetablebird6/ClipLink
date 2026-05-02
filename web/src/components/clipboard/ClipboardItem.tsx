@@ -6,8 +6,6 @@ import {
   faPenToSquare,
   faTrashCan,
   faLock,
-  faImage,
-  faFile,
   faDesktop,
   faMobilePhone,
   faTabletScreenButton,
@@ -161,34 +159,6 @@ export default function ClipboardItemCard({
                     {showPassword ? '隐藏' : '显示'}
                   </button>
                 </div>
-              </div>
-            </div>
-          </div>
-        );
-      case ClipboardType.IMAGE:
-        return (
-          <div className="p-3 bg-white h-24 overflow-y-auto">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                <FontAwesomeIcon icon={faImage} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{item.title || '图片'}</p>
-                <p className="text-xs text-gray-500 truncate">图片链接: {item.content}</p>
-              </div>
-            </div>
-          </div>
-        );
-      case ClipboardType.FILE:
-        return (
-          <div className="p-3 bg-white h-24 overflow-y-auto">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 shrink-0 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                <FontAwesomeIcon icon={faFile} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{item.title || '文件'}</p>
-                <p className="text-xs text-gray-500 truncate">文件路径: {item.content}</p>
               </div>
             </div>
           </div>

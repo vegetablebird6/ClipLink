@@ -8,8 +8,6 @@ import {
   faLink, 
   faCode, 
   faLock, 
-  faImage, 
-  faFile,
   faEye,
   faEyeSlash
 } from '@fortawesome/free-solid-svg-icons';
@@ -303,20 +301,6 @@ export default function EditModal({
                   currentType={type} 
                   icon={faLock} 
                   label="密码" 
-                  onClick={setType} 
-                />
-                <TypeButton 
-                  type={ClipboardType.IMAGE} 
-                  currentType={type} 
-                  icon={faImage} 
-                  label="图片" 
-                  onClick={setType} 
-                />
-                <TypeButton 
-                  type={ClipboardType.FILE} 
-                  currentType={type} 
-                  icon={faFile} 
-                  label="文件" 
                   onClick={setType} 
                 />
               </div>

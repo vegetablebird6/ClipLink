@@ -149,8 +149,6 @@ export function getClipboardTypeName(type: ClipboardType): string {
       return '代码';
     case ClipboardType.PASSWORD:
       return '密码';
-    case ClipboardType.IMAGE:
-      return '图片';
     default:
       return '文本';
   }

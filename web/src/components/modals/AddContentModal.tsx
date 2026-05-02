@@ -64,12 +64,6 @@ export default function AddContentModal({
         return '代码';
       case ClipboardType.PASSWORD:
         return '密码';
-      case ClipboardType.IMAGE:
-        return '图片';
-      case ClipboardType.FILE:
-        return '文件';
-      case ClipboardType.OTHER:
-        return '其他';
       default:
         return '文本';
     }
@@ -197,7 +191,6 @@ export default function AddContentModal({
               </label>
               <div className="grid grid-cols-4 gap-2">
                 {[ClipboardType.TEXT, ClipboardType.CODE, ClipboardType.LINK, ClipboardType.PASSWORD].map((type) => {
-                  // 定义所有类型的配置，确保覆盖所有ClipboardType值
                   const getTypeConfig = (type: ClipboardType) => {
                     switch (type) {
                       case ClipboardType.TEXT:
@@ -228,29 +221,7 @@ export default function AddContentModal({
                           color: 'from-red-500 to-red-600 dark:from-red-400 dark:to-red-600',
                           bgColor: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
                         };
-                      case ClipboardType.IMAGE:
-                        return {
-                          icon: '🖼️',
-                          name: '图片',
-                          color: 'from-pink-500 to-pink-600 dark:from-pink-400 dark:to-pink-600',
-                          bgColor: 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800',
-                        };
-                      case ClipboardType.FILE:
-                        return {
-                          icon: '📁',
-                          name: '文件',
-                          color: 'from-orange-500 to-orange-600 dark:from-orange-400 dark:to-orange-600',
-                          bgColor: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800',
-                        };
-                      case ClipboardType.OTHER:
-                        return {
-                          icon: '📄',
-                          name: '其他',
-                          color: 'from-gray-500 to-gray-600 dark:from-gray-400 dark:to-gray-600',
-                          bgColor: 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800',
-                        };
                       default:
-                        // 默认配置，防止未定义的类型
                         return {
                           icon: '📄',
                           name: getTypeName(type),
