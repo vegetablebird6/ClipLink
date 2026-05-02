@@ -30,7 +30,6 @@ web/
 │   ├── app/                    # Next.js App Router目录
 │   │   ├── favorites/          # 收藏页面
 │   │   ├── history/            # 历史记录页面
-│   │   ├── sync/               # 同步设置页面
 │   │   ├── layout.tsx          # 应用布局
 │   │   ├── page.tsx            # 主页
 │   │   └── globals.css         # 全局样式

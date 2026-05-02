@@ -1,19 +1,45 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { config } from '@fortawesome/fontawesome-svg-core';
-// 注释掉有问题的直接样式导入
-// import '@fortawesome/fontawesome-svg-core/styles.css';
-import { ToastProvider } from "@/contexts/ToastContext";
-import { ChannelProvider } from "@/contexts/ChannelContext";
-import DeviceRegistration from "@/components/device/DeviceRegistration";
-import MainLayout from "@/components/layout/MainLayout";
-
-// 防止fontawesome图标闪烁，这个设置会内联样式，无需外部CSS
-config.autoAddCss = true;
+import AppProviders from './providers';
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://cliplink.mmmss.com';
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  applicationName: 'ClipLink',
+  title: {
+    default: 'ClipLink - 跨平台剪贴板共享工具',
+    template: '%s | ClipLink',
+  },
+  description: 'ClipLink 是一个轻量、安全的跨平台剪贴板同步工具，可在电脑、手机和平板之间通过网页共享文本、链接、代码和密码等内容。',
+  keywords: ['ClipLink', '剪贴板同步', '跨设备剪贴板', '跨平台剪贴板', 'clipboard sync'],
+  authors: [{ name: 'ClipLink' }],
+  creator: 'ClipLink',
+  publisher: 'ClipLink',
+  icons: {
+    icon: '/favicon.ico',
+  },
+  openGraph: {
+    type: 'website',
+    url: '/',
+    siteName: 'ClipLink',
+    title: 'ClipLink - 跨平台剪贴板共享工具',
+    description: '通过网页在多台设备之间快速、安全地共享剪贴板内容。',
+    locale: 'zh_CN',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'ClipLink - 跨平台剪贴板共享工具',
+    description: '通过网页在多台设备之间快速、安全地共享剪贴板内容。',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function RootLayout({
   children,
@@ -22,56 +48,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <head>
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          
-          body {
-            animation: fadeIn 0.4s ease-in-out;
-            background-color: #f9fafb; /* 浅色模式背景 */
-          }
-          
-          /* 暗色模式支持 */
-          @media (prefers-color-scheme: dark) {
-            body {
-              background-color: #111827; /* 暗色模式背景 - 对应 Tailwind gray-900 */
-              color: #f3f4f6; /* 暗色模式文字颜色 */
-            }
-          }
-          
-          /* 当HTML元素有dark类时的暗色模式支持 */
-          html.dark body {
-            background-color: #111827 !important; /* 暗色模式背景 */
-            color: #f3f4f6; /* 暗色模式文字颜色 */
-          }
-          
-          /* 添加一些重要UI元素的基础样式，以防Tailwind加载延迟 */
-          .bg-white {
-            background-color: white !important;
-          }
-          
-          html.dark .bg-white {
-            background-color: #1f2937 !important; /* 暗色模式下的"白色"背景 */
-          }
-          
-          button {
-            transition: all 0.2s ease;
-          }
-        `}</style>
-      </head>
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100`}>
-        <ToastProvider>
-          <ChannelProvider>
-            {/* 设备注册组件（不可见） */}
-            <DeviceRegistration />
-            <MainLayout>
-              {children}
-            </MainLayout>
-          </ChannelProvider>
-        </ToastProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

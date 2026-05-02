@@ -203,7 +203,28 @@
 
 @layer base {
   body {
+    animation: fadeIn 0.4s ease-in-out;
+    background-color: #f9fafb;
     @apply bg-gray-50 text-gray-900;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: #111827;
+      color: #f3f4f6;
+    }
+  }
+
+  .bg-white {
+    background-color: white !important;
+  }
+
+  html.dark .bg-white {
+    background-color: #1f2937 !important;
+  }
+
+  button {
+    transition: all 0.2s ease;
   }
 
   html.dark input,
@@ -255,6 +276,15 @@
   }
   100% {
     transform: translateX(320%);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
