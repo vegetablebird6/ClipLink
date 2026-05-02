@@ -53,7 +53,13 @@ export const useClipboardData = ({
     }
 
     const normalizedContent = savedItem.content.trim();
-    return items.filter(item => item.id === savedItem.id || item.content.trim() !== normalizedContent);
+    const savedHTML = savedItem.content_html?.trim();
+    return items.filter(item => {
+      if (item.id === savedItem.id) return true;
+      if (item.content.trim() === normalizedContent) return false;
+      if (savedHTML && item.content_html?.trim() === savedHTML) return false;
+      return true;
+    });
   }, []);
 
   const dedupeItemsForDisplay = useCallback((items: ClipboardItem[]) => {
@@ -61,16 +67,19 @@ export const useClipboardData = ({
       return items;
     }
 
-    const seen = new Set<string>();
+    const seenText = new Set<string>();
+    const seenHTML = new Set<string>();
     return items.filter(item => {
-      const normalizedContent = item.content.trim();
-      if (!normalizedContent) {
-        return true;
+      const html = item.content_html?.trim();
+      if (html) {
+        if (seenHTML.has(html)) return false;
+        seenHTML.add(html);
       }
-      if (seen.has(normalizedContent)) {
-        return false;
+      const text = item.content.trim();
+      if (text) {
+        if (seenText.has(text)) return false;
+        seenText.add(text);
       }
-      seen.add(normalizedContent);
       return true;
     });
   }, []);
@@ -81,6 +90,8 @@ export const useClipboardData = ({
       return;
     }
 
+    const seq = tabSeqRef.current;
+
     try {
       setIsLoading(true);
       const [latestRes, historyRes] = await Promise.all([
@@ -88,11 +99,14 @@ export const useClipboardData = ({
         clipboardService.getClipboardHistory(pageSize)
       ]);
 
+      // tab 已切换过，只更新 currentClipboard，不覆盖当前 tab 的列表
+      const tabChanged = seq !== tabSeqRef.current;
+
       if (latestRes.success && latestRes.data) {
         setCurrentClipboard(latestRes.data);
       }
 
-      if (historyRes.success && historyRes.data) {
+      if (!tabChanged && historyRes.success && historyRes.data) {
         const items = historyRes.data.items || [];
         setClipboardItems(dedupeItemsForDisplay(items));
         setHasMore(historyRes.data.has_more || false);
@@ -100,7 +114,7 @@ export const useClipboardData = ({
     } catch (error) {
       showToast('获取数据失败', 'error');
     } finally {
-      setIsLoading(false);
+      if (seq === tabSeqRef.current) setIsLoading(false);
     }
   }, [showToast, pageSize, isChannelVerified, dedupeItemsForDisplay]);
   

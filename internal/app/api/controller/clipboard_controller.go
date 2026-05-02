@@ -238,8 +238,17 @@ func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
 	}
 	itemID := ctx.Param("itemID")
 
+	// 解析请求体获取设备 ID
+	var req struct {
+		DeviceID string `json:"device_id" binding:"required"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(ctx, "device_id is required")
+		return
+	}
+
 	// 删除剪贴板项目
-	err := c.clipboardService.DeleteClipboard(itemID, channelID)
+	err := c.clipboardService.DeleteClipboard(itemID, channelID, req.DeviceID)
 	if err != nil {
 		response.ServerError(ctx, err.Error())
 		return
@@ -324,19 +333,19 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 	}
 	itemID := ctx.Param("itemID")
 
-	// 绑定请求体 - 适配前端发送的字段格式
+	// 绑定请求体 - device_id 必填，isFavorite 用 *bool 以区分 true/false
 	var req struct {
-		IsFavorite bool   `json:"isFavorite" binding:"required"`
-		DeviceID   string `json:"device_id"`
+		IsFavorite *bool  `json:"isFavorite" binding:"required"`
+		DeviceID   string `json:"device_id" binding:"required"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, "isFavorite and device_id are required")
 		return
 	}
 
 	// 切换收藏状态
-	item, err := c.clipboardService.ToggleFavorite(itemID, req.IsFavorite, channelID, req.DeviceID)
+	item, err := c.clipboardService.ToggleFavorite(itemID, *req.IsFavorite, channelID, req.DeviceID)
 	if err != nil {
 		response.ServerError(ctx, err.Error())
 		return

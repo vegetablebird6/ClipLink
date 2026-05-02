@@ -58,11 +58,13 @@ interface SyncRecord {
   id: number;
   action: string;
   content: string;
-  device_id: string;
   channel_id: string;
   target_type: string;
   target_id: string;
   summary: string;
+  actor_device_id: string;
+  actor_device_name: string;
+  actor_device_type: string;
   created_at: string;
 }
 
@@ -368,10 +370,19 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
     }
   };
 
-  // 获取设备名称（如果设备ID与实际设备匹配）
-  const getDeviceName = (deviceId: string) => {
-    const device = connectedDevices.find(d => d.id === deviceId);
-    return device ? device.name : deviceId;
+  // 获取设备名称（优先使用事件快照中的名称，否则显示友好短标识）
+  const getSyncDeviceName = (record: SyncRecord) => {
+    if (record.actor_device_name?.trim()) {
+      return record.actor_device_name;
+    }
+    const id = record.actor_device_id || '';
+    const short = id.replace(/-/g, '').slice(-8);
+    return short ? `未知设备 #${short}` : '未知设备';
+  };
+
+  // 获取设备类型（同步历史记录用，优先使用事件快照中的类型）
+  const getSyncDeviceType = (record: SyncRecord): string => {
+    return record.actor_device_type || 'other';
   };
 
   // 设备类型中文标签
@@ -909,13 +920,11 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
                                 </div>
                                 
                                 <div className="flex items-center mt-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-md px-2 py-1">
-                                  <FontAwesomeIcon 
-                                    icon={getDeviceIcon(
-                                      connectedDevices.find(d => d.id === activity.device_id)?.type || 'desktop'
-                                    )} 
+                                  <FontAwesomeIcon
+                                    icon={getDeviceIcon(getSyncDeviceType(activity))}
                                     className="text-gray-400 dark:text-gray-500 mr-1.5"
                                   />
-                                  <span>{getDeviceName(activity.device_id)}</span>
+                                  <span>{getSyncDeviceName(activity)}</span>
                                 </div>
                               </div>
                             </div>

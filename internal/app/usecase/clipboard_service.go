@@ -30,17 +30,48 @@ func computeContentHash(content string) string {
 type clipboardService struct {
 	clipboardRepo repository.ClipboardRepository
 	syncEventRepo repository.SyncEventRepository
+	deviceRepo    repository.DeviceRepository
 }
 
 // NewClipboardService 创建新的剪贴板服务
 func NewClipboardService(
 	clipboardRepo repository.ClipboardRepository,
 	syncEventRepo repository.SyncEventRepository,
+	deviceRepo repository.DeviceRepository,
 ) service.ClipboardService {
 	return &clipboardService{
 		clipboardRepo: clipboardRepo,
 		syncEventRepo: syncEventRepo,
+		deviceRepo:    deviceRepo,
 	}
+}
+
+// requireActorDevice 验证并返回执行操作的设备
+func (s *clipboardService) requireActorDevice(deviceID, channelID string) (*model.Device, error) {
+	if deviceID == "" {
+		return nil, model.ErrInvalidInput
+	}
+
+	device, err := s.deviceRepo.FindByIDAndChannel(deviceID, channelID)
+	if err != nil || device == nil {
+		return nil, model.ErrInvalidInput
+	}
+
+	return device, nil
+}
+
+func deviceName(device *model.Device) string {
+	if device == nil {
+		return ""
+	}
+	return device.Name
+}
+
+func getDeviceTypeStr(device *model.Device) string {
+	if device == nil {
+		return ""
+	}
+	return device.Type
 }
 
 // SaveClipboard 保存剪贴板项目
@@ -53,6 +84,12 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 	}
 	if !validation.IsValidContentFormat(contentFormat) {
 		return nil, model.ErrInvalidInput
+	}
+
+	// 验证执行者设备（必须在写入同步事件前校验）
+	device, err := s.requireActorDevice(deviceID, channelID)
+	if err != nil {
+		return nil, err
 	}
 
 	item := &model.ClipboardItem{
@@ -90,14 +127,16 @@ func (s *clipboardService) SaveClipboard(title, content, contentType, deviceID, 
 		contentSummary = contentSummary[:100]
 	}
 	syncEvent := &model.SyncEvent{
-		Action:     model.ActionSync,
-		Content:    contentSummary,
-		DeviceID:   deviceID,
-		ChannelID:  channelID,
-		TargetType: model.TargetTypeClipboard,
-		TargetID:   item.ID,
-		Summary:    "同步剪贴板内容",
-		CreatedAt:  stdtime.Now(),
+		Action:          model.ActionSync,
+		Content:         contentSummary,
+		ChannelID:       channelID,
+		TargetType:      model.TargetTypeClipboard,
+		TargetID:        item.ID,
+		Summary:         "同步剪贴板内容",
+		ActorDeviceID:   device.ID,
+		ActorDeviceName: device.Name,
+		ActorDeviceType: device.Type,
+		CreatedAt:       stdtime.Now(),
 	}
 	_ = s.syncEventRepo.Save(syncEvent)
 
@@ -119,9 +158,15 @@ func (s *clipboardService) GetClipboardHistory(channelID string, afterCreatedAt 
 	return s.clipboardRepo.FindWithKeyset(channelID, afterCreatedAt, afterID, size)
 }
 
-// DeleteClipboard 删除剪贴板项目
-func (s *clipboardService) DeleteClipboard(id string, channelID string) error {
-	// 记录同步历史
+// DeleteClipboard 删除剪贴板项目（actorDeviceID 为执行删除操作的设备）
+func (s *clipboardService) DeleteClipboard(id string, channelID string, actorDeviceID string) error {
+	// 验证执行者设备
+	device, err := s.requireActorDevice(actorDeviceID, channelID)
+	if err != nil {
+		return err
+	}
+
+	// 记录同步历史（先获取 item 信息）
 	item, err := s.clipboardRepo.FindByID(id, channelID)
 	if err != nil {
 		return err
@@ -132,16 +177,18 @@ func (s *clipboardService) DeleteClipboard(id string, channelID string) error {
 		return err
 	}
 
-	// 记录同步事件
+	// 记录同步事件（用操作者设备快照作为 actor）
 	syncEvent := &model.SyncEvent{
-		Action:     model.ActionDelete,
-		Content:    "删除剪贴板内容: " + item.Type,
-		DeviceID:   item.DeviceID,
-		ChannelID:  channelID,
-		TargetType: model.TargetTypeClipboard,
-		TargetID:   id,
-		Summary:    "删除剪贴板内容",
-		CreatedAt:  stdtime.Now(),
+		Action:          model.ActionDelete,
+		Content:         "删除剪贴板内容: " + item.Type,
+		ChannelID:       channelID,
+		TargetType:      model.TargetTypeClipboard,
+		TargetID:        id,
+		Summary:         "删除剪贴板内容",
+		ActorDeviceID:   device.ID,
+		ActorDeviceName: device.Name,
+		ActorDeviceType: device.Type,
+		CreatedAt:       stdtime.Now(),
 	}
 
 	return s.syncEventRepo.Save(syncEvent)
@@ -157,6 +204,12 @@ func (s *clipboardService) UpdateClipboard(id, title, content, contentType, devi
 	}
 	if !validation.IsValidContentFormat(contentFormat) {
 		return nil, model.ErrInvalidInput
+	}
+
+	// 验证执行者设备
+	device, err := s.requireActorDevice(deviceID, channelID)
+	if err != nil {
+		return nil, err
 	}
 
 	// 更新内容
@@ -179,14 +232,16 @@ func (s *clipboardService) UpdateClipboard(id, title, content, contentType, devi
 
 	// 记录同步事件
 	syncEvent := &model.SyncEvent{
-		Action:     model.ActionUpdate,
-		Content:    "更新剪贴板内容: " + contentType,
-		DeviceID:   deviceID,
-		ChannelID:  channelID,
-		TargetType: model.TargetTypeClipboard,
-		TargetID:   id,
-		Summary:    "更新剪贴板内容",
-		CreatedAt:  stdtime.Now(),
+		Action:          model.ActionUpdate,
+		Content:         "更新剪贴板内容: " + contentType,
+		ChannelID:       channelID,
+		TargetType:      model.TargetTypeClipboard,
+		TargetID:        id,
+		Summary:         "更新剪贴板内容",
+		ActorDeviceID:   device.ID,
+		ActorDeviceName: device.Name,
+		ActorDeviceType: device.Type,
+		CreatedAt:       stdtime.Now(),
 	}
 
 	if err := s.syncEventRepo.Save(syncEvent); err != nil {
@@ -197,8 +252,14 @@ func (s *clipboardService) UpdateClipboard(id, title, content, contentType, devi
 	return s.clipboardRepo.FindByID(id, channelID)
 }
 
-// ToggleFavorite 切换收藏状态
-func (s *clipboardService) ToggleFavorite(id string, isFavorite bool, channelID string, deviceID ...string) (*model.ClipboardItem, error) {
+// ToggleFavorite 切换收藏状态（actorDeviceID 为执行操作的设备，必须属于 channel）
+func (s *clipboardService) ToggleFavorite(id string, isFavorite bool, channelID string, actorDeviceID string) (*model.ClipboardItem, error) {
+	// 验证 actor 设备（必须在写业务数据前校验）
+	device, err := s.requireActorDevice(actorDeviceID, channelID)
+	if err != nil {
+		return nil, err
+	}
+
 	// 获取当前项目
 	item, err := s.clipboardRepo.FindByID(id, channelID)
 	if err != nil {
@@ -216,21 +277,21 @@ func (s *clipboardService) ToggleFavorite(id string, isFavorite bool, channelID 
 		return nil, err
 	}
 
-	// 记录同步事件（如果提供了设备ID）
-	if len(deviceID) > 0 && deviceID[0] != "" {
-		syncEvent := &model.SyncEvent{
-			Action:     model.ActionUpdate,
-			Content:    item.Title,
-			DeviceID:   deviceID[0],
-			ChannelID:  channelID,
-			TargetType: model.TargetTypeClipboard,
-			TargetID:   id,
-			Summary:    "切换收藏状态",
-			CreatedAt:  stdtime.Now(),
-		}
-		// 忽略同步事件保存错误，不影响主流程
-		_ = s.syncEventRepo.Save(syncEvent)
+	// 记录同步事件
+	syncEvent := &model.SyncEvent{
+		Action:          model.ActionUpdate,
+		Content:         item.Title,
+		ChannelID:       channelID,
+		TargetType:      model.TargetTypeClipboard,
+		TargetID:        id,
+		Summary:         "切换收藏状态",
+		ActorDeviceID:   device.ID,
+		ActorDeviceName: device.Name,
+		ActorDeviceType: device.Type,
+		CreatedAt:       stdtime.Now(),
 	}
+	// 忽略同步事件保存错误，不影响主流程
+	_ = s.syncEventRepo.Save(syncEvent)
 
 	// 获取更新后的数据
 	return s.clipboardRepo.FindByID(id, channelID)

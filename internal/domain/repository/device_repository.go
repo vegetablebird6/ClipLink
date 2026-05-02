@@ -12,6 +12,9 @@ type DeviceRepository interface {
 	Update(deviceID string, updates map[string]interface{}) error
 	Delete(deviceID string) error
 
+	// 通过ID和通道ID查找设备（用于同步历史快照）
+	FindByIDAndChannel(deviceID, channelID string) (*model.Device, error)
+
 	// 通道相关设备操作
 	FindByChannel(channelID string) ([]*model.DeviceDTO, error)
 	CountOnline(channelID string) (int64, error)

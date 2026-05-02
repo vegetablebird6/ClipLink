@@ -30,15 +30,19 @@ type DeviceDTO struct {
 // SyncEvent 同步事件模型，用于记录内容同步事件
 // 复合索引由 internal/infra/db/indexes.go 的 EnsureIndexes() 管理。
 type SyncEvent struct {
-	ID         uint      `json:"id" gorm:"primarykey"`         // 自增ID
-	ChannelID  string    `json:"channel_id"`                   // 关联的通道ID
-	Action     string    `json:"action"`                       // 动作类型（sync, connect, disconnect, update, delete）
-	DeviceID   string    `json:"device_id"`                    // 执行设备ID
-	TargetType string    `json:"target_type"`                  // 目标实体类型（clipboard / device / channel）
-	TargetID   string    `json:"target_id"`                    // 目标实体 ID
-	Content    string    `json:"content"`                      // 操作内容，对于sync是同步的内容摘要
-	Summary    string    `json:"summary" gorm:"type:text"`     // 人可读描述
-	CreatedAt  time.Time `json:"created_at"`                   // 操作时间
+	ID         uint   `json:"id" gorm:"primarykey"`     // 自增ID
+	ChannelID  string `json:"channel_id"`               // 关联的通道ID
+	Action     string `json:"action"`                   // 动作类型（sync, connect, disconnect, update, delete）
+	TargetType string `json:"target_type"`              // 目标实体类型（clipboard / device / channel）
+	TargetID   string `json:"target_id"`                // 目标实体 ID
+	Content    string `json:"content"`                  // 操作内容，对于sync是同步的内容摘要
+	Summary    string `json:"summary" gorm:"type:text"` // 人可读描述
+
+	ActorDeviceID   string `json:"actor_device_id"`   // 执行设备ID（仅用于调试/关联）
+	ActorDeviceName string `json:"actor_device_name"` // 执行设备名称快照
+	ActorDeviceType string `json:"actor_device_type"` // 执行设备类型快照
+
+	CreatedAt time.Time `json:"created_at"` // 操作时间
 }
 
 // TableName 指定表名为 sync_events

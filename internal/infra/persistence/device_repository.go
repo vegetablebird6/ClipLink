@@ -36,6 +36,22 @@ func (r *deviceRepository) FindByID(deviceID string) (*model.Device, error) {
 	return &device, nil
 }
 
+// FindByIDAndChannel 通过ID和通道ID查找设备
+func (r *deviceRepository) FindByIDAndChannel(deviceID, channelID string) (*model.Device, error) {
+	var device model.Device
+	err := db.GetDB().
+		Joins("JOIN device_channels ON devices.id = device_channels.device_id").
+		Where("devices.id = ? AND device_channels.channel_id = ?", deviceID, channelID).
+		First(&device).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, model.ErrDeviceNotFound
+		}
+		return nil, err
+	}
+	return &device, nil
+}
+
 // FindByChannel 查找通道下的所有设备
 func (r *deviceRepository) FindByChannel(channelID string) ([]*model.DeviceDTO, error) {
 	var deviceDTOs []*model.DeviceDTO

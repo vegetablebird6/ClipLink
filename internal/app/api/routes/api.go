@@ -28,10 +28,10 @@ func setupSubRoutes(api *gin.RouterGroup, instanceToken string) {
 
 	// 创建服务
 	channelService := usecase.NewChannelService(channelRepo, clipboardRepo, deviceRepo)
-	clipboardService := usecase.NewClipboardService(clipboardRepo, syncEventRepo)
+	clipboardService := usecase.NewClipboardService(clipboardRepo, syncEventRepo, deviceRepo)
 	deviceService := usecase.NewDeviceService(deviceRepo)
 	statsService := usecase.NewStatsService(deviceRepo, clipboardRepo, channelRepo, syncEventRepo)
-	syncService := usecase.NewSyncService(syncEventRepo)
+	syncService := usecase.NewSyncService(syncEventRepo, deviceRepo)
 
 	// 创建控制器
 	channelController := controller.NewChannelController(channelService)

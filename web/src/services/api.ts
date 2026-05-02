@@ -444,7 +444,9 @@ export const clipboardService = {
   // 删除剪贴板项目
   deleteClipboard: async (id: string): Promise<ApiResponse<null>> => {
     try {
-      const response = await api.delete<unknown>(`/clipboard/${id}`);
+      const response = await api.delete<unknown>(`/clipboard/${id}`, {
+        data: { device_id: deviceIdUtil.getDeviceId() }
+      });
       return handleApiResponse<null>(response.data);
     } catch (error) {
       return handleApiError<null>(error, '删除剪贴板失败');

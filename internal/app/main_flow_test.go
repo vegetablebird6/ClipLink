@@ -107,7 +107,9 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 	assertNumberAtLeast(t, stats, "total_devices", 1)
 	assertNumberAtLeast(t, stats, "sync_count", 3)
 
-	deleteJSON(t, router, "/api/clipboard/"+stringField(t, codeItem, "id"), channelID, http.StatusOK)
+	deleteJSON(t, router, "/api/clipboard/"+stringField(t, codeItem, "id"), channelID, http.StatusOK, map[string]any{
+		"device_id": deviceID,
+	})
 	statsAfterDelete := getJSON(t, router, "/api/stats", channelID, http.StatusOK)
 	assertNumberAtLeast(t, statsAfterDelete, "clipboard_item_count", 2)
 }
@@ -172,9 +174,9 @@ func putJSON(t *testing.T, router http.Handler, target, channelID string, expect
 	return dataObject(t, response)
 }
 
-func deleteJSON(t *testing.T, router http.Handler, target, channelID string, expectedStatus int) testAPIResponse {
+func deleteJSON(t *testing.T, router http.Handler, target, channelID string, expectedStatus int, body any) testAPIResponse {
 	t.Helper()
-	return doJSON(t, router, http.MethodDelete, target, channelID, expectedStatus, nil)
+	return doJSON(t, router, http.MethodDelete, target, channelID, expectedStatus, body)
 }
 
 func doJSON(t *testing.T, router http.Handler, method, target, channelID string, expectedStatus int, body any) testAPIResponse {

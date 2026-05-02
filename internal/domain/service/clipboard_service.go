@@ -20,14 +20,14 @@ type ClipboardService interface {
 	// GetClipboardHistory 获取剪贴板历史记录（keyset 游标分页）
 	GetClipboardHistory(channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
-	// DeleteClipboard 删除剪贴板项目
-	DeleteClipboard(id string, channelID string) error
+	// DeleteClipboard 删除剪贴板项目（actorDeviceID 为执行删除操作的设备）
+	DeleteClipboard(id string, channelID string, actorDeviceID string) error
 
 	// UpdateClipboard 更新剪贴板项目
 	UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string, contentHTML, contentFormat string) (*model.ClipboardItem, error)
 
-	// ToggleFavorite 切换收藏状态
-	ToggleFavorite(id string, isFavorite bool, channelID string, deviceID ...string) (*model.ClipboardItem, error)
+	// ToggleFavorite 切换收藏状态（actorDeviceID 为执行操作的设备）
+	ToggleFavorite(id string, isFavorite bool, channelID string, actorDeviceID string) (*model.ClipboardItem, error)
 
 	// GetFavoriteClipboard 获取收藏的剪贴板项目
 	GetFavoriteClipboard(channelID string, limit int) ([]*model.ClipboardItem, error)

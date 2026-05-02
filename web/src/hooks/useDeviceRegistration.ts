@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useChannel } from '@/contexts/ChannelContext';
 import { clipboardService } from '@/services/api';
 import { detectDeviceType, generateDeviceName } from '@/utils/deviceDetection';
@@ -42,41 +42,58 @@ export function useDeviceRegistration() {
   const [deviceId] = useState(getOrGenerateDeviceId);
   const [deviceName] = useState(getOrGenerateDeviceName);
   const [deviceType] = useState(detectDeviceType);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [registeredChannelId, setRegisteredChannelId] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  // 用于在异步回调中检测 channel 是否已切换
+  const currentChannelRef = useRef<string | null>(null);
+
+  // channelId 变化时重置注册状态和错误状态，以便在新通道重新注册
+  useEffect(() => {
+    currentChannelRef.current = channelId;
+    setRegisteredChannelId(null);
+    setError(null);
+    setRetryCount(0);
+  }, [channelId]);
 
   // 当通道连接时，注册设备
   useEffect(() => {
     // 只在客户端执行
     if (typeof window === 'undefined') return;
-    
-    // 如果达到最大重试次数，停止尝试
-    if (retryCount >= 5) return;
 
-    // 如果已经注册或正在注册，或没有有效的通道，则不继续
-    if (isRegistered || isRegistering || !channelId || !isChannelVerified) return;
+    // 已在当前通道注册过，跳过
+    if (registeredChannelId === channelId) return;
 
-    // 立即注册设备，不再延迟
+    // 如果达到最大重试次数，或没有有效的通道，则不继续
+    if (retryCount >= 5 || !channelId || !isChannelVerified) return;
+
+    // 如果正在注册，不重复发起
+    if (isRegistering) return;
+
     const registerDevice = async () => {
       setIsRegistering(true);
       setError(null);
-      
+
       try {
-        // 使用clipboardService注册设备
         const response = await clipboardService.registerDevice({
           device_id: deviceId,
           device_name: deviceName,
           device_type: deviceType
         });
-        
-        if (response.success) {
-          setIsRegistered(true);
-        } else {
-          throw new Error(response.message || '设备注册失败');
+
+        // 只在 channel 未切换过时接受结果（通过 ref 检测）
+        if (response.success && currentChannelRef.current === channelId) {
+          setRegisteredChannelId(channelId);
+        } else if (currentChannelRef.current === channelId) {
+          // 当前通道注册失败，计入重试
+          const msg = response.message || '设备注册失败';
+          setError(msg);
+          setRetryCount(count => count + 1);
         }
+        // 通道已切换则静默丢弃结果
       } catch (err) {
+        if (currentChannelRef.current !== channelId) return;
         console.error('设备注册错误:', err);
         setError(err instanceof Error ? err.message : '设备注册失败');
         setRetryCount(count => count + 1);
@@ -85,13 +102,15 @@ export function useDeviceRegistration() {
       }
     };
 
-    // 立即执行设备注册
     registerDevice();
-  }, [channelId, isChannelVerified, deviceId, deviceName, deviceType, isRegistered, isRegistering, retryCount]);
+  }, [channelId, isChannelVerified, deviceId, deviceName, deviceType, isRegistering, retryCount, registeredChannelId]);
+
+  const isRegistered = registeredChannelId === channelId;
 
   // 定期发送心跳更新设备状态
   useEffect(() => {
-    if (!channelId || !isChannelVerified || !isRegistered) return;
+    const currentRegistered = registeredChannelId === channelId;
+    if (!channelId || !isChannelVerified || !currentRegistered) return;
 
     // 发送心跳更新
     const sendHeartbeat = async () => {
@@ -115,11 +134,12 @@ export function useDeviceRegistration() {
     return () => {
       clearInterval(heartbeatInterval);
     };
-  }, [channelId, isChannelVerified, deviceId, isRegistered]);
+  }, [channelId, isChannelVerified, deviceId, registeredChannelId]);
 
   // 在组件卸载或页面关闭时更新设备为离线状态
   useEffect(() => {
-    if (!channelId || !isChannelVerified || !isRegistered) return;
+    const currentRegistered = registeredChannelId === channelId;
+    if (!channelId || !isChannelVerified || !currentRegistered) return;
 
     const updateOfflineStatus = async () => {
       try {
@@ -141,7 +161,7 @@ export function useDeviceRegistration() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       updateOfflineStatus();
     };
-  }, [channelId, isChannelVerified, deviceId, isRegistered]);
+  }, [channelId, isChannelVerified, deviceId, registeredChannelId]);
 
   return {
     deviceId,
