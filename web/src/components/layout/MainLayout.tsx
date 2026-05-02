@@ -45,19 +45,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
     };
   }, []);
 
-  // 监听来自Sidebar的设置事件
-  useEffect(() => {
-    const handleSettingsEvent = () => {
-      setIsSettingsModalOpen(true);
-    };
-
-    window.addEventListener('open-settings', handleSettingsEvent);
-
-    return () => {
-      window.removeEventListener('open-settings', handleSettingsEvent);
-    };
-  }, []);
-
   // 处理新建内容
   const handleAddContent = () => {
     // 触发自定义事件，通知首页打开添加内容模态框
@@ -73,6 +60,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // 处理打开帮助
   const handleOpenHelp = () => {
     setIsHelpModalOpen(true);
+  };
+
+  const handleOpenSettings = () => {
+    setIsSettingsModalOpen(true);
   };
 
   return (
@@ -140,12 +131,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </div>
         </header>
         <main className="flex-1 flex flex-col md:flex-row overflow-hidden dark:text-dark-text-primary">
-          <Sidebar />
+          <Sidebar onOpenSettings={handleOpenSettings} />
           <div className="flex-1 flex flex-col overflow-hidden">
             {children}
           </div>
         </main>
-        <MobileNav />
+        <MobileNav onOpenSettings={handleOpenSettings} />
         {/* Footer在这里作为一个独立的元素，使用绝对定位 */}
         <Footer />
         

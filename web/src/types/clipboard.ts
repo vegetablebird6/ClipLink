@@ -40,8 +40,7 @@ export interface ClipboardItem {
   type: ClipboardType;
   isFavorite: boolean;   // 前端使用isFavorite
   created_at: string;    // 保持和API一致使用created_at
-  createdAt?: string;    // 兼容旧代码
-  updatedAt?: string;    // 兼容旧代码
+  updated_at?: string;
   device_id?: string;    // 可选字段
   device_type?: DeviceType; // 可选的设备类型字段
   content_html?: string;

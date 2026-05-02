@@ -131,7 +131,7 @@ export const useClipboardData = ({
 
       // 取最后一条作为 cursor
       const lastItem = clipboardItems[clipboardItems.length - 1];
-      const after = lastItem?.createdAt;
+      const after = lastItem?.created_at;
       const afterId = lastItem?.id;
 
       let response;
@@ -199,8 +199,7 @@ export const useClipboardData = ({
           title: rawData.title || '',
           isFavorite: rawData.favorite || rawData.isFavorite || false,
           created_at: rawData.created_at || new Date().toISOString(),
-          createdAt: rawData.created_at || new Date().toISOString(),
-          updatedAt: rawData.updated_at || new Date().toISOString(),
+          updated_at: rawData.updated_at || new Date().toISOString(),
           content_html: rawData.content_html || payload.html,
           content_format: rawData.content_format || payload.format,
         };
@@ -215,8 +214,7 @@ export const useClipboardData = ({
           title: '',
           isFavorite: false,
           created_at: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           content_html: payload.html,
           content_format: payload.format,
         };
@@ -253,12 +251,6 @@ export const useClipboardData = ({
     }
     
     try {
-      // @ts-expect-error 全局定义
-      if (window.__clipboardSync?.recordUserEdit) {
-        // @ts-expect-error 全局定义
-        window.__clipboardSync.recordUserEdit();
-      }
-      
       const response = await clipboardService.deleteClipboard(item.id);
       if (response.success) {
         setClipboardItems(prevItems => prevItems.filter(i => i.id !== item.id));
@@ -319,12 +311,6 @@ export const useClipboardData = ({
     }
     
     try {
-      // @ts-expect-error 全局定义
-      if (window.__clipboardSync?.recordUserEdit) {
-        // @ts-expect-error 全局定义
-        window.__clipboardSync.recordUserEdit();
-      }
-      
       const response = await clipboardService.updateClipboard(data.id, data);
       
       if (response.success && response.data) {
@@ -355,19 +341,13 @@ export const useClipboardData = ({
   const handleSaveManualInput = useCallback(async (
     content: string,
     type?: ClipboardType,
-    isManualInput: boolean = true,
+    _isManualInput: boolean = true,
     contentHTML?: string,
     contentFormat?: 'plain' | 'html'
   ): Promise<boolean> => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
       return false;
-    }
-
-    // @ts-expect-error 全局定义
-    if (window.__clipboardSync?.recordUserEdit) {
-      // @ts-expect-error 全局定义
-      window.__clipboardSync.recordUserEdit();
     }
 
       const contentType = type || detectClipboardType(content);

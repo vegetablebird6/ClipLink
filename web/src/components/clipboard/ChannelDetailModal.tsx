@@ -7,13 +7,11 @@ import {
   faEyeSlash,
   faCopy,
   faQrcode,
-  faTimes,
   faKey,
   faShareNodes,
   faCheck,
   faInfoCircle,
   faChartLine,
-  faClockRotateLeft,
   faDesktop,
   faMobile,
   faTablet,
@@ -27,8 +25,6 @@ import AnimatedModal from '../ui/AnimatedModal';
 import Image from 'next/image';
 import { clipboardService } from '@/services/api';
 import { useChannel } from '@/contexts/ChannelContext';
-import { useRouter } from 'next/navigation';
-import { checkApiConnections } from '@/utils/apiChecker';
 import { deviceIdUtil } from '@/utils/deviceId';
 
 interface ChannelDetailModalProps {
@@ -98,7 +94,6 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { showToast } = useToast();
   const { clearChannel, isChannelVerified, verifyChannel, createChannel } = useChannel();
-  const router = useRouter();
   
   // 添加状态用于连接通道
   const [channelActionTab, setChannelActionTab] = useState<'connect' | 'create'>('connect');
@@ -116,8 +111,6 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   const [syncHistory, setSyncHistory] = useState<SyncRecord[]>([]);
   const [hasMoreSyncHistory, setHasMoreSyncHistory] = useState(true);
   const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
-  const [isApiTesting, setIsApiTesting] = useState(false);
-  const [apiTestResults, setApiTestResults] = useState<any>(null);
 
   // 当前设备 ID（用于标记"当前设备"和控制编辑权限）
   const currentDeviceId = typeof window !== 'undefined'
@@ -128,22 +121,6 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
   const [editingDeviceName, setEditingDeviceName] = useState('');
   const editCancelRef = useRef(false);
-
-  // 添加API调试功能
-  const runApiTests = async () => {
-    if (!channelId) return;
-    
-    setIsApiTesting(true);
-    try {
-      // 检查各种API路径
-      const results = await checkApiConnections(channelId);
-      setApiTestResults(results);
-    } catch (err) {
-      console.error('API测试失败:', err);
-    } finally {
-      setIsApiTesting(false);
-    }
-  };
 
   // 获取通道统计数据
   const fetchChannelStats = async () => {

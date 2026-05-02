@@ -151,8 +151,7 @@ export default function EditModal({
                   title: title.trim() || '',
                   isFavorite,
                   created_at: new Date().toISOString(),
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
                   device_type: deviceType
                 };
                 onSaveSuccess(tempItem);

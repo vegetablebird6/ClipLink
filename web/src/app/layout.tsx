@@ -15,7 +15,6 @@ config.autoAddCss = true;
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 
-// 由于使用'use client'，metadata需要在另一个文件定义
 export default function RootLayout({
   children,
 }: Readonly<{

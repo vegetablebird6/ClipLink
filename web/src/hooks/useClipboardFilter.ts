@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ClipboardItem, ClipboardType, SaveClipboardRequest } from '@/types/clipboard';
 import { settingsManager } from '@/utils/settings';
 import { RichClipboardContent, readClipboardRich } from '@/utils/richClipboard';
 
@@ -9,7 +8,6 @@ interface ClipboardFilterOptions {
   isChannelVerified: boolean;
   onSaveContent: (payload: RichClipboardContent) => Promise<boolean>;
   onConfirmSave?: (payload: RichClipboardContent) => void;
-  debug?: boolean;
 }
 
 interface UseClipboardFilterReturn {
@@ -41,8 +39,7 @@ export function useClipboardFilter({
   isIOSDevice,
   isChannelVerified,
   onSaveContent,
-  onConfirmSave,
-  debug = false
+  onConfirmSave
 }: ClipboardFilterOptions): UseClipboardFilterReturn {
   // 状态管理
   const [processedContents, setProcessedContents] = useState<Set<string>>(new Set());
@@ -72,35 +69,23 @@ export function useClipboardFilter({
       newSet.add(trimmedContent);
       return newSet;
     });
-    if (debug) {
-      console.log('[ClipboardFilter] 内容已添加到屏蔽列表:', trimmedContent);
-    }
-  }, [debug]);
+  }, []);
 
   // 检查是否应该同步内容
   const shouldSyncContent = useCallback((content: string): boolean => {
     if (isEmptyContent(content)) return false;
     const trimmedContent = trimContent(content);
     if (deletedContents.has(trimmedContent)) {
-      if (debug) {
-        console.log('[ClipboardFilter] 内容在屏蔽列表中，跳过同步:', trimmedContent);
-      }
       return false;
     }
     if (processedContents.has(trimmedContent)) {
-      if (debug) {
-        console.log('[ClipboardFilter] 内容已存在，跳过同步:', trimmedContent);
-      }
       return false;
     }
     if (pendingConfirmRef.current.has(trimmedContent)) {
-      if (debug) {
-        console.log('[ClipboardFilter] 内容正在等待确认，跳过同步:', trimmedContent);
-      }
       return false;
     }
     return true;
-  }, [deletedContents, processedContents, debug]);
+  }, [deletedContents, processedContents]);
 
   // 处理过滤后的内容
   const handleFilteredContent = useCallback(async (content: string | RichClipboardContent): Promise<boolean> => {
@@ -116,9 +101,6 @@ export function useClipboardFilter({
     const now = Date.now();
     const minTimeBetweenSaves = 500; // 最小间隔为500毫秒
     if (now - lastSyncTimeRef.current < minTimeBetweenSaves) {
-      if (debug) {
-        console.log('[ClipboardFilter] 距离上次同步时间太短，跳过:', trimContent(text));
-      }
       return false;
     }
 
@@ -142,13 +124,9 @@ export function useClipboardFilter({
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('clipboard-updated'));
       }
-      
-      if (debug) {
-        console.log('[ClipboardFilter] 新内容已同步:', trimContent(text));
-      }
     }
     return result;
-  }, [shouldSyncContent, onSaveContent, onConfirmSave, trackProcessedContent, debug]);
+  }, [shouldSyncContent, onSaveContent, onConfirmSave, trackProcessedContent]);
 
   // 同步剪贴板内容
   const syncClipboard = useCallback(async (force = false) => {
@@ -158,9 +136,6 @@ export function useClipboardFilter({
     // 检查是否启用自动读取剪切板
     const autoReadClipboard = settingsManager.getSetting('autoReadClipboard');
     if (!autoReadClipboard && !force) {
-      if (debug) {
-        console.log('[ClipboardFilter] 自动读取剪切板已禁用，跳过同步');
-      }
       return;
     }
     
@@ -176,12 +151,9 @@ export function useClipboardFilter({
       const payload = await readClipboardRich();
       // 传递完整富文本 payload，保留 HTML 内容
       await handleFilteredContent(payload);
-    } catch (error) {
-      if (debug) {
-        console.warn('[ClipboardFilter] 同步错误:', error);
-      }
+    } catch {
     }
-  }, [hasClipboardPermission, isIOSDevice, isChannelVerified, handleFilteredContent, debug]);
+  }, [hasClipboardPermission, isIOSDevice, isChannelVerified, handleFilteredContent]);
 
   // 标记可见性变化
   const setVisibilityChanged = useCallback(() => {
@@ -225,10 +197,7 @@ export function useClipboardFilter({
     setDeletedContents(new Set());
     lastSyncTimeRef.current = 0;
     hasVisibilityChangedRef.current = false;
-    if (debug) {
-      console.log('[ClipboardFilter] 过滤器已重置');
-    }
-  }, [debug]);
+  }, []);
 
   // 纯过滤判断：内容是否应被保存（不触发保存，不更新时间戳）
   // 注意：不检查 pendingConfirmRef，pending 只用于 shouldSyncContent 防重复弹窗

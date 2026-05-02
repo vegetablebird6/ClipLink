@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:custom": "ts-node --skipProject server.ts",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
@@ -15,7 +14,6 @@
     "@fortawesome/free-regular-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@fortawesome/react-fontawesome": "^3.3.1",
-    "@types/dompurify": "^3.0.5",
     "@types/react-syntax-highlighter": "^15.5.13",
     "axios": "^1.15.2",
     "dompurify": "^3.4.2",
@@ -26,7 +24,6 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
@@ -36,7 +33,6 @@
     "postcss": "^8.5.12",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4.2.4",
-    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "overrides": {

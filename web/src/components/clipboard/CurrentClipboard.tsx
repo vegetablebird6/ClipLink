@@ -1,18 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faClipboard, 
-  faCheck, 
-  faRotate, 
-  faCopy, 
-  faPenToSquare,
-  faLock,
-  faLockOpen,
-  faSave,
-  faTimes,
-  faPlus,
-  faPaste
-} from '@fortawesome/free-solid-svg-icons';
 import { ClipboardItem, ClipboardType } from '@/types/clipboard';
 import { useToast } from '@/contexts/ToastContext';
 import { writeClipboardRich, readClipboardRich } from '@/utils/richClipboard';
@@ -42,7 +28,6 @@ export default function CurrentClipboard({
   onManualRead,
   isIOSDevice = false
 }: CurrentClipboardProps) {
-  const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isManualAdding, setIsManualAdding] = useState(false);
   const [inputContent, setInputContent] = useState('');
@@ -96,21 +81,8 @@ export default function CurrentClipboard({
     try {
       await writeClipboardRich(clipboard);
       onCopy();
-    } catch (err) {
+    } catch {
       showToast('复制失败', 'error');
-    }
-  };
-
-  const handleContentClick = () => {
-    if (!isEditing && !isManualAdding && hasPermission && clipboard?.content) {
-      setIsEditing(true);
-      setIsManualAdding(false);
-      setInputContent(clipboard?.content || '');
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 10);
     }
   };
 
@@ -125,7 +97,7 @@ export default function CurrentClipboard({
         setIsManualAdding(false);
         showToast('内容已保存', 'success');
       }
-    } catch (error) {
+    } catch {
       showToast('保存失败', 'error');
     } finally {
       setIsSaving(false);
@@ -152,21 +124,10 @@ export default function CurrentClipboard({
           showToast('内容已保存', 'success');
         }
       }
-    } catch (error) {
+    } catch {
       showToast('读取剪贴板失败，请重新授权', 'error');
       onRequestPermission();
     }
-  };
-  
-  const handleOpenManualInput = () => {
-    setIsEditing(false);
-    setIsManualAdding(true);
-    setInputContent('');
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    }, 10);
   };
 
   return (
@@ -294,7 +255,7 @@ export default function CurrentClipboard({
                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {formatDateTime(clipboard.createdAt || clipboard.created_at)}
+                {formatDateTime(clipboard.created_at)}
               </div>
               
               <div className="flex space-x-1">

@@ -10,15 +10,15 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigationProgress } from './NavigationProgress';
 
-export default function MobileNav() {
+interface MobileNavProps {
+  onOpenSettings: () => void;
+}
+
+export default function MobileNav({ onOpenSettings }: MobileNavProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) => {
     return pathname === path;
-  };
-
-  const handleOpenSettings = () => {
-    window.dispatchEvent(new Event('open-settings'));
   };
 
   return (
@@ -42,7 +42,7 @@ export default function MobileNav() {
         isActive={isActive('/history')} 
       />
       <MobileNavButton
-        onClick={handleOpenSettings}
+        onClick={onOpenSettings}
         icon={faGear} 
         label="设置" 
       />

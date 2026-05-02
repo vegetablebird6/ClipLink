@@ -5,7 +5,7 @@ import ClipboardGrid from '@/components/clipboard/ClipboardGrid';
 import EditModal from '@/components/clipboard/EditModal';
 import PreviewModal from '@/components/clipboard/PreviewModal';
 import SearchBar from '@/components/clipboard/SearchBar';
-import { ClipboardItem, SaveClipboardRequest, ClipboardType } from '@/types/clipboard';
+import { ClipboardItem, SaveClipboardRequest } from '@/types/clipboard';
 import { clipboardService } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
 import { writeClipboardRich } from '@/utils/richClipboard';
@@ -51,7 +51,7 @@ export default function HistoryPage() {
       let afterId: string | undefined;
       if (isLoadMore && historyItems.length > 0) {
         const lastItem = historyItems[historyItems.length - 1];
-        after = lastItem.createdAt;
+        after = lastItem.created_at;
         afterId = lastItem.id;
       }
 

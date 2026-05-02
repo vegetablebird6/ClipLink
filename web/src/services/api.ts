@@ -94,8 +94,6 @@ const handleApiError = <T>(error: unknown, defaultMessage: string): ApiResponse<
 // 将API返回的原始格式转换为前端使用的格式
 type ClipboardItemResponse = RawClipboardItem & {
   isFavorite?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
 };
 
 const convertRawClipboardItem = (raw: ClipboardItemResponse): ClipboardItem => {
@@ -105,9 +103,8 @@ const convertRawClipboardItem = (raw: ClipboardItemResponse): ClipboardItem => {
     content: raw.content,
     type: raw.type,
     isFavorite: raw.favorite || raw.isFavorite || false,
-    created_at: raw.created_at || raw.createdAt || '',
-    createdAt: raw.created_at || raw.createdAt || '',
-    updatedAt: raw.updated_at || raw.updatedAt || '',
+    created_at: raw.created_at || '',
+    updated_at: raw.updated_at,
     device_id: raw.device_id,
     device_type: raw.device_type,
     content_html: raw.content_html || undefined,

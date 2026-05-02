@@ -9,23 +9,15 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigationProgress } from './NavigationProgress';
 
-export default function Sidebar() {
+interface SidebarProps {
+  onOpenSettings: () => void;
+}
+
+export default function Sidebar({ onOpenSettings }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) => {
     return pathname === path;
-  };
-
-  const handleAddContent = () => {
-    // 触发自定义事件，通知首页打开添加内容模态框
-    const event = new Event('add-content-click');
-    window.dispatchEvent(event);
-  };
-
-  const handleOpenSettings = () => {
-    // 触发自定义事件，通知打开设置弹窗
-    const event = new Event('open-settings');
-    window.dispatchEvent(event);
   };
 
   return (
@@ -43,16 +35,10 @@ export default function Sidebar() {
           label="收藏夹" 
           isActive={isActive('/favorites')} 
         />
-        {/* <NavItem
-          href="/categories" 
-          icon={faFolder} 
-          label="分类" 
-          isActive={isActive('/categories')} 
-        /> */}
       </div>
       <div className="py-8 flex flex-col items-center">
         <button 
-          onClick={handleOpenSettings}
+          onClick={onOpenSettings}
           className="flex flex-col items-center text-neutral-500 dark:text-dark-text-tertiary hover:text-neutral-800 dark:hover:text-dark-text-secondary text-xs font-medium transition-all duration-200 group"
         >
           <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-1.5 transition-all duration-200 hover:bg-neutral-100 dark:hover:bg-dark-surface-hover border border-transparent hover:scale-105 hover:shadow-md glow-on-hover">

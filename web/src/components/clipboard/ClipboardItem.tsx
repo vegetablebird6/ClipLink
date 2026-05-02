@@ -17,7 +17,6 @@ import {
 import { faStar as faStarRegular, faCopy } from '@fortawesome/free-regular-svg-icons';
 import { ClipboardItem as ClipboardItemType, ClipboardType, DeviceType } from '@/types/clipboard';
 import { useToast } from '@/contexts/ToastContext';
-import { formatClipboardContent } from '@/utils/clipboardHelpers';
 import { writeClipboardRich } from '@/utils/richClipboard';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
@@ -56,7 +55,7 @@ export default function ClipboardItemCard({
       setTimeout(() => {
         setCopied(false);
       }, 2000);
-    } catch (err) {
+    } catch {
       showToast('复制失败', 'error');
     }
   };
@@ -64,8 +63,7 @@ export default function ClipboardItemCard({
   // 格式化日期 - 修改formatDate函数，使其支持不同的日期格式属性
   const formatDate = (item: ClipboardItemType) => {
     try {
-      // 选择合适的日期属性，优先使用created_at
-      const dateString = item.created_at || item.createdAt || '';
+      const dateString = item.created_at || '';
       
       // 处理带有时区信息的ISO格式日期
       // 例如 "2025-05-14T18:10:59.325974+08:00"
@@ -83,7 +81,7 @@ export default function ClipboardItemCard({
         minute: '2-digit',
         second: '2-digit'
       }).replace(/\//g, '-');
-    } catch (error) {
+    } catch {
       return '日期未知';
     }
   };

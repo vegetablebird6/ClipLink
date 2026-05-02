@@ -46,7 +46,6 @@ export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState<ClipboardItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchTotal, setSearchTotal] = useState(0);
   const [searchPage, setSearchPage] = useState(1);
   const [hasMoreSearch, setHasMoreSearch] = useState(false);
   
@@ -62,7 +61,6 @@ export default function Home() {
     loadMoreData,
     handleSaveClipboardContent,
     handleCopy,
-    handleEdit: originalHandleEdit,
     handleDelete: originalHandleDelete,
     handleToggleFavorite,
     handleSave: originalHandleSave,
@@ -101,19 +99,15 @@ export default function Home() {
   const {
     syncClipboard,
     handleDeletedContent,
-    handleFilteredContent,
     shouldAllowContent,
     trackProcessedContent,
-    clearPendingConfirm,
-    processedContents,
-    deletedContents
+    clearPendingConfirm
   } = useClipboardFilter({
     hasClipboardPermission,
     isIOSDevice,
     isChannelVerified,
     onSaveContent: handleSaveClipboardContent,
-    onConfirmSave: handleConfirmSave,
-    debug: false
+    onConfirmSave: handleConfirmSave
   });
 
   // 确保总是有当前剪贴板内容 - 修改逻辑确保更稳定
@@ -260,8 +254,7 @@ export default function Home() {
       }
       
       try {
-        const { id, ...saveData } = data;
-        const result = await clipboardService.saveClipboard(saveData);
+        const result = await clipboardService.saveClipboard(data);
         
         if (result.success && result.data) {
           setClipboardItems(prev => [result.data!, ...prev]);
@@ -275,7 +268,7 @@ export default function Home() {
         } else {
           return false;
         }
-      } catch (error) {
+      } catch {
         return false;
       }
     }
@@ -333,7 +326,7 @@ export default function Home() {
     }
 
     const getCreatedTime = (item: ClipboardItem) => {
-      const timestamp = new Date(item.createdAt || item.created_at || 0).getTime();
+      const timestamp = new Date(item.created_at || 0).getTime();
       return Number.isNaN(timestamp) ? 0 : timestamp;
     };
 
@@ -365,7 +358,6 @@ export default function Home() {
     if (tab !== 'search' && activeTab === 'search') {
       setSearchKeyword('');
       setSearchResults([]);
-      setSearchTotal(0);
       setSearchPage(1);
       setHasMoreSearch(false);
     }
@@ -398,17 +390,14 @@ export default function Home() {
       const response = await clipboardService.searchClipboard(keyword, 1, 12);
       if (response.success && response.data) {
         setSearchResults(response.data!.items);
-        setSearchTotal(response.data!.total);
         setHasMoreSearch(response.data!.page < response.data!.totalPages);
       } else {
         setSearchResults([]);
-        setSearchTotal(0);
         setHasMoreSearch(false);
       }
     } catch (error) {
       console.error('搜索失败:', error);
       setSearchResults([]);
-      setSearchTotal(0);
       setHasMoreSearch(false);
     } finally {
       setIsSearching(false);
@@ -419,7 +408,6 @@ export default function Home() {
   const handleClearSearch = () => {
     setSearchKeyword('');
     setSearchResults([]);
-    setSearchTotal(0);
     setSearchPage(1);
     setHasMoreSearch(false);
     setActiveTab('all');

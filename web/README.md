@@ -1,8 +1,8 @@
-# ClipFlow 前端项目
+# ClipLink 前端项目
 
 ## 项目概述
 
-ClipFlow是一个跨设备剪贴板同步工具，允许用户在不同设备之间共享和同步剪贴板内容。本项目是ClipFlow的前端部分，使用React、Next.js和Tailwind CSS构建。
+ClipLink 是一个跨设备剪贴板同步工具，允许用户在不同设备之间共享和同步剪贴板内容。本项目是 ClipLink 的前端部分，使用 React、Next.js 和 Tailwind CSS 构建。
 
 ## 技术栈
 
