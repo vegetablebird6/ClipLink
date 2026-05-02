@@ -194,35 +194,47 @@ func (s *clipboardService) DeleteClipboard(id string, channelID string, actorDev
 	return s.syncEventRepo.Save(syncEvent)
 }
 
-// UpdateClipboard 更新剪贴板项目
-func (s *clipboardService) UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string, contentHTML, contentFormat string) (*model.ClipboardItem, error) {
-	if contentType != "" && !validation.IsValidClipboardType(contentType) {
-		return nil, model.ErrInvalidInput
-	}
-	if deviceType != "" && !validation.IsValidDeviceType(deviceType) {
-		return nil, model.ErrInvalidInput
-	}
-	if !validation.IsValidContentFormat(contentFormat) {
-		return nil, model.ErrInvalidInput
-	}
-
+// UpdateClipboard 更新剪贴板项目（部分更新）
+func (s *clipboardService) UpdateClipboard(id, channelID, actorDeviceID string, input *service.UpdateClipboardInput) (*model.ClipboardItem, error) {
 	// 验证执行者设备
-	device, err := s.requireActorDevice(deviceID, channelID)
+	device, err := s.requireActorDevice(actorDeviceID, channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 更新内容
+	// 校验字段（如果提供了）
+	if input.Type != nil && !validation.IsValidClipboardType(*input.Type) {
+		return nil, model.ErrInvalidInput
+	}
+	if input.DeviceType != nil && !validation.IsValidDeviceType(*input.DeviceType) {
+		return nil, model.ErrInvalidInput
+	}
+	if input.ContentFormat != nil && !validation.IsValidContentFormat(*input.ContentFormat) {
+		return nil, model.ErrInvalidInput
+	}
+
+	// 只更新请求中显式出现的字段
 	updates := map[string]any{
-		"title":          title,
-		"content":        content,
-		"type":           contentType,
-		"device_id":      deviceID,
-		"device_type":    deviceType,
-		"updated_at":     stdtime.Now(),
-		"content_html":   contentHTML,
-		"content_format": contentFormat,
-		"content_hash":   computeContentHash(content),
+		"updated_at": stdtime.Now(),
+	}
+	if input.Title != nil {
+		updates["title"] = *input.Title
+	}
+	if input.Content != nil {
+		updates["content"] = *input.Content
+		updates["content_hash"] = computeContentHash(*input.Content)
+	}
+	if input.Type != nil {
+		updates["type"] = *input.Type
+	}
+	if input.DeviceType != nil {
+		updates["device_type"] = *input.DeviceType
+	}
+	if input.ContentHTML != nil {
+		updates["content_html"] = *input.ContentHTML
+	}
+	if input.ContentFormat != nil {
+		updates["content_format"] = *input.ContentFormat
 	}
 
 	// 更新到数据库
@@ -231,6 +243,10 @@ func (s *clipboardService) UpdateClipboard(id, title, content, contentType, devi
 	}
 
 	// 记录同步事件
+	contentType := ""
+	if input.Type != nil {
+		contentType = *input.Type
+	}
 	syncEvent := &model.SyncEvent{
 		Action:          model.ActionUpdate,
 		Content:         "更新剪贴板内容: " + contentType,

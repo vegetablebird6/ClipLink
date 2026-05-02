@@ -6,6 +6,16 @@ import (
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 )
 
+// UpdateClipboardInput 部分更新输入，只更新非 nil 字段
+type UpdateClipboardInput struct {
+	Title         *string
+	Content       *string
+	Type          *string
+	DeviceType    *string
+	ContentHTML   *string
+	ContentFormat *string
+}
+
 // ClipboardService 剪贴板服务接口
 type ClipboardService interface {
 	// SaveClipboard 保存剪贴板项目
@@ -23,8 +33,8 @@ type ClipboardService interface {
 	// DeleteClipboard 删除剪贴板项目（actorDeviceID 为执行删除操作的设备）
 	DeleteClipboard(id string, channelID string, actorDeviceID string) error
 
-	// UpdateClipboard 更新剪贴板项目
-	UpdateClipboard(id, title, content, contentType, deviceID, deviceType, channelID string, contentHTML, contentFormat string) (*model.ClipboardItem, error)
+	// UpdateClipboard 更新剪贴板项目（部分更新，nil 字段不更新）
+	UpdateClipboard(id, channelID, actorDeviceID string, input *UpdateClipboardInput) (*model.ClipboardItem, error)
 
 	// ToggleFavorite 切换收藏状态（actorDeviceID 为执行操作的设备）
 	ToggleFavorite(id string, isFavorite bool, channelID string, actorDeviceID string) (*model.ClipboardItem, error)

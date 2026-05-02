@@ -271,7 +271,7 @@ func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
 	response.SuccessWithMessage(ctx, "clipboard item deleted")
 }
 
-// UpdateClipboard 更新剪贴板项目
+// UpdateClipboard 更新剪贴板项目（部分更新）
 func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 	channelID, ok := clipboardChannelID(ctx)
 	if !ok {
@@ -279,16 +279,15 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 	}
 	itemID := ctx.Param("itemID")
 
-	// 绑定请求体 - 适配前端发送的字段格式
+	// 部分更新：指针字段表示可选，非 nil 才更新
 	var req struct {
-		Title         string `json:"title"`
-		Content       string `json:"content"`
-		Type          string `json:"type"`
-		DeviceID      string `json:"device_id"`
-		DeviceType    string `json:"device_type"`
-		IsFavorite    *bool  `json:"isFavorite"` // 使用指针类型，允许为空
-		ContentHTML   string `json:"content_html"`
-		ContentFormat string `json:"content_format"`
+		Title         *string `json:"title"`
+		Content       *string `json:"content"`
+		Type          *string `json:"type"`
+		DeviceID      string  `json:"device_id" binding:"required"`
+		DeviceType    *string `json:"device_type"`
+		ContentHTML   *string `json:"content_html"`
+		ContentFormat *string `json:"content_format"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -296,44 +295,37 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 		return
 	}
 
-	if req.Type != "" && !validation.IsValidClipboardType(req.Type) {
-		response.BadRequest(ctx, "invalid clipboard type: "+req.Type)
+	if req.Type != nil && !validation.IsValidClipboardType(*req.Type) {
+		response.BadRequest(ctx, "invalid clipboard type: "+*req.Type)
 		return
 	}
-	if req.DeviceType != "" && !validation.IsValidDeviceType(req.DeviceType) {
-		response.BadRequest(ctx, "invalid device type: "+req.DeviceType)
+	if req.DeviceType != nil && !validation.IsValidDeviceType(*req.DeviceType) {
+		response.BadRequest(ctx, "invalid device type: "+*req.DeviceType)
 		return
 	}
-	if !validation.IsValidContentFormat(req.ContentFormat) {
-		response.BadRequest(ctx, "invalid content format: "+req.ContentFormat)
+	if req.ContentFormat != nil && !validation.IsValidContentFormat(*req.ContentFormat) {
+		response.BadRequest(ctx, "invalid content format: "+*req.ContentFormat)
 		return
 	}
 
 	// 更新剪贴板项目
 	item, err := c.clipboardService.UpdateClipboard(
 		itemID,
-		req.Title,
-		req.Content,
-		req.Type,
-		req.DeviceID,
-		req.DeviceType,
 		channelID,
-		req.ContentHTML,
-		req.ContentFormat,
+		req.DeviceID,
+		&service.UpdateClipboardInput{
+			Title:         req.Title,
+			Content:       req.Content,
+			Type:          req.Type,
+			DeviceType:    req.DeviceType,
+			ContentHTML:   req.ContentHTML,
+			ContentFormat: req.ContentFormat,
+		},
 	)
 
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
-	}
-
-	// 如果提供了收藏状态，单独处理
-	if req.IsFavorite != nil {
-		item, err = c.clipboardService.ToggleFavorite(itemID, *req.IsFavorite, channelID, req.DeviceID)
-		if err != nil {
-			respondClipboardError(ctx, err)
-			return
-		}
 	}
 
 	response.Success(ctx, item, "更新成功")

@@ -97,6 +97,21 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 	})
 	assertDataField(t, updated, "content", "Alpha updated body")
 
+	// 验证部分更新：只改 title 不清空其他字段
+	titleOnly := putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id"), channelID, http.StatusOK, map[string]any{
+		"title":     "Title Only Update",
+		"device_id": deviceID,
+	})
+	assertDataField(t, titleOnly, "title", "Title Only Update")
+	assertDataField(t, titleOnly, "content", "Alpha updated body")   // content 保持不变
+	assertDataField(t, titleOnly, "type", "text")                   // type 保持不变
+
+	putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id"), channelID, http.StatusOK, map[string]any{
+		"content_html":   "",
+		"content_format": "plain",
+		"device_id":      deviceID,
+	})
+
 	putJSON(t, router, "/api/devices/"+deviceID+"/name", channelID, http.StatusOK, map[string]any{
 		"device_name": "Desk Rig",
 	})
