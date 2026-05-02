@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -35,6 +36,19 @@ func clipboardChannelID(ctx *gin.Context) (string, bool) {
 		return "", false
 	}
 	return value, true
+}
+
+func respondClipboardError(ctx *gin.Context, err error) {
+	switch {
+	case errors.Is(err, model.ErrInvalidInput):
+		response.BadRequest(ctx, err.Error())
+	case errors.Is(err, model.ErrClipboardNotFound),
+		errors.Is(err, model.ErrDeviceNotFound),
+		errors.Is(err, model.ErrChannelNotFound):
+		response.NotFound(ctx, err.Error())
+	default:
+		response.ServerError(ctx, err.Error())
+	}
 }
 
 func paginationParams(ctx *gin.Context, defaultSize int) (int, int) {
@@ -144,7 +158,7 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -168,7 +182,7 @@ func (c *ClipboardController) GetLatestClipboard(ctx *gin.Context) {
 	// 获取最新剪贴板内容
 	items, err := c.clipboardService.GetLatestClipboard(channelID, limit)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -198,7 +212,7 @@ func (c *ClipboardController) GetClipboardItem(ctx *gin.Context) {
 	// 获取剪贴板项目
 	item, err := c.clipboardService.GetClipboardItem(itemID, channelID)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -222,7 +236,7 @@ func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
 
 	items, err := c.clipboardService.GetClipboardHistory(channelID, afterCreatedAt, afterID, size)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -250,7 +264,7 @@ func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
 	// 删除剪贴板项目
 	err := c.clipboardService.DeleteClipboard(itemID, channelID, req.DeviceID)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -309,7 +323,7 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -317,7 +331,7 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 	if req.IsFavorite != nil {
 		item, err = c.clipboardService.ToggleFavorite(itemID, *req.IsFavorite, channelID, req.DeviceID)
 		if err != nil {
-			response.ServerError(ctx, err.Error())
+			respondClipboardError(ctx, err)
 			return
 		}
 	}
@@ -347,7 +361,7 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 	// 切换收藏状态
 	item, err := c.clipboardService.ToggleFavorite(itemID, *req.IsFavorite, channelID, req.DeviceID)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -371,7 +385,7 @@ func (c *ClipboardController) GetFavoriteClipboard(ctx *gin.Context) {
 	// 获取收藏项目
 	items, err := c.clipboardService.GetFavoriteClipboard(channelID, limit)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -395,7 +409,7 @@ func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
 
 	items, err := c.clipboardService.GetClipboardByType(clipType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -420,7 +434,7 @@ func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
 
 	items, err := c.clipboardService.GetClipboardByDeviceType(deviceType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -438,7 +452,7 @@ func (c *ClipboardController) GetCurrentClipboard(ctx *gin.Context) {
 	// 获取最新的一条剪贴板内容
 	items, err := c.clipboardService.GetLatestClipboard(channelID, 1)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -471,7 +485,7 @@ func (c *ClipboardController) SearchClipboard(ctx *gin.Context) {
 	// 执行搜索
 	items, total, totalPages, err := c.clipboardService.SearchClipboard(keyword, channelID, page, size)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 
@@ -494,7 +508,7 @@ func (c *ClipboardController) CleanupDuplicateContents(ctx *gin.Context) {
 
 	deleted, err := c.clipboardService.CleanupDuplicateContents(channelID)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		respondClipboardError(ctx, err)
 		return
 	}
 

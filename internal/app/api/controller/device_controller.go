@@ -57,8 +57,8 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 	// 2. 将设备关联到当前通道
 	err = c.deviceService.AddDeviceToChannel(device.ID, channelID.(string))
 	if err != nil {
-		// 如果关联失败，仍然返回设备信息，但记录日志
-		// 客户端可以忽略这个错误，因为设备已经注册成功
+		response.ServerError(ctx, "设备关联通道失败: "+err.Error())
+		return
 	}
 
 	// 构建设备DTO返回

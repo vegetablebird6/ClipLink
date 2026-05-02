@@ -80,6 +80,13 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 	assertLen(t, favoriteItems, 1, "favorites")
 	assertField(t, favoriteItems[0], "id", stringField(t, textItem, "id"))
 
+	putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id")+"/favorite", channelID, http.StatusOK, map[string]any{
+		"isFavorite": false,
+		"device_id":  deviceID,
+	})
+	emptyFavorites := getJSON(t, router, "/api/clipboard/favorites", channelID, http.StatusOK)
+	assertLen(t, dataArray(t, emptyFavorites), 0, "favorites after unfavorite")
+
 	updated := putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id"), channelID, http.StatusOK, map[string]any{
 		"title":          "Alpha Updated",
 		"content":        "Alpha updated body",
@@ -106,6 +113,23 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 	assertNumberAtLeast(t, stats, "clipboard_item_count", 3)
 	assertNumberAtLeast(t, stats, "total_devices", 1)
 	assertNumberAtLeast(t, stats, "sync_count", 3)
+
+	doJSON(t, router, http.MethodPost, "/api/clipboard", channelID, http.StatusBadRequest, map[string]any{
+		"title":          "Bad actor",
+		"content":        "Should fail before save",
+		"type":           "text",
+		"device_id":      "unregistered-device",
+		"device_type":    "desktop",
+		"content_format": "plain",
+	})
+	doJSON(t, router, http.MethodPost, "/api/sync/log", channelID, http.StatusOK, map[string]any{
+		"device_id": deviceID,
+		"content":   "manual sync log",
+	})
+	doJSON(t, router, http.MethodPost, "/api/sync/log", channelID, http.StatusBadRequest, map[string]any{
+		"deviceId": deviceID,
+		"content":  "old camelCase should fail",
+	})
 
 	deleteJSON(t, router, "/api/clipboard/"+stringField(t, codeItem, "id"), channelID, http.StatusOK, map[string]any{
 		"device_id": deviceID,

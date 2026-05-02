@@ -7,6 +7,7 @@ import (
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/infra/db"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -34,6 +35,9 @@ func (r *clipboardRepository) FindByID(id, channelID string) (*model.ClipboardIt
 	var item model.ClipboardItem
 	result := db.GetDB().Where("id = ? AND channel_id = ?", id, channelID).First(&item)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, model.ErrClipboardNotFound
+		}
 		return nil, result.Error
 	}
 	return &item, nil
@@ -132,7 +136,7 @@ func (r *clipboardRepository) Update(id, channelID string, updates map[string]in
 	}
 
 	if result.RowsAffected == 0 {
-		return errors.New("item not found")
+		return model.ErrClipboardNotFound
 	}
 
 	return nil
@@ -148,7 +152,7 @@ func (r *clipboardRepository) Delete(id, channelID string) error {
 	}
 
 	if result.RowsAffected == 0 {
-		return errors.New("item not found")
+		return model.ErrClipboardNotFound
 	}
 
 	return nil

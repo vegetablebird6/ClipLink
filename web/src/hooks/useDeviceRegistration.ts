@@ -3,11 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChannel } from '@/contexts/ChannelContext';
 import { clipboardService } from '@/services/api';
+import { deviceIdUtil } from '@/utils/deviceId';
 import { detectDeviceType, generateDeviceName } from '@/utils/deviceDetection';
-import { v4 as uuidv4 } from 'uuid';
 
-// 本地存储的设备ID键名
-const DEVICE_ID_KEY = 'clipboard_device_id';
 // 本地存储的设备名称键名
 const DEVICE_NAME_KEY = 'clipboard_device_name';
 
@@ -25,21 +23,9 @@ function getOrGenerateDeviceName(): string {
   return defaultName;
 }
 
-// 获取或生成设备ID
-function getOrGenerateDeviceId(): string {
-  // 尝试从本地存储获取设备ID
-  const storedId = typeof window !== 'undefined' ? localStorage.getItem(DEVICE_ID_KEY) : null;
-  if (storedId) return storedId;
-  
-  // 生成新的设备ID
-  const newId = uuidv4();
-  if (typeof window !== 'undefined') localStorage.setItem(DEVICE_ID_KEY, newId);
-  return newId;
-}
-
 export function useDeviceRegistration() {
   const { channelId, isChannelVerified } = useChannel();
-  const [deviceId] = useState(getOrGenerateDeviceId);
+  const [deviceId] = useState(() => deviceIdUtil.getDeviceId());
   const [deviceName] = useState(getOrGenerateDeviceName);
   const [deviceType] = useState(detectDeviceType);
   const [registeredChannelId, setRegisteredChannelId] = useState<string | null>(null);
@@ -171,4 +157,4 @@ export function useDeviceRegistration() {
     isRegistering,
     error
   };
-} 
+}

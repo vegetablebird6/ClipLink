@@ -12,5 +12,5 @@ type SyncService interface {
 	GetSyncHistory(channelID string, afterCreatedAt *time.Time, afterID *uint, limit int) ([]*model.SyncEvent, error)
 
 	// LogSyncAction 记录同步操作
-	LogSyncAction(deviceID, channelID, content string) error
+	LogSyncAction(actorDeviceID, channelID, content string) error
 }

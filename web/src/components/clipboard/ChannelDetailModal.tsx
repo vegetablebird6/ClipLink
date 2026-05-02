@@ -29,6 +29,7 @@ import { clipboardService } from '@/services/api';
 import { useChannel } from '@/contexts/ChannelContext';
 import { useRouter } from 'next/navigation';
 import { checkApiConnections } from '@/utils/apiChecker';
+import { deviceIdUtil } from '@/utils/deviceId';
 
 interface ChannelDetailModalProps {
   isOpen: boolean;
@@ -120,7 +121,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
 
   // 当前设备 ID（用于标记"当前设备"和控制编辑权限）
   const currentDeviceId = typeof window !== 'undefined'
-    ? localStorage.getItem('clipboard_device_id')
+    ? deviceIdUtil.getDeviceId()
     : null;
 
   // 设备名称内联编辑状态

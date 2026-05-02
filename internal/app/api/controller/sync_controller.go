@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xiaojiu/cliplink/internal/common/response"
+	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
@@ -76,18 +78,22 @@ func (c *SyncController) LogSyncAction(ctx *gin.Context) {
 
 	// 绑定请求体
 	var req struct {
-		DeviceID string `json:"deviceId" binding:"required"`
+		DeviceID string `json:"device_id" binding:"required"`
 		Content  string `json:"content" binding:"required"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequest(ctx, "device_id and content are required")
 		return
 	}
 
 	// 记录同步操作
 	err := c.syncService.LogSyncAction(req.DeviceID, channelID.(string), req.Content)
 	if err != nil {
+		if errors.Is(err, model.ErrInvalidInput) {
+			response.BadRequest(ctx, err.Error())
+			return
+		}
 		response.ServerError(ctx, err.Error())
 		return
 	}
