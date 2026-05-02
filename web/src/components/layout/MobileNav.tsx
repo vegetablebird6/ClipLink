@@ -17,6 +17,10 @@ export default function MobileNav() {
     return pathname === path;
   };
 
+  const handleOpenSettings = () => {
+    window.dispatchEvent(new Event('open-settings'));
+  };
+
   return (
     <div className="md:hidden bg-white/95 dark:bg-dark-surface-primary/95 backdrop-blur-md border-t border-neutral-200 dark:border-dark-border-primary grid grid-cols-4 gap-1 p-1 shadow-sm dark:shadow-dark-sm">
       <MobileNavItem 
@@ -37,11 +41,10 @@ export default function MobileNav() {
         label="历史" 
         isActive={isActive('/history')} 
       />
-      <MobileNavItem 
-        href="/settings" 
+      <MobileNavButton
+        onClick={handleOpenSettings}
         icon={faGear} 
         label="设置" 
-        isActive={isActive('/settings')} 
       />
     </div>
   );
@@ -87,4 +90,23 @@ function MobileNavItem({ href, icon, label, isActive }: MobileNavItemProps) {
       <span>{label}</span>
     </Link>
   );
-} 
+}
+
+interface MobileNavButtonProps {
+  onClick: () => void;
+  icon: any;
+  label: string;
+}
+
+function MobileNavButton({ onClick, icon, label }: MobileNavButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-col items-center py-2 transition-all duration-200 rounded-lg text-neutral-400 dark:text-dark-text-tertiary hover:text-neutral-600 dark:hover:text-dark-text-secondary hover:bg-neutral-100/50 dark:hover:bg-dark-surface-hover/50 text-xs"
+    >
+      <FontAwesomeIcon icon={icon} className="text-lg mb-1" />
+      <span>{label}</span>
+    </button>
+  );
+}

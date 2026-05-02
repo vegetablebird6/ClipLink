@@ -537,7 +537,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
               value={inputChannelId}
               onChange={(e) => setInputChannelId(e.target.value)}
               placeholder="通道 ID"
-              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 placeholder-opacity-100 dark:placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
               disabled={isConnecting || isCreating}
             />
             {connectionError && (
@@ -568,7 +568,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
               value={createChannelId}
               onChange={(e) => setCreateChannelId(e.target.value)}
               placeholder="自定义通道 ID（可选）"
-              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 placeholder-opacity-100 dark:placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
               disabled={isConnecting || isCreating}
             />
             <input
@@ -576,7 +576,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
               value={instanceToken}
               onChange={(e) => setInstanceToken(e.target.value)}
               placeholder="服务器创建密钥"
-              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+              className="w-full px-4 py-2 text-base sm:text-sm border rounded-md bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 placeholder-opacity-100 dark:placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
               disabled={isConnecting || isCreating}
               autoComplete="off"
             />
