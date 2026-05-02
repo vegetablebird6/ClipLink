@@ -106,11 +106,12 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 	assertDataField(t, titleOnly, "content", "Alpha updated body")   // content 保持不变
 	assertDataField(t, titleOnly, "type", "text")                   // type 保持不变
 
-	putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id"), channelID, http.StatusOK, map[string]any{
+	cleared := putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id"), channelID, http.StatusOK, map[string]any{
 		"content_html":   "",
 		"content_format": "plain",
 		"device_id":      deviceID,
 	})
+	assertDataField(t, cleared, "content_html", "")
 
 	putJSON(t, router, "/api/devices/"+deviceID+"/name", channelID, http.StatusOK, map[string]any{
 		"device_name": "Desk Rig",

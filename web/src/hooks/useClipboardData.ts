@@ -304,24 +304,38 @@ export const useClipboardData = ({
       showToast('请先验证通道', 'warning');
       return false;
     }
-    
+
     if (!data.id) {
       showToast('缺少项目ID', 'error');
       return false;
     }
-    
+
+    // 提取 isFavorite 变更，收藏只走专用接口
+    const newIsFavorite = data.isFavorite;
+    const currentItem = clipboardItems.find(i => i.id === data.id);
+    const currentIsFavorite = currentItem?.isFavorite;
+    const favoriteChanged = newIsFavorite !== undefined && newIsFavorite !== currentIsFavorite;
+
+    // 构造不含 isFavorite 的请求体
+    const { isFavorite: _ignored, ...updateData } = data;
+
     try {
-      const response = await clipboardService.updateClipboard(data.id, data);
-      
+      const response = await clipboardService.updateClipboard(data.id, updateData);
+
       if (response.success && response.data) {
-        setClipboardItems(prevItems => 
+        // 如果收藏状态变了，调用专用接口
+        if (favoriteChanged) {
+          await clipboardService.toggleFavorite(data.id, newIsFavorite!);
+        }
+
+        setClipboardItems(prevItems =>
           prevItems.map(item => item.id === data.id ? response.data! : item)
         );
-        
+
         if (currentClipboard && currentClipboard.id === data.id) {
           setCurrentClipboard(response.data);
         }
-        
+
         showToast('保存成功', 'success');
         return true;
       } else {
@@ -332,7 +346,7 @@ export const useClipboardData = ({
       showToast('保存失败', 'error');
       return false;
     }
-  }, [currentClipboard, showToast, isChannelVerified]);
+  }, [clipboardItems, currentClipboard, showToast, isChannelVerified]);
   
   const handleRefresh = useCallback(async () => {
     await fetchClipboardData();
