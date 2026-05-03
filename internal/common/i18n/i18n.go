@@ -17,6 +17,7 @@ var messages = map[string]map[string]string{
 		"error.clipboard_not_found":     "剪贴板项不存在",
 		"error.unauthorized":            "未授权",
 		"error.forbidden":               "禁止访问",
+		"error.not_found":               "资源不存在",
 		"error.instance_token_required": "实例令牌不能为空",
 		"error.invalid_instance_token":  "无效的实例令牌",
 		"error.internal_error":          "内部错误",
@@ -31,6 +32,7 @@ var messages = map[string]map[string]string{
 		"error.clipboard_not_found":     "Clipboard item not found",
 		"error.unauthorized":            "Unauthorized",
 		"error.forbidden":               "Forbidden",
+		"error.not_found":               "Resource not found",
 		"error.instance_token_required": "Instance token is required",
 		"error.invalid_instance_token":  "Invalid instance token",
 		"error.internal_error":          "Internal server error",
@@ -62,9 +64,9 @@ func getLang(ctx *gin.Context) string {
 	if _, ok := messages[h]; ok {
 		return h
 	}
-	// 前缀匹配
+	// 前缀匹配：支持 "en" 匹配 "en-US"
 	for lang := range messages {
-		if strings.HasPrefix(h, lang) {
+		if strings.HasPrefix(lang, h) {
 			return lang
 		}
 	}

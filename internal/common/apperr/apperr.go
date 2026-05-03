@@ -40,6 +40,7 @@ var (
 	ErrClipboardNotFound = New(404, "CLIPBOARD_NOT_FOUND", "error.clipboard_not_found")
 	ErrUnauthorized      = New(401, "UNAUTHORIZED", "error.unauthorized")
 	ErrForbidden         = New(403, "FORBIDDEN", "error.forbidden")
+	ErrNotFound          = New(404, "NOT_FOUND", "error.not_found")
 	ErrInternal          = New(500, "INTERNAL_ERROR", "error.internal_error")
 )
 

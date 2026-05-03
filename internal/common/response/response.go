@@ -65,47 +65,27 @@ func SuccessWithMessage(c *gin.Context, message string) {
 
 // BadRequest 请求参数错误
 func BadRequest(c *gin.Context, message string) {
-	c.JSON(StatusBadRequest, Response{
-		Code:    StatusBadRequest,
-		Message: message,
-		Success: false,
-	})
+	FailWithCode(c, StatusBadRequest, message, "INVALID_INPUT", "error.invalid_input")
 }
 
 // Unauthorized 未授权
 func Unauthorized(c *gin.Context, message string) {
-	c.JSON(StatusUnauthorized, Response{
-		Code:    StatusUnauthorized,
-		Message: message,
-		Success: false,
-	})
+	FailWithCode(c, StatusUnauthorized, message, "UNAUTHORIZED", "error.unauthorized")
 }
 
 // Forbidden 禁止访问
 func Forbidden(c *gin.Context, message string) {
-	c.JSON(StatusForbidden, Response{
-		Code:    StatusForbidden,
-		Message: message,
-		Success: false,
-	})
+	FailWithCode(c, StatusForbidden, message, "FORBIDDEN", "error.forbidden")
 }
 
 // NotFound 资源不存在
 func NotFound(c *gin.Context, message string) {
-	c.JSON(StatusNotFound, Response{
-		Code:    StatusNotFound,
-		Message: message,
-		Success: false,
-	})
+	FailWithCode(c, StatusNotFound, message, "NOT_FOUND", "error.not_found")
 }
 
 // ServerError 服务器错误
 func ServerError(c *gin.Context, message string) {
-	c.JSON(StatusServerError, Response{
-		Code:    StatusServerError,
-		Message: message,
-		Success: false,
-	})
+	FailWithCode(c, StatusServerError, message, "INTERNAL_ERROR", "error.internal_error")
 }
 
 // Fail 失败响应
