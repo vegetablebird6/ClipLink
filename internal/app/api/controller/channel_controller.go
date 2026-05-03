@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
@@ -39,7 +41,8 @@ func (c *ChannelController) CreateChannel(ctx *gin.Context) {
 	// 创建频道（使用指定的ID或生成随机ID）
 	channel, err := c.channelService.CreateChannel(req.ChannelID)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[channel] create failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -65,7 +68,8 @@ func (c *ChannelController) GetChannel(ctx *gin.Context) {
 			response.NotFound(ctx, "channel not found")
 			return
 		}
-		response.ServerError(ctx, err.Error())
+		log.Printf("[channel] get failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -86,7 +90,8 @@ func (c *ChannelController) DeleteChannel(ctx *gin.Context) {
 			response.NotFound(ctx, "channel not found")
 			return
 		}
-		response.ServerError(ctx, err.Error())
+		log.Printf("[channel] delete failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -108,7 +113,8 @@ func (c *ChannelController) GetChannelStats(ctx *gin.Context) {
 			response.NotFound(ctx, "channel not found")
 			return
 		}
-		response.ServerError(ctx, err.Error())
+		log.Printf("[channel] get stats failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -121,7 +127,8 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 	if channelID, exists := ctx.Get("channelID"); exists && channelID != nil && channelID != "" {
 		exists, err := c.channelService.VerifyChannel(channelID.(string))
 		if err != nil {
-			response.ServerError(ctx, err.Error())
+			log.Printf("[channel] verify failed: %v", err)
+			response.Error(ctx, err)
 			return
 		}
 		if !exists {
@@ -143,7 +150,8 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 		}
 		exists, err := c.channelService.VerifyChannel(req.ChannelID)
 		if err != nil {
-			response.ServerError(ctx, err.Error())
+			log.Printf("[channel] verify failed: %v", err)
+			response.Error(ctx, err)
 			return
 		}
 		if !exists {

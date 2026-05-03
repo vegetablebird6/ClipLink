@@ -1,13 +1,12 @@
 package controller
 
 import (
-	"errors"
+	"log"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xiaojiu/cliplink/internal/common/response"
-	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
@@ -56,7 +55,8 @@ func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 	// 获取同步事件记录
 	events, err := c.syncService.GetSyncHistory(channelID.(string), afterCreatedAt, afterID, limit)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[sync] get history failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -90,11 +90,8 @@ func (c *SyncController) LogSyncAction(ctx *gin.Context) {
 	// 记录同步操作
 	err := c.syncService.LogSyncAction(req.DeviceID, channelID.(string), req.Content)
 	if err != nil {
-		if errors.Is(err, model.ErrInvalidInput) {
-			response.BadRequest(ctx, err.Error())
-			return
-		}
-		response.ServerError(ctx, err.Error())
+		log.Printf("[sync] log action failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 

@@ -159,7 +159,7 @@ type PageResult struct {
 
 // KeysetResult keyset 游标分页结果
 type KeysetResult struct {
-	Items   interface{} `json:"items"`   // 分页数据
+	Items   interface{} `json:"items"`    // 分页数据
 	HasMore bool        `json:"has_more"` // 是否还有更多数据
 }
 
