@@ -86,7 +86,7 @@ func NotFound(c *gin.Context, message string) {
 
 // ServerError 服务器错误
 func ServerError(c *gin.Context, message string) {
-	FailWithCode(c, StatusServerError, i18n.GetMessage(c, "error.internal_error"), "INTERNAL_ERROR", "error.internal_error", message)
+	FailWithCode(c, StatusServerError, i18n.GetMessage(c, "error.internal_error"), "INTERNAL_ERROR", "error.internal_error", "")
 }
 
 // Fail 失败响应

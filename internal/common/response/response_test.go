@@ -99,6 +99,20 @@ func TestError_WithUnknownError_NotExposed(t *testing.T) {
 	assert.NotContains(t, w.Body.String(), "database")
 }
 
+func TestServerError_DoesNotExposeDetails(t *testing.T) {
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+
+	ServerError(c, "raw database connection failed")
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), `"error_code":"INTERNAL_ERROR"`)
+	assert.Contains(t, w.Body.String(), `"message_key":"error.internal_error"`)
+	assert.NotContains(t, w.Body.String(), "raw database connection failed")
+	assert.NotContains(t, w.Body.String(), `"details"`)
+}
+
 func TestError_WithNilError(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
