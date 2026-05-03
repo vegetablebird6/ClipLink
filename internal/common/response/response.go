@@ -31,26 +31,41 @@ type Response struct {
 	Details    string      `json:"details,omitempty"`
 }
 
-func Success(c *gin.Context, data interface{}, message string) {
-	if data != nil {
-		v := reflect.ValueOf(data)
-		if v.Kind() == reflect.Ptr {
-			if v.IsNil() {
-				data = nil
-			} else {
-				v = v.Elem()
-			}
-		}
-
-		if v.Kind() == reflect.Slice && v.IsNil() {
-			data = []interface{}{}
-		}
+// normalizeSlice 将 nil、nil 指针、nil 切片统一处理：
+// - nil 接口值 → 保持 nil（由 omitempty 处理）
+// - nil 指针 → 保持 nil
+// - nil 切片 → 转换为空切片 []interface{}{}，避免 JSON 输出 null
+func normalizeSlice(data interface{}) interface{} {
+	if data == nil {
+		return nil
 	}
+	v := reflect.ValueOf(data)
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return nil
+		}
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Slice && v.IsNil() {
+		return []interface{}{}
+	}
+	return data
+}
 
+// normalizeItems 确保分页嵌套 Items 永不为 nil — JSON 输出 [] 而非 null
+func normalizeItems(data interface{}) interface{} {
+	result := normalizeSlice(data)
+	if result == nil {
+		return []interface{}{}
+	}
+	return result
+}
+
+func Success(c *gin.Context, data interface{}, message string) {
 	c.JSON(StatusSuccess, Response{
 		Code:    StatusSuccess,
 		Message: message,
-		Data:    data,
+		Data:    normalizeSlice(data),
 		Success: true,
 	})
 }
@@ -152,33 +167,8 @@ type KeysetResult struct {
 
 // SuccessWithPage 返回分页数据
 func SuccessWithPage(c *gin.Context, items interface{}, total int64, page, size int, totalPages int) {
-	// 处理nil或者nil切片
-	if items == nil {
-		// 如果items为nil，返回空数组
-		items = []interface{}{}
-	} else {
-		// 使用反射检查items
-		v := reflect.ValueOf(items)
-
-		// 如果是指针，获取它指向的值
-		if v.Kind() == reflect.Ptr {
-			if v.IsNil() {
-				// nil指针，返回空数组
-				items = []interface{}{}
-			} else {
-				v = v.Elem()
-			}
-		}
-
-		// 检查是否为nil切片
-		if v.Kind() == reflect.Slice && v.IsNil() {
-			// nil切片，返回空数组
-			items = []interface{}{}
-		}
-	}
-
 	Success(c, PageResult{
-		Items:      items,
+		Items:      normalizeItems(items),
 		Total:      total,
 		Page:       page,
 		Size:       size,
@@ -193,24 +183,8 @@ func SuccessWithKeyset(c *gin.Context, items interface{}, hasMore bool) {
 
 // SuccessWithKeysetFull 返回 keyset 游标分页数据（含下一页游标）
 func SuccessWithKeysetFull(c *gin.Context, items interface{}, hasMore bool, nextAfter, nextAfterID string) {
-	if items == nil {
-		items = []interface{}{}
-	} else {
-		v := reflect.ValueOf(items)
-		if v.Kind() == reflect.Ptr {
-			if v.IsNil() {
-				items = []interface{}{}
-			} else {
-				v = v.Elem()
-			}
-		}
-		if v.Kind() == reflect.Slice && v.IsNil() {
-			items = []interface{}{}
-		}
-	}
-
 	Success(c, KeysetResult{
-		Items:       items,
+		Items:       normalizeItems(items),
 		HasMore:     hasMore,
 		NextAfter:   nextAfter,
 		NextAfterID: nextAfterID,
