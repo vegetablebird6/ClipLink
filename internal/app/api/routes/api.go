@@ -58,7 +58,6 @@ func setupSubRoutes(api *gin.RouterGroup, instanceToken string) {
 		clipboard := authenticatedRoutes.Group("/clipboard")
 		{
 			clipboard.POST("", clipboardController.SaveClipboard)
-			clipboard.GET("", clipboardController.GetLatestClipboard)
 			clipboard.GET("/current", clipboardController.GetCurrentClipboard)
 			clipboard.GET("/history", clipboardController.GetClipboardHistory)
 			clipboard.GET("/favorites", clipboardController.GetFavoriteClipboard)

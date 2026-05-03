@@ -29,8 +29,8 @@ type ClipboardRepository interface {
 	// FindByTypeAndDeviceType 同时按内容类型和设备类型查找剪贴板项目（keyset 游标分页）
 	FindByTypeAndDeviceType(contentType, deviceType, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
-	// FindFavorites 查找收藏的剪贴板项目
-	FindFavorites(channelID string, limit int) ([]*model.ClipboardItem, error)
+	// FindFavorites 查找收藏的剪贴板项目（keyset 游标分页）
+	FindFavorites(channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error)
 
 	// Update 更新剪贴板项目
 	Update(id, channelID string, updates map[string]interface{}) error

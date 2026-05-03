@@ -27,7 +27,7 @@ export default function FavoritesPage() {
     try {
       const response = await clipboardService.getFavorites();
       if (response.success && response.data) {
-        setFavoriteItems(response.data);
+        setFavoriteItems(response.data.items || []);
       } else {
         showToast(response.message || '获取收藏失败', 'error');
       }

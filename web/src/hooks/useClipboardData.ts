@@ -95,7 +95,7 @@ export const useClipboardData = ({
     try {
       setIsLoading(true);
       const [latestRes, historyRes] = await Promise.all([
-        clipboardService.getLatestClipboard(),
+        clipboardService.getCurrentClipboard(),
         clipboardService.getClipboardHistory(pageSize)
       ]);
 
@@ -136,7 +136,7 @@ export const useClipboardData = ({
 
       let response;
       if (activeTab === 'favorite') {
-        response = await clipboardService.getFavorites();
+        response = await clipboardService.getFavorites(pageSize, after, afterId);
       } else if (activeTab === 'all') {
         response = await clipboardService.getClipboardHistory(pageSize, after, afterId);
       } else {
@@ -256,7 +256,7 @@ export const useClipboardData = ({
         setClipboardItems(prevItems => prevItems.filter(i => i.id !== item.id));
         
         if (currentClipboard && currentClipboard.id === item.id) {
-          const latestRes = await clipboardService.getLatestClipboard();
+          const latestRes = await clipboardService.getCurrentClipboard();
           if (latestRes.success && latestRes.data) {
             setCurrentClipboard(latestRes.data);
           } else {
@@ -414,7 +414,7 @@ export const useClipboardData = ({
       let response;
 
       if (tab === 'favorite') {
-        response = await clipboardService.getFavorites();
+        response = await clipboardService.getFavorites(pageSize);
       } else if (tab === 'all') {
         response = await clipboardService.getClipboardHistory(pageSize);
       } else {

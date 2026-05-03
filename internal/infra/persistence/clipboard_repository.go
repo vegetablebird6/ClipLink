@@ -109,19 +109,16 @@ func (r *clipboardRepository) FindByTypeAndDeviceType(contentType, deviceType, c
 	return items, err
 }
 
-// FindFavorites 查找收藏的剪贴板项目
-func (r *clipboardRepository) FindFavorites(channelID string, limit int) ([]*model.ClipboardItem, error) {
+// FindFavorites 查找收藏的剪贴板项目（keyset 游标分页）
+// 查询 size+1 条，调用方用 len(items) > size 判断 has_more。
+func (r *clipboardRepository) FindFavorites(channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*model.ClipboardItem, error) {
 	var items []*model.ClipboardItem
-	query := db.GetDB()
-
-	if channelID != "" {
-		query = query.Where("channel_id = ?", channelID)
+	query := db.GetDB().Where("channel_id = ? AND favorite = ?", channelID, true)
+	if afterCreatedAt != nil && afterID != nil {
+		query = query.Where("(updated_at < ?) OR (updated_at = ? AND id < ?)",
+			*afterCreatedAt, *afterCreatedAt, *afterID)
 	}
-
-	err := query.Where("favorite = ?", true).
-		Order("updated_at DESC").
-		Limit(limit).
-		Find(&items).Error
+	err := query.Order("updated_at DESC, id DESC").Limit(size + 1).Find(&items).Error
 	return items, err
 }
 

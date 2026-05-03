@@ -61,7 +61,6 @@ func RegisterClipboardRoutes(router *gin.RouterGroup, c *controller.ClipboardCon
 	clipboard := router.Group("/clipboard")
 	{
 		clipboard.POST("", c.SaveClipboard)
-		clipboard.GET("", c.GetLatestClipboard)
 		clipboard.GET("/current", c.GetCurrentClipboard)
 		clipboard.GET("/history", c.GetClipboardHistory)
 		clipboard.GET("/favorites", c.GetFavoriteClipboard)

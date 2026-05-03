@@ -243,24 +243,7 @@ export const clipboardService = {
     }
   },
 
-  // 获取最新剪贴板内容
-  getLatestClipboard: async (): Promise<ApiResponse<ClipboardItem>> => {
-    try {
-      const response = await api.get<unknown>('/clipboard/current');
-      const apiResponse = handleApiResponse<any>(response.data);
-      
-      // 转换为标准格式
-      if (apiResponse.success && apiResponse.data) {
-        apiResponse.data = convertRawClipboardItem(apiResponse.data);
-      }
-      
-      return apiResponse as ApiResponse<ClipboardItem>;
-    } catch (error) {
-      return handleApiError<ClipboardItem>(error, '获取最新剪贴板失败');
-    }
-  },
-
-  // 获取当前剪贴板内容（专用接口，确保始终能获取到内容）
+  // 获取当前剪贴板内容
   getCurrentClipboard: async (): Promise<ApiResponse<ClipboardItem>> => {
     try {
       const response = await api.get<unknown>('/clipboard/current');
@@ -341,22 +324,26 @@ export const clipboardService = {
     }
   },
 
-  // 获取收藏的剪贴板项目
-  getFavorites: async (limit = 50): Promise<ApiResponse<ClipboardItem[]>> => {
+  // 获取收藏的剪贴板项目（keyset 游标分页）
+  getFavorites: async (size = 12, after?: string, afterId?: string): Promise<ApiResponse<{items: ClipboardItem[], has_more: boolean}>> => {
     try {
-      const response = await api.get<unknown>('/clipboard/favorites', {
-        params: { limit }
-      });
-      
-      const apiResponse = handleApiResponse<any>(response.data);
-      
-      if (apiResponse.success && apiResponse.data) {
-        apiResponse.data = (apiResponse.data as any[]).map(convertRawClipboardItem);
+      const params: Record<string, string | number> = { size };
+      if (after && afterId) {
+        params.after = after;
+        params.after_id = afterId;
       }
-      
-      return apiResponse as ApiResponse<ClipboardItem[]>;
+      const response = await api.get<unknown>('/clipboard/favorites', { params });
+      const apiResponse = handleApiResponse<any>(response.data);
+
+      if (apiResponse.success && apiResponse.data) {
+        if (apiResponse.data.items) {
+          apiResponse.data.items = apiResponse.data.items.map(convertRawClipboardItem);
+        }
+      }
+
+      return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
     } catch (error) {
-      return handleApiError<ClipboardItem[]>(error, '获取收藏夹失败');
+      return handleApiError<{items: ClipboardItem[], has_more: boolean}>(error, '获取收藏夹失败');
     }
   },
 

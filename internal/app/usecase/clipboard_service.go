@@ -304,9 +304,9 @@ func (s *clipboardService) SetFavorite(in input.SetFavoriteInput) (*output.Clipb
 	return toClipboardItemOutput(updated), nil
 }
 
-// GetFavoriteClipboard 获取收藏的剪贴板条目
-func (s *clipboardService) GetFavoriteClipboard(channelID string, limit int) ([]*output.ClipboardItemOutput, error) {
-	items, err := s.clipboardRepo.FindFavorites(channelID, limit)
+// GetFavoriteClipboard 获取收藏的剪贴板条目（keyset 游标分页）
+func (s *clipboardService) GetFavoriteClipboard(channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*output.ClipboardItemOutput, error) {
+	items, err := s.clipboardRepo.FindFavorites(channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		return nil, err
 	}

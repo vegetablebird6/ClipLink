@@ -30,8 +30,8 @@ type ClipboardService interface {
 	// SetFavorite 设置收藏状态
 	SetFavorite(in input.SetFavoriteInput) (*output.ClipboardItemOutput, error)
 
-	// GetFavoriteClipboard 获取收藏的剪贴板条目
-	GetFavoriteClipboard(channelID string, limit int) ([]*output.ClipboardItemOutput, error)
+	// GetFavoriteClipboard 获取收藏的剪贴板条目（keyset 游标分页）
+	GetFavoriteClipboard(channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*output.ClipboardItemOutput, error)
 
 	// GetClipboardByType 按内容类型获取剪贴板历史记录（keyset 游标分页）
 	GetClipboardByType(contentType string, channelID string, afterCreatedAt *time.Time, afterID *string, size int) ([]*output.ClipboardItemOutput, error)

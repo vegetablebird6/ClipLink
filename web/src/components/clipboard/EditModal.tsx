@@ -137,7 +137,7 @@ export default function EditModal({
               }
             } else {
               // 尝试获取最新的剪贴板内容
-              const latestResponse = await clipboardService.getLatestClipboard();
+              const latestResponse = await clipboardService.getCurrentClipboard();
               if (latestResponse.success && latestResponse.data) {
                 onSaveSuccess(latestResponse.data);
               } else {

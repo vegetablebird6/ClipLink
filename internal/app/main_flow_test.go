@@ -76,7 +76,7 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 	})
 
 	favorites := getJSON(t, router, "/api/clipboard/favorites", channelID, http.StatusOK)
-	favoriteItems := dataArray(t, favorites)
+	favoriteItems := dataItems(t, favorites)
 	assertLen(t, favoriteItems, 1, "favorites")
 	assertField(t, favoriteItems[0], "id", stringField(t, textItem, "id"))
 
@@ -85,7 +85,7 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 		"device_id": deviceID,
 	})
 	emptyFavorites := getJSON(t, router, "/api/clipboard/favorites", channelID, http.StatusOK)
-	assertLen(t, dataArray(t, emptyFavorites), 0, "favorites after unfavorite")
+	assertLen(t, dataItems(t, emptyFavorites), 0, "favorites after unfavorite")
 
 	updated := putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id"), channelID, http.StatusOK, map[string]any{
 		"title":          "Alpha Updated",

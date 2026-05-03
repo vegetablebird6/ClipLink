@@ -148,28 +148,6 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 	response.Success(ctx, dto.ToClipboardItemResponse(item), "保存成功")
 }
 
-// GetLatestClipboard 获取最新剪贴板内容
-func (c *ClipboardController) GetLatestClipboard(ctx *gin.Context) {
-	channelID, ok := clipboardChannelID(ctx)
-	if !ok {
-		return
-	}
-
-	limitStr := ctx.DefaultQuery("limit", "20")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
-		limit = 20
-	}
-
-	items, err := c.clipboardService.GetLatestClipboard(channelID, limit)
-	if err != nil {
-		respondClipboardError(ctx, err)
-		return
-	}
-
-	response.Success(ctx, dto.ToClipboardItemResponseList(items), "获取成功")
-}
-
 // GetClipboardItem 获取特定剪贴板项目
 func (c *ClipboardController) GetClipboardItem(ctx *gin.Context) {
 	channelID, ok := clipboardChannelID(ctx)
@@ -324,26 +302,25 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 	response.Success(ctx, dto.ToClipboardItemResponse(item), "更新成功")
 }
 
-// GetFavoriteClipboard 获取收藏的剪贴板项目
+// GetFavoriteClipboard 获取收藏的剪贴板项目（keyset 游标分页）
 func (c *ClipboardController) GetFavoriteClipboard(ctx *gin.Context) {
 	channelID, ok := clipboardChannelID(ctx)
 	if !ok {
 		return
 	}
 
-	limitStr := ctx.DefaultQuery("limit", "20")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
-		limit = 20
-	}
+	size := keysetSize(ctx, 20)
+	afterCreatedAt, afterID := keysetCursor(ctx)
 
-	items, err := c.clipboardService.GetFavoriteClipboard(channelID, limit)
+	items, err := c.clipboardService.GetFavoriteClipboard(channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
 	}
 
-	response.Success(ctx, dto.ToClipboardItemResponseList(items), "获取成功")
+	items, hasMore := keysetHasMore(items, size)
+	nextAfter, nextAfterID := nextKeysetCursor(items)
+	response.SuccessWithKeysetFull(ctx, dto.ToClipboardItemResponseList(items), hasMore, nextAfter, nextAfterID)
 }
 
 // GetClipboardByType 按类型获取剪贴板项目（keyset 游标分页）
