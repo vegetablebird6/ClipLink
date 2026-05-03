@@ -191,13 +191,22 @@ func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
 	response.SuccessWithKeysetFull(ctx, dto.ToClipboardItemResponseList(items), hasMore, nextAfter, nextAfterID)
 }
 
-// nextKeysetCursor 从当前页最后一条计算下一页游标
+// nextKeysetCursor 从当前页最后一条的 created_at + id 计算下一页游标
 func nextKeysetCursor(items []*output.ClipboardItemOutput) (string, string) {
 	if len(items) == 0 {
 		return "", ""
 	}
 	last := items[len(items)-1]
 	return last.CreatedAt.Format(time.RFC3339Nano), last.ID
+}
+
+// nextFavoritesCursor 从当前页最后一条的 updated_at + id 计算下一页游标（收藏按 updated_at 排序）
+func nextFavoritesCursor(items []*output.ClipboardItemOutput) (string, string) {
+	if len(items) == 0 {
+		return "", ""
+	}
+	last := items[len(items)-1]
+	return last.UpdatedAt.Format(time.RFC3339Nano), last.ID
 }
 
 // DeleteClipboard 删除剪贴板项目
@@ -319,7 +328,7 @@ func (c *ClipboardController) GetFavoriteClipboard(ctx *gin.Context) {
 	}
 
 	items, hasMore := keysetHasMore(items, size)
-	nextAfter, nextAfterID := nextKeysetCursor(items)
+	nextAfter, nextAfterID := nextFavoritesCursor(items)
 	response.SuccessWithKeysetFull(ctx, dto.ToClipboardItemResponseList(items), hasMore, nextAfter, nextAfterID)
 }
 

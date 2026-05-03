@@ -131,15 +131,17 @@ export const useClipboardData = ({
 
       // 取最后一条作为 cursor
       const lastItem = clipboardItems[clipboardItems.length - 1];
-      const after = lastItem?.created_at;
       const afterId = lastItem?.id;
 
       let response;
       if (activeTab === 'favorite') {
+        const after = lastItem?.updated_at;
         response = await clipboardService.getFavorites(pageSize, after, afterId);
       } else if (activeTab === 'all') {
+        const after = lastItem?.created_at;
         response = await clipboardService.getClipboardHistory(pageSize, after, afterId);
       } else {
+        const after = lastItem?.created_at;
         response = await clipboardService.getClipboardByType(activeTab as ClipboardType, pageSize, after, afterId);
       }
 

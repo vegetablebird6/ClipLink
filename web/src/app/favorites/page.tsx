@@ -17,6 +17,8 @@ export default function FavoritesPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<ClipboardItem | undefined>();
   const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const { showToast } = useToast();
 
@@ -28,6 +30,7 @@ export default function FavoritesPage() {
       const response = await clipboardService.getFavorites();
       if (response.success && response.data) {
         setFavoriteItems(response.data.items || []);
+        setHasMore(response.data.has_more || false);
       } else {
         showToast(response.message || '获取收藏失败', 'error');
       }
@@ -35,6 +38,30 @@ export default function FavoritesPage() {
       showToast('获取收藏失败', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMoreFavorites = async () => {
+    if (!hasMore || isLoadingMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      const lastItem = favoriteItems[favoriteItems.length - 1];
+      const after = lastItem?.updated_at;
+      const afterId = lastItem?.id;
+      const response = await clipboardService.getFavorites(12, after, afterId);
+
+      if (response.success && response.data) {
+        const newItems = response.data.items || [];
+        if (newItems.length > 0) {
+          setFavoriteItems(prev => [...prev, ...newItems]);
+        }
+        setHasMore(response.data.has_more || false);
+      }
+    } catch (error) {
+      showToast('加载更多失败', 'error');
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -160,13 +187,16 @@ export default function FavoritesPage() {
           {isLoading ? (
             <ClipboardGridSkeleton />
           ) : (
-            <ClipboardGrid 
+            <ClipboardGrid
               items={favoriteItems}
               onCopy={handleCopy}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onToggleFavorite={handleToggleFavorite}
               onPreview={handlePreview}
+              hasMore={hasMore}
+              onLoadMore={loadMoreFavorites}
+              isLoadingMore={isLoadingMore}
             />
           )}
         </div>
