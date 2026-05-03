@@ -136,7 +136,7 @@ export const useClipboardData = ({
 
       let response;
       if (activeTab === 'favorite') {
-        response = await clipboardService.getFavorites(1, pageSize);
+        response = await clipboardService.getFavorites();
       } else if (activeTab === 'all') {
         response = await clipboardService.getClipboardHistory(pageSize, after, afterId);
       } else {
@@ -323,6 +323,7 @@ export const useClipboardData = ({
       const response = await clipboardService.updateClipboard(data.id, updateData);
 
       if (response.success && response.data) {
+        let savedItem = response.data;
         // 如果收藏状态变了，调用专用接口
         if (favoriteChanged) {
           const favResponse = await clipboardService.toggleFavorite(data.id, newIsFavorite!);
@@ -330,14 +331,15 @@ export const useClipboardData = ({
             showToast('内容已保存，收藏状态保存失败', 'error');
             return false;
           }
+          savedItem = favResponse.data!;
         }
 
         setClipboardItems(prevItems =>
-          prevItems.map(item => item.id === data.id ? response.data! : item)
+          prevItems.map(item => item.id === data.id ? savedItem : item)
         );
 
         if (currentClipboard && currentClipboard.id === data.id) {
-          setCurrentClipboard(response.data);
+          setCurrentClipboard(savedItem);
         }
 
         showToast('保存成功', 'success');
@@ -412,7 +414,7 @@ export const useClipboardData = ({
       let response;
 
       if (tab === 'favorite') {
-        response = await clipboardService.getFavorites(1, pageSize);
+        response = await clipboardService.getFavorites();
       } else if (tab === 'all') {
         response = await clipboardService.getClipboardHistory(pageSize);
       } else {

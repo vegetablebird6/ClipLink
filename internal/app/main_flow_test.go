@@ -71,8 +71,8 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 	assertField(t, searchItems[0], "id", stringField(t, textItem, "id"))
 
 	putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id")+"/favorite", channelID, http.StatusOK, map[string]any{
-		"isFavorite": true,
-		"device_id":  deviceID,
+		"favorite":  true,
+		"device_id": deviceID,
 	})
 
 	favorites := getJSON(t, router, "/api/clipboard/favorites", channelID, http.StatusOK)
@@ -81,8 +81,8 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 	assertField(t, favoriteItems[0], "id", stringField(t, textItem, "id"))
 
 	putJSON(t, router, "/api/clipboard/"+stringField(t, textItem, "id")+"/favorite", channelID, http.StatusOK, map[string]any{
-		"isFavorite": false,
-		"device_id":  deviceID,
+		"favorite":  false,
+		"device_id": deviceID,
 	})
 	emptyFavorites := getJSON(t, router, "/api/clipboard/favorites", channelID, http.StatusOK)
 	assertLen(t, dataArray(t, emptyFavorites), 0, "favorites after unfavorite")
@@ -111,7 +111,12 @@ func TestMainAPIClipboardFlow(t *testing.T) {
 		"content_format": "plain",
 		"device_id":      deviceID,
 	})
-	assertDataField(t, cleared, "content_html", "")
+	// omitempty 导致空 content_html 不出现在响应中（与不设置效果一致）
+	if html, exists := cleared["content_html"]; exists {
+		if s, ok := html.(string); !ok || s != "" {
+			t.Fatalf("expected empty content_html, got %v", html)
+		}
+	}
 
 	putJSON(t, router, "/api/devices/"+deviceID+"/name", channelID, http.StatusOK, map[string]any{
 		"device_name": "Desk Rig",

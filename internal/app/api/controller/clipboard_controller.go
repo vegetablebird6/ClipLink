@@ -6,9 +6,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/xiaojiu/cliplink/internal/app/api/dto"
+	"github.com/xiaojiu/cliplink/internal/app/usecase/input"
+	"github.com/xiaojiu/cliplink/internal/app/usecase/output"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
-	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
@@ -106,18 +109,7 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		return
 	}
 
-	// 绑定请求体 - 适配前端发送的字段格式
-	var req struct {
-		Title           string `json:"title"`
-		Content         string `json:"content" binding:"required"`
-		Type            string `json:"type" binding:"required"`
-		DeviceID        string `json:"device_id" binding:"required"`
-		DeviceType      string `json:"device_type" binding:"required"`
-		CleanDuplicates bool   `json:"clean_duplicates"`
-		ContentHTML     string `json:"content_html"`
-		ContentFormat   string `json:"content_format"`
-	}
-
+	var req dto.CreateClipboardRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
@@ -136,25 +128,24 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		return
 	}
 
-	// 保存剪贴板内容
-	item, err := c.clipboardService.SaveClipboard(
-		req.Title,
-		req.Content,
-		req.Type,
-		req.DeviceID,
-		req.DeviceType,
-		channelID,
-		req.CleanDuplicates,
-		req.ContentHTML,
-		req.ContentFormat,
-	)
+	item, err := c.clipboardService.CreateClipboard(input.CreateClipboardInput{
+		ChannelID:       channelID,
+		ActorDeviceID:   req.DeviceID,
+		ActorDeviceType: req.DeviceType,
+		Title:           req.Title,
+		Content:         req.Content,
+		Type:            req.Type,
+		CleanDuplicates: req.CleanDuplicates,
+		ContentHTML:     req.ContentHTML,
+		ContentFormat:   req.ContentFormat,
+	})
 
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
 	}
 
-	response.Success(ctx, item, "保存成功")
+	response.Success(ctx, dto.ToClipboardItemResponse(item), "保存成功")
 }
 
 // GetLatestClipboard 获取最新剪贴板内容
@@ -164,33 +155,19 @@ func (c *ClipboardController) GetLatestClipboard(ctx *gin.Context) {
 		return
 	}
 
-	// 获取查询参数
-	limitStr := ctx.DefaultQuery("limit", "1") // 默认只返回1条，针对 /current 路径
+	limitStr := ctx.DefaultQuery("limit", "20")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		limit = 1
+		limit = 20
 	}
 
-	// 获取最新剪贴板内容
 	items, err := c.clipboardService.GetLatestClipboard(channelID, limit)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
 	}
 
-	// 如果没有找到记录，返回空数组
-	if len(items) == 0 {
-		response.Success(ctx, []*model.ClipboardItem{}, "获取成功")
-		return
-	}
-
-	// 针对 /current 路径，只返回第一个项目而不是数组
-	if ctx.Request.URL.Path == "/api/clipboard/current" || ctx.Request.URL.Path == "/clipboard/current" {
-		response.Success(ctx, items[0], "获取成功")
-		return
-	}
-
-	response.Success(ctx, items, "获取成功")
+	response.Success(ctx, dto.ToClipboardItemResponseList(items), "获取成功")
 }
 
 // GetClipboardItem 获取特定剪贴板项目
@@ -201,7 +178,6 @@ func (c *ClipboardController) GetClipboardItem(ctx *gin.Context) {
 	}
 	itemID := ctx.Param("itemID")
 
-	// 获取剪贴板项目
 	item, err := c.clipboardService.GetClipboardItem(itemID, channelID)
 	if err != nil {
 		respondClipboardError(ctx, err)
@@ -213,7 +189,7 @@ func (c *ClipboardController) GetClipboardItem(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, item, "获取成功")
+	response.Success(ctx, dto.ToClipboardItemResponse(item), "获取成功")
 }
 
 // GetClipboardHistory 获取剪贴板历史记录（keyset 游标分页）
@@ -233,7 +209,17 @@ func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
 	}
 
 	items, hasMore := keysetHasMore(items, size)
-	response.SuccessWithKeyset(ctx, items, hasMore)
+	nextAfter, nextAfterID := nextKeysetCursor(items)
+	response.SuccessWithKeysetFull(ctx, dto.ToClipboardItemResponseList(items), hasMore, nextAfter, nextAfterID)
+}
+
+// nextKeysetCursor 从当前页最后一条计算下一页游标
+func nextKeysetCursor(items []*output.ClipboardItemOutput) (string, string) {
+	if len(items) == 0 {
+		return "", ""
+	}
+	last := items[len(items)-1]
+	return last.CreatedAt.Format(time.RFC3339Nano), last.ID
 }
 
 // DeleteClipboard 删除剪贴板项目
@@ -244,17 +230,17 @@ func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
 	}
 	itemID := ctx.Param("itemID")
 
-	// 解析请求体获取设备 ID
-	var req struct {
-		DeviceID string `json:"device_id" binding:"required"`
-	}
+	var req dto.DeleteClipboardRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, "device_id is required")
 		return
 	}
 
-	// 删除剪贴板项目
-	err := c.clipboardService.DeleteClipboard(itemID, channelID, req.DeviceID)
+	err := c.clipboardService.DeleteClipboard(input.DeleteClipboardInput{
+		ID:            itemID,
+		ChannelID:     channelID,
+		ActorDeviceID: req.DeviceID,
+	})
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
@@ -271,17 +257,7 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 	}
 	itemID := ctx.Param("itemID")
 
-	// 部分更新：指针字段表示可选，非 nil 才更新
-	var req struct {
-		Title         *string `json:"title"`
-		Content       *string `json:"content"`
-		Type          *string `json:"type"`
-		DeviceID      string  `json:"device_id" binding:"required"`
-		DeviceType    *string `json:"device_type"`
-		ContentHTML   *string `json:"content_html"`
-		ContentFormat *string `json:"content_format"`
-	}
-
+	var req dto.UpdateClipboardRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
@@ -300,27 +276,24 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 		return
 	}
 
-	// 更新剪贴板项目
-	item, err := c.clipboardService.UpdateClipboard(
-		itemID,
-		channelID,
-		req.DeviceID,
-		&service.UpdateClipboardInput{
-			Title:         req.Title,
-			Content:       req.Content,
-			Type:          req.Type,
-			DeviceType:    req.DeviceType,
-			ContentHTML:   req.ContentHTML,
-			ContentFormat: req.ContentFormat,
-		},
-	)
+	item, err := c.clipboardService.UpdateClipboard(input.UpdateClipboardInput{
+		ID:             itemID,
+		ChannelID:      channelID,
+		ActorDeviceID:  req.DeviceID,
+		Title:          req.Title,
+		Content:        req.Content,
+		Type:           req.Type,
+		DeviceType:     req.DeviceType,
+		ContentHTML:    req.ContentHTML,
+		ContentFormat:  req.ContentFormat,
+	})
 
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
 	}
 
-	response.Success(ctx, item, "更新成功")
+	response.Success(ctx, dto.ToClipboardItemResponse(item), "更新成功")
 }
 
 // ToggleFavorite 切换收藏状态
@@ -331,25 +304,24 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 	}
 	itemID := ctx.Param("itemID")
 
-	// 绑定请求体 - device_id 必填，isFavorite 用 *bool 以区分 true/false
-	var req struct {
-		IsFavorite *bool  `json:"isFavorite" binding:"required"`
-		DeviceID   string `json:"device_id" binding:"required"`
-	}
-
+	var req dto.SetFavoriteRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, "isFavorite and device_id are required")
+		response.BadRequest(ctx, "favorite and device_id are required")
 		return
 	}
 
-	// 切换收藏状态
-	item, err := c.clipboardService.ToggleFavorite(itemID, *req.IsFavorite, channelID, req.DeviceID)
+	item, err := c.clipboardService.SetFavorite(input.SetFavoriteInput{
+		ID:            itemID,
+		ChannelID:     channelID,
+		ActorDeviceID: req.DeviceID,
+		Favorite:      req.Favorite,
+	})
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
 	}
 
-	response.Success(ctx, item, "更新成功")
+	response.Success(ctx, dto.ToClipboardItemResponse(item), "更新成功")
 }
 
 // GetFavoriteClipboard 获取收藏的剪贴板项目
@@ -359,21 +331,19 @@ func (c *ClipboardController) GetFavoriteClipboard(ctx *gin.Context) {
 		return
 	}
 
-	// 获取查询参数
 	limitStr := ctx.DefaultQuery("limit", "20")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
 		limit = 20
 	}
 
-	// 获取收藏项目
 	items, err := c.clipboardService.GetFavoriteClipboard(channelID, limit)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
 	}
 
-	response.Success(ctx, items, "获取成功")
+	response.Success(ctx, dto.ToClipboardItemResponseList(items), "获取成功")
 }
 
 // GetClipboardByType 按类型获取剪贴板项目（keyset 游标分页）
@@ -398,7 +368,8 @@ func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
 	}
 
 	items, hasMore := keysetHasMore(items, size)
-	response.SuccessWithKeyset(ctx, items, hasMore)
+	nextAfter, nextAfterID := nextKeysetCursor(items)
+	response.SuccessWithKeysetFull(ctx, dto.ToClipboardItemResponseList(items), hasMore, nextAfter, nextAfterID)
 }
 
 // GetClipboardByDeviceType 按设备类型获取剪贴板项目（keyset 游标分页）
@@ -423,31 +394,29 @@ func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
 	}
 
 	items, hasMore := keysetHasMore(items, size)
-	response.SuccessWithKeyset(ctx, items, hasMore)
+	nextAfter, nextAfterID := nextKeysetCursor(items)
+	response.SuccessWithKeysetFull(ctx, dto.ToClipboardItemResponseList(items), hasMore, nextAfter, nextAfterID)
 }
 
-// GetCurrentClipboard 获取当前剪贴板内容（专用接口，避免路由冲突）
+// GetCurrentClipboard 获取当前剪贴板内容
 func (c *ClipboardController) GetCurrentClipboard(ctx *gin.Context) {
 	channelID, ok := clipboardChannelID(ctx)
 	if !ok {
 		return
 	}
 
-	// 获取最新的一条剪贴板内容
 	items, err := c.clipboardService.GetLatestClipboard(channelID, 1)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
 	}
 
-	// 如果没有找到记录，返回空对象
 	if len(items) == 0 {
 		response.Success(ctx, nil, "获取成功")
 		return
 	}
 
-	// 返回第一条记录
-	response.Success(ctx, items[0], "获取成功")
+	response.Success(ctx, dto.ToClipboardItemResponse(items[0]), "获取成功")
 }
 
 // SearchClipboard 搜索剪贴板项目
@@ -457,7 +426,6 @@ func (c *ClipboardController) SearchClipboard(ctx *gin.Context) {
 		return
 	}
 
-	// 获取搜索关键词
 	keyword := ctx.Query("q")
 	if keyword == "" {
 		response.BadRequest(ctx, "搜索关键词不能为空")
@@ -466,21 +434,13 @@ func (c *ClipboardController) SearchClipboard(ctx *gin.Context) {
 
 	page, size := paginationParams(ctx, 20)
 
-	// 执行搜索
 	items, total, totalPages, err := c.clipboardService.SearchClipboard(keyword, channelID, page, size)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
 	}
 
-	response.Success(ctx, gin.H{
-		"items":      items,
-		"total":      total,
-		"page":       page,
-		"size":       size,
-		"totalPages": totalPages,
-		"keyword":    keyword,
-	}, "搜索成功")
+	response.SuccessWithPage(ctx, dto.ToClipboardItemResponseList(items), total, page, size, totalPages)
 }
 
 // CleanupDuplicateContents 清理当前通道下已存在的重复剪贴板内容。
@@ -496,5 +456,7 @@ func (c *ClipboardController) CleanupDuplicateContents(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, gin.H{"deleted": deleted}, "重复内容已清理")
+	response.Success(ctx, struct {
+		Deleted int64 `json:"deleted"`
+	}{Deleted: deleted}, "重复内容已清理")
 }

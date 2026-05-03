@@ -10,6 +10,7 @@ import { ClipboardItem, SaveClipboardRequest, ClipboardType } from '@/types/clip
 import ChannelDetailModal from '@/components/clipboard/ChannelDetailModal';
 import AddContentModal from '@/components/modals/AddContentModal';
 import { clipboardService } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 import TabBar, { ClipboardFilterType, ClipboardSortOption } from '@/components/clipboard/TabBar';
 import { ClipboardGridSkeleton } from '@/components/ui/LoadingStates';
 
@@ -71,6 +72,8 @@ export default function Home() {
     pageSize: 12,
     isChannelVerified
   });
+
+  const { showToast } = useToast();
 
   // 处理确认保存的回调
   const handleConfirmSave = (payload: { text: string; html?: string; format: 'plain' | 'html' }) => {
@@ -257,9 +260,21 @@ export default function Home() {
         const result = await clipboardService.saveClipboard(data);
         
         if (result.success && result.data) {
-          setClipboardItems(prev => [result.data!, ...prev]);
-          setCurrentClipboard(result.data);
-          
+          let savedItem = result.data;
+
+          // 创建时勾选了收藏，需要额外调用 toggleFavorite
+          if (data.isFavorite) {
+            const favResult = await clipboardService.toggleFavorite(savedItem.id, true);
+            if (favResult.success && favResult.data) {
+              savedItem = favResult.data;
+            } else {
+              showToast('内容已保存，收藏状态保存失败', 'error');
+            }
+          }
+
+          setClipboardItems(prev => [savedItem, ...prev]);
+          setCurrentClipboard(savedItem);
+
           if (data.content) {
             trackProcessedContent(data.content);
           }

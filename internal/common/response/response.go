@@ -144,8 +144,10 @@ type PageResult struct {
 
 // KeysetResult keyset 游标分页结果
 type KeysetResult struct {
-	Items   interface{} `json:"items"`    // 分页数据
-	HasMore bool        `json:"has_more"` // 是否还有更多数据
+	Items       interface{} `json:"items"`                  // 分页数据
+	HasMore     bool        `json:"has_more"`               // 是否还有更多数据
+	NextAfter   string      `json:"next_after,omitempty"`   // 下一页游标（时间戳）
+	NextAfterID string      `json:"next_after_id,omitempty"` // 下一页游标（ID）
 }
 
 // SuccessWithPage 返回分页数据
@@ -186,6 +188,11 @@ func SuccessWithPage(c *gin.Context, items interface{}, total int64, page, size 
 
 // SuccessWithKeyset 返回 keyset 游标分页数据
 func SuccessWithKeyset(c *gin.Context, items interface{}, hasMore bool) {
+	SuccessWithKeysetFull(c, items, hasMore, "", "")
+}
+
+// SuccessWithKeysetFull 返回 keyset 游标分页数据（含下一页游标）
+func SuccessWithKeysetFull(c *gin.Context, items interface{}, hasMore bool, nextAfter, nextAfterID string) {
 	if items == nil {
 		items = []interface{}{}
 	} else {
@@ -203,7 +210,9 @@ func SuccessWithKeyset(c *gin.Context, items interface{}, hasMore bool) {
 	}
 
 	Success(c, KeysetResult{
-		Items:   items,
-		HasMore: hasMore,
+		Items:       items,
+		HasMore:     hasMore,
+		NextAfter:   nextAfter,
+		NextAfterID: nextAfterID,
 	}, "获取成功")
 }

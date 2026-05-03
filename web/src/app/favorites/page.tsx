@@ -17,55 +17,17 @@ export default function FavoritesPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<ClipboardItem | undefined>();
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const pageSize = 12; // 默认页大小
-  
+
   const { showToast } = useToast();
 
   // 获取收藏的剪贴板项目
-  const fetchFavorites = async (page = 1, loadMore = false) => {
-    if (page === 1) {
-      setIsLoading(true);
-    } else if (loadMore) {
-      setIsLoadingMore(true);
-    }
-    
+  const fetchFavorites = async () => {
+    setIsLoading(true);
+
     try {
-      const response = await clipboardService.getFavorites(page, pageSize);
+      const response = await clipboardService.getFavorites();
       if (response.success && response.data) {
-        let items: ClipboardItem[] = [];
-        let currentPageValue = page;
-        let totalPagesValue = 1;
-        
-        if (Array.isArray(response.data)) {
-          // 数组格式
-          items = response.data;
-          currentPageValue = page;
-          totalPagesValue = 1;
-        } else if ('items' in response.data) {
-          // 对象格式
-          items = response.data.items;
-          currentPageValue = response.data.page;
-          totalPagesValue = response.data.totalPages;
-        }
-        
-        if (page === 1 || !loadMore) {
-          // 首次加载或刷新
-          setFavoriteItems(items || []);
-        } else {
-          // 加载更多时避免ID重复
-          const existingIds = new Set(favoriteItems.map(item => item.id));
-          const uniqueNewItems = items.filter(item => !existingIds.has(item.id));
-          
-          setFavoriteItems(prevItems => [...prevItems, ...uniqueNewItems]);
-        }
-        
-        setCurrentPage(currentPageValue);
-        setTotalPages(totalPagesValue);
-        setHasMore(currentPageValue < totalPagesValue);
+        setFavoriteItems(response.data);
       } else {
         showToast(response.message || '获取收藏失败', 'error');
       }
@@ -73,14 +35,6 @@ export default function FavoritesPage() {
       showToast('获取收藏失败', 'error');
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
-  
-  // 加载更多数据
-  const loadMoreData = () => {
-    if (currentPage < totalPages && !isLoadingMore) {
-      fetchFavorites(currentPage + 1, true);
     }
   };
 
@@ -213,9 +167,6 @@ export default function FavoritesPage() {
               onDelete={handleDelete}
               onToggleFavorite={handleToggleFavorite}
               onPreview={handlePreview}
-              hasMore={hasMore}
-              onLoadMore={loadMoreData}
-              isLoadingMore={isLoadingMore}
             />
           )}
         </div>

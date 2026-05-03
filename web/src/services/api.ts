@@ -246,7 +246,7 @@ export const clipboardService = {
   // 获取最新剪贴板内容
   getLatestClipboard: async (): Promise<ApiResponse<ClipboardItem>> => {
     try {
-      const response = await api.get<unknown>('/clipboard');
+      const response = await api.get<unknown>('/clipboard/current');
       const apiResponse = handleApiResponse<any>(response.data);
       
       // 转换为标准格式
@@ -342,31 +342,21 @@ export const clipboardService = {
   },
 
   // 获取收藏的剪贴板项目
-  getFavorites: async (page = 1, size = 12): Promise<ApiResponse<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number} | ClipboardItem[]>> => {
+  getFavorites: async (limit = 50): Promise<ApiResponse<ClipboardItem[]>> => {
     try {
       const response = await api.get<unknown>('/clipboard/favorites', {
-        params: {
-          page,
-          size
-        }
+        params: { limit }
       });
       
       const apiResponse = handleApiResponse<any>(response.data);
       
-      // 处理可能的不同响应格式
       if (apiResponse.success && apiResponse.data) {
-        if (Array.isArray(apiResponse.data)) {
-          // 如果直接返回了数组，转换每个项目
-          apiResponse.data = apiResponse.data.map(convertRawClipboardItem);
-        } else if (apiResponse.data.items) {
-          // 如果返回了分页对象，转换每个项目
-          apiResponse.data.items = apiResponse.data.items.map(convertRawClipboardItem);
-        }
+        apiResponse.data = (apiResponse.data as any[]).map(convertRawClipboardItem);
       }
       
-      return apiResponse as ApiResponse<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number} | ClipboardItem[]>;
+      return apiResponse as ApiResponse<ClipboardItem[]>;
     } catch (error) {
-      return handleApiError<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number} | ClipboardItem[]>(error, '获取收藏夹失败');
+      return handleApiError<ClipboardItem[]>(error, '获取收藏夹失败');
     }
   },
 
@@ -419,10 +409,10 @@ export const clipboardService = {
   },
 
   // 切换收藏状态
-  toggleFavorite: async (id: string, isFavorite: boolean): Promise<ApiResponse<ClipboardItem>> => {
+  toggleFavorite: async (id: string, favorite: boolean): Promise<ApiResponse<ClipboardItem>> => {
     try {
       const response = await api.put<unknown>(`/clipboard/${id}/favorite`, { 
-        isFavorite,
+        favorite,
         device_id: deviceIdUtil.getDeviceId(),
       });
       const apiResponse = handleApiResponse<any>(response.data);
