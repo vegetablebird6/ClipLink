@@ -325,7 +325,11 @@ export const useClipboardData = ({
       if (response.success && response.data) {
         // 如果收藏状态变了，调用专用接口
         if (favoriteChanged) {
-          await clipboardService.toggleFavorite(data.id, newIsFavorite!);
+          const favResponse = await clipboardService.toggleFavorite(data.id, newIsFavorite!);
+          if (!favResponse.success) {
+            showToast('内容已保存，收藏状态保存失败', 'error');
+            return false;
+          }
         }
 
         setClipboardItems(prevItems =>

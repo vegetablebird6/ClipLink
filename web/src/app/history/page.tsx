@@ -249,17 +249,34 @@ export default function HistoryPage() {
   const handleSave = async (data: SaveClipboardRequest): Promise<boolean> => {
     if (!editingItem) return false;
 
-    try {
-      const response = await clipboardService.updateClipboard(editingItem.id, data);
-      if (response.success && response.data) {
-        const updateItem = (items: ClipboardItem[]) =>
-          items.map(i => i.id === editingItem.id ? response.data! : i);
+    const newIsFavorite = data.isFavorite;
+    const currentIsFavorite = editingItem.isFavorite;
+    const favoriteChanged = newIsFavorite !== undefined && newIsFavorite !== currentIsFavorite;
 
-        setHistoryItems(updateItem);
-        if (isSearchMode) {
-          setSearchResults(updateItem);
+    const { isFavorite: _ignored, ...updateData } = data;
+
+    try {
+      const response = await clipboardService.updateClipboard(editingItem.id, updateData);
+      if (response.success && response.data) {
+        if (favoriteChanged) {
+          const favResponse = await clipboardService.toggleFavorite(editingItem.id, newIsFavorite!);
+          if (!favResponse.success) {
+            showToast('内容已保存，收藏状态保存失败', 'error');
+            return false;
+          }
+          const updatedItem = { ...favResponse.data! };
+          const updateItems = (items: ClipboardItem[]) =>
+            items.map(i => i.id === editingItem.id ? updatedItem : i);
+          setHistoryItems(updateItems);
+          if (isSearchMode) setSearchResults(updateItems);
+          showToast(newIsFavorite ? '已保存并添加到收藏' : '已保存并取消收藏', 'success');
+        } else {
+          const updateItems = (items: ClipboardItem[]) =>
+            items.map(i => i.id === editingItem.id ? response.data! : i);
+          setHistoryItems(updateItems);
+          if (isSearchMode) setSearchResults(updateItems);
+          showToast('保存成功', 'success');
         }
-        showToast('保存成功', 'success');
         return true;
       } else {
         showToast(response.message || '保存失败', 'error');

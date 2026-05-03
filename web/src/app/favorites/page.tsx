@@ -147,15 +147,33 @@ export default function FavoritesPage() {
   // 保存编辑
   const handleSave = async (data: SaveClipboardRequest): Promise<boolean> => {
     if (!editingItem) return false;
-    
+
+    const newIsFavorite = data.isFavorite;
+    const currentIsFavorite = editingItem.isFavorite;
+    const favoriteChanged = newIsFavorite !== undefined && newIsFavorite !== currentIsFavorite;
+
+    const { isFavorite: _ignored, ...updateData } = data;
+
     try {
-      const response = await clipboardService.updateClipboard(editingItem.id, data);
+      const response = await clipboardService.updateClipboard(editingItem.id, updateData);
       if (response.success && response.data) {
-        // 更新列表中的项目
-        setFavoriteItems(prevItems => 
-          prevItems.map(i => i.id === editingItem.id ? response.data! : i)
-        );
-        showToast('保存成功', 'success');
+        if (favoriteChanged) {
+          const favResponse = await clipboardService.toggleFavorite(editingItem.id, newIsFavorite!);
+          if (!favResponse.success) {
+            showToast('内容已保存，收藏状态保存失败', 'error');
+            return false;
+          }
+          // 以 toggle 结果为准更新界面
+          setFavoriteItems(prevItems =>
+            prevItems.map(i => i.id === editingItem.id ? { ...favResponse.data! } : i)
+          );
+          showToast(newIsFavorite ? '已保存并添加到收藏' : '已保存并取消收藏', 'success');
+        } else {
+          setFavoriteItems(prevItems =>
+            prevItems.map(i => i.id === editingItem.id ? response.data! : i)
+          );
+          showToast('保存成功', 'success');
+        }
         return true;
       } else {
         showToast(response.message || '保存失败', 'error');
