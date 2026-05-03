@@ -28,6 +28,7 @@ type Response struct {
 	Success    bool        `json:"success"`
 	ErrorCode  string      `json:"error_code,omitempty"`
 	MessageKey string      `json:"message_key,omitempty"`
+	Details    string      `json:"details,omitempty"`
 }
 
 func Success(c *gin.Context, data interface{}, message string) {
@@ -65,27 +66,27 @@ func SuccessWithMessage(c *gin.Context, message string) {
 
 // BadRequest 请求参数错误
 func BadRequest(c *gin.Context, message string) {
-	FailWithCode(c, StatusBadRequest, message, "INVALID_INPUT", "error.invalid_input")
+	FailWithCode(c, StatusBadRequest, i18n.GetMessage(c, "error.invalid_input"), "INVALID_INPUT", "error.invalid_input", message)
 }
 
 // Unauthorized 未授权
 func Unauthorized(c *gin.Context, message string) {
-	FailWithCode(c, StatusUnauthorized, message, "UNAUTHORIZED", "error.unauthorized")
+	FailWithCode(c, StatusUnauthorized, i18n.GetMessage(c, "error.unauthorized"), "UNAUTHORIZED", "error.unauthorized", message)
 }
 
 // Forbidden 禁止访问
 func Forbidden(c *gin.Context, message string) {
-	FailWithCode(c, StatusForbidden, message, "FORBIDDEN", "error.forbidden")
+	FailWithCode(c, StatusForbidden, i18n.GetMessage(c, "error.forbidden"), "FORBIDDEN", "error.forbidden", message)
 }
 
 // NotFound 资源不存在
 func NotFound(c *gin.Context, message string) {
-	FailWithCode(c, StatusNotFound, message, "NOT_FOUND", "error.not_found")
+	FailWithCode(c, StatusNotFound, i18n.GetMessage(c, "error.not_found"), "NOT_FOUND", "error.not_found", message)
 }
 
 // ServerError 服务器错误
 func ServerError(c *gin.Context, message string) {
-	FailWithCode(c, StatusServerError, message, "INTERNAL_ERROR", "error.internal_error")
+	FailWithCode(c, StatusServerError, i18n.GetMessage(c, "error.internal_error"), "INTERNAL_ERROR", "error.internal_error", message)
 }
 
 // Fail 失败响应
@@ -98,14 +99,18 @@ func Fail(c *gin.Context, code int, message string) {
 }
 
 // FailWithCode 失败响应（带错误码）
-func FailWithCode(c *gin.Context, code int, message string, errorCode string, messageKey string) {
-	c.JSON(code, Response{
+func FailWithCode(c *gin.Context, code int, message string, errorCode string, messageKey string, details string) {
+	resp := Response{
 		Code:       code,
 		Message:    message,
 		Success:    false,
 		ErrorCode:  errorCode,
 		MessageKey: messageKey,
-	})
+	}
+	if details != "" {
+		resp.Details = details
+	}
+	c.JSON(code, resp)
 }
 
 // Error 从 error 构建统一错误响应
@@ -122,10 +127,10 @@ func FromError(err error) *apperr.AppError {
 // ErrorWithCode 直接使用 AppError 构建响应
 func ErrorWithCode(c *gin.Context, appErr *apperr.AppError) {
 	if appErr == nil {
-		FailWithCode(c, 500, "内部错误", "INTERNAL_ERROR", "error.internal_error")
+		FailWithCode(c, 500, i18n.GetMessage(c, "error.internal_error"), "INTERNAL_ERROR", "error.internal_error", "")
 		return
 	}
-	FailWithCode(c, appErr.Status, i18n.GetMessage(c, appErr.MessageKey), appErr.Code, appErr.MessageKey)
+	FailWithCode(c, appErr.Status, i18n.GetMessage(c, appErr.MessageKey), appErr.Code, appErr.MessageKey, "")
 }
 
 // PageResult 分页结果
