@@ -163,10 +163,13 @@ export default function FavoritesPage() {
             showToast('内容已保存，收藏状态保存失败', 'error');
             return false;
           }
-          // 以 toggle 结果为准更新界面
-          setFavoriteItems(prevItems =>
-            prevItems.map(i => i.id === editingItem.id ? { ...favResponse.data! } : i)
-          );
+          if (newIsFavorite) {
+            setFavoriteItems(prevItems =>
+              prevItems.map(i => i.id === editingItem.id ? { ...favResponse.data! } : i)
+            );
+          } else {
+            setFavoriteItems(prevItems => prevItems.filter(i => i.id !== editingItem.id));
+          }
           showToast(newIsFavorite ? '已保存并添加到收藏' : '已保存并取消收藏', 'success');
         } else {
           setFavoriteItems(prevItems =>
