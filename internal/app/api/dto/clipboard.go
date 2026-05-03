@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/xiaojiu/cliplink/internal/app/usecase/output"
+	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
 // --- Request DTOs ---
@@ -63,7 +63,7 @@ type ClipboardItemResponse struct {
 // --- Converters ---
 
 // ToClipboardItemResponse 将 usecase output 转换为 API response DTO
-func ToClipboardItemResponse(o *output.ClipboardItemOutput) *ClipboardItemResponse {
+func ToClipboardItemResponse(o *service.ClipboardItemOutput) *ClipboardItemResponse {
 	if o == nil {
 		return nil
 	}
@@ -84,7 +84,7 @@ func ToClipboardItemResponse(o *output.ClipboardItemOutput) *ClipboardItemRespon
 }
 
 // ToClipboardItemResponseList 批量转换
-func ToClipboardItemResponseList(outputs []*output.ClipboardItemOutput) []*ClipboardItemResponse {
+func ToClipboardItemResponseList(outputs []*service.ClipboardItemOutput) []*ClipboardItemResponse {
 	items := make([]*ClipboardItemResponse, 0, len(outputs))
 	for _, o := range outputs {
 		items = append(items, ToClipboardItemResponse(o))

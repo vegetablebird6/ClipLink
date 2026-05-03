@@ -8,8 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/xiaojiu/cliplink/internal/app/api/dto"
-	"github.com/xiaojiu/cliplink/internal/app/usecase/input"
-	"github.com/xiaojiu/cliplink/internal/app/usecase/output"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
@@ -128,7 +126,7 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		return
 	}
 
-	item, err := c.clipboardService.CreateClipboard(input.CreateClipboardInput{
+	item, err := c.clipboardService.CreateClipboard(service.CreateClipboardInput{
 		ChannelID:       channelID,
 		ActorDeviceID:   req.DeviceID,
 		ActorDeviceType: req.DeviceType,
@@ -192,7 +190,7 @@ func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
 }
 
 // nextKeysetCursor 从当前页最后一条的 created_at + id 计算下一页游标
-func nextKeysetCursor(items []*output.ClipboardItemOutput) (string, string) {
+func nextKeysetCursor(items []*service.ClipboardItemOutput) (string, string) {
 	if len(items) == 0 {
 		return "", ""
 	}
@@ -201,7 +199,7 @@ func nextKeysetCursor(items []*output.ClipboardItemOutput) (string, string) {
 }
 
 // nextFavoritesCursor 从当前页最后一条的 updated_at + id 计算下一页游标（收藏按 updated_at 排序）
-func nextFavoritesCursor(items []*output.ClipboardItemOutput) (string, string) {
+func nextFavoritesCursor(items []*service.ClipboardItemOutput) (string, string) {
 	if len(items) == 0 {
 		return "", ""
 	}
@@ -223,7 +221,7 @@ func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
 		return
 	}
 
-	err := c.clipboardService.DeleteClipboard(input.DeleteClipboardInput{
+	err := c.clipboardService.DeleteClipboard(service.DeleteClipboardInput{
 		ID:            itemID,
 		ChannelID:     channelID,
 		ActorDeviceID: req.DeviceID,
@@ -263,7 +261,7 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 		return
 	}
 
-	item, err := c.clipboardService.UpdateClipboard(input.UpdateClipboardInput{
+	item, err := c.clipboardService.UpdateClipboard(service.UpdateClipboardInput{
 		ID:             itemID,
 		ChannelID:      channelID,
 		ActorDeviceID:  req.DeviceID,
@@ -297,7 +295,7 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 		return
 	}
 
-	item, err := c.clipboardService.SetFavorite(input.SetFavoriteInput{
+	item, err := c.clipboardService.SetFavorite(service.SetFavoriteInput{
 		ID:            itemID,
 		ChannelID:     channelID,
 		ActorDeviceID: req.DeviceID,

@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/xiaojiu/cliplink/internal/app/usecase/output"
+	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
 // ChannelStatsResponse 通道统计 API 响应
@@ -16,7 +16,7 @@ type ChannelStatsResponse struct {
 }
 
 // NewChannelStatsResponse 从 StatsOutput 和通道创建时间组装响应
-func NewChannelStatsResponse(o *output.StatsOutput, channelCreatedAt time.Time) *ChannelStatsResponse {
+func NewChannelStatsResponse(o *service.StatsOutput, channelCreatedAt time.Time) *ChannelStatsResponse {
 	return &ChannelStatsResponse{
 		TotalDevices:       o.Devices.Total,
 		OnlineDevices:      o.Devices.Online,

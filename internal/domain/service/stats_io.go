@@ -1,4 +1,4 @@
-package output
+package service
 
 // StatsOutput 通道统计输出（领域服务 → 控制器）
 type StatsOutput struct {

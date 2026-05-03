@@ -1,4 +1,8 @@
-package input
+package service
+
+import "time"
+
+// --- Clipboard Usecase Input ---
 
 // CreateClipboardInput 创建剪贴板条目的输入
 type CreateClipboardInput struct {
@@ -39,4 +43,22 @@ type DeleteClipboardInput struct {
 	ID            string
 	ChannelID     string
 	ActorDeviceID string
+}
+
+// --- Clipboard Usecase Output ---
+
+// ClipboardItemOutput 剪贴板条目输出（只暴露 API 需要的字段）
+type ClipboardItemOutput struct {
+	ID            string
+	ChannelID     string
+	Content       string
+	ContentHTML   string
+	ContentFormat string
+	Type          string
+	Title         string
+	DeviceID      string
+	DeviceType    string
+	Favorite      bool
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }

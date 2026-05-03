@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"github.com/xiaojiu/cliplink/internal/app/usecase/output"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -30,7 +29,7 @@ func NewStatsService(
 }
 
 // GetChannelStats 获取通道统计数据
-func (s *statsService) GetChannelStats(channelID string) (*output.StatsOutput, error) {
+func (s *statsService) GetChannelStats(channelID string) (*service.StatsOutput, error) {
 	// 检查通道是否存在
 	exists, err := s.channelRepo.Exists(channelID)
 	if err != nil {
@@ -83,15 +82,15 @@ func (s *statsService) GetChannelStats(channelID string) (*output.StatsOutput, e
 		return nil, err
 	}
 
-	return &output.StatsOutput{
-		Clipboard: output.ClipboardStats{
+	return &service.StatsOutput{
+		Clipboard: service.ClipboardStats{
 			Total:    clipboardCount,
 			Text:     textCount,
 			Link:     linkCount,
 			Code:     codeCount,
 			Password: passwordCount,
 		},
-		Devices: output.DevicesStats{
+		Devices: service.DevicesStats{
 			Online: onlineDevices,
 			Total:  totalDevices,
 		},
