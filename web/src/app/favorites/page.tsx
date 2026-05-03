@@ -22,6 +22,15 @@ export default function FavoritesPage() {
 
   const { showToast } = useToast();
 
+  const sortByUpdatedAt = (items: ClipboardItem[]) => {
+    return [...items].sort((a, b) => {
+      const aTime = new Date(a.updated_at || a.created_at).getTime();
+      const bTime = new Date(b.updated_at || b.created_at).getTime();
+      if (bTime !== aTime) return bTime - aTime;
+      return b.id.localeCompare(a.id);
+    });
+  };
+
   // 获取收藏的剪贴板项目
   const fetchFavorites = async () => {
     setIsLoading(true);
@@ -54,7 +63,11 @@ export default function FavoritesPage() {
       if (response.success && response.data) {
         const newItems = response.data.items || [];
         if (newItems.length > 0) {
-          setFavoriteItems(prev => [...prev, ...newItems]);
+          setFavoriteItems(prev => {
+            const existingIds = new Set(prev.map(item => item.id));
+            const uniqueNew = newItems.filter(item => !existingIds.has(item.id));
+            return [...prev, ...uniqueNew];
+          });
         }
         setHasMore(response.data.has_more || false);
       }
@@ -146,7 +159,7 @@ export default function FavoritesPage() {
           }
           if (newIsFavorite) {
             setFavoriteItems(prevItems =>
-              prevItems.map(i => i.id === editingItem.id ? { ...favResponse.data! } : i)
+              sortByUpdatedAt(prevItems.map(i => i.id === editingItem.id ? { ...favResponse.data! } : i))
             );
           } else {
             setFavoriteItems(prevItems => prevItems.filter(i => i.id !== editingItem.id));
@@ -154,7 +167,7 @@ export default function FavoritesPage() {
           showToast(newIsFavorite ? '已保存并添加到收藏' : '已保存并取消收藏', 'success');
         } else {
           setFavoriteItems(prevItems =>
-            prevItems.map(i => i.id === editingItem.id ? response.data! : i)
+            sortByUpdatedAt(prevItems.map(i => i.id === editingItem.id ? response.data! : i))
           );
           showToast('保存成功', 'success');
         }
