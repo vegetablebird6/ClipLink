@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/app/api/dto"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -52,7 +53,6 @@ func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 		}
 	}
 
-	// 获取同步事件记录
 	events, err := c.syncService.GetSyncHistory(channelID.(string), afterCreatedAt, afterID, limit)
 	if err != nil {
 		log.Printf("[sync] get history failed: %v", err)
@@ -60,12 +60,23 @@ func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 		return
 	}
 
-	// 判断 has_more：多查了 1 条，如果取到 limit+1 条说明还有更多
 	hasMore := len(events) > limit
 	if hasMore {
 		events = events[:limit]
 	}
-	response.SuccessWithKeyset(ctx, events, hasMore)
+
+	result := dto.ToSyncEventResponseList(events)
+	nextAfter, nextAfterID := nextSyncCursor(result)
+	response.SuccessWithKeysetFull(ctx, result, hasMore, nextAfter, nextAfterID)
+}
+
+// nextSyncCursor 从当前页最后一条的 created_at + id 计算下一页游标
+func nextSyncCursor(items []*dto.SyncEventResponse) (string, string) {
+	if len(items) == 0 {
+		return "", ""
+	}
+	last := items[len(items)-1]
+	return last.CreatedAt.Format(time.RFC3339Nano), strconv.FormatUint(uint64(last.ID), 10)
 }
 
 // LogSyncAction 记录同步操作
@@ -76,18 +87,12 @@ func (c *SyncController) LogSyncAction(ctx *gin.Context) {
 		return
 	}
 
-	// 绑定请求体
-	var req struct {
-		DeviceID string `json:"device_id" binding:"required"`
-		Content  string `json:"content" binding:"required"`
-	}
-
+	var req dto.LogSyncActionRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, "device_id and content are required")
 		return
 	}
 
-	// 记录同步操作
 	err := c.syncService.LogSyncAction(req.DeviceID, channelID.(string), req.Content)
 	if err != nil {
 		log.Printf("[sync] log action failed: %v", err)

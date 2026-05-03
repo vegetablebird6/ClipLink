@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/app/api/dto"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
@@ -24,13 +25,9 @@ func NewChannelController(channelService service.ChannelService) *ChannelControl
 
 // CreateChannel 创建新频道
 func (c *ChannelController) CreateChannel(ctx *gin.Context) {
-	// 绑定请求体 - 适配前端API格式
-	var req struct {
-		ChannelID string `json:"channel_id"` // 允许客户端指定channelID
-	}
+	var req dto.CreateChannelRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		// 如果没有请求体或请求体解析错误，使用空值创建随机频道ID
 		req.ChannelID = ""
 	}
 	if req.ChannelID != "" && !validation.IsValidChannelID(req.ChannelID) {
@@ -38,7 +35,6 @@ func (c *ChannelController) CreateChannel(ctx *gin.Context) {
 		return
 	}
 
-	// 创建频道（使用指定的ID或生成随机ID）
 	channel, err := c.channelService.CreateChannel(req.ChannelID)
 	if err != nil {
 		log.Printf("[channel] create failed: %v", err)
@@ -46,11 +42,7 @@ func (c *ChannelController) CreateChannel(ctx *gin.Context) {
 		return
 	}
 
-	// 返回新创建的频道信息
-	response.Success(ctx, gin.H{
-		"id":         channel.ID,
-		"created_at": channel.CreatedAt,
-	}, "频道创建成功")
+	response.Success(ctx, dto.ToChannelResponse(channel), "频道创建成功")
 }
 
 // GetChannel 获取频道信息
@@ -73,7 +65,7 @@ func (c *ChannelController) GetChannel(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, channel, "获取成功")
+	response.Success(ctx, dto.ToChannelResponse(channel), "获取成功")
 }
 
 // DeleteChannel 删除当前频道及其关联数据。
@@ -95,7 +87,7 @@ func (c *ChannelController) DeleteChannel(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, result, "通道已删除")
+	response.Success(ctx, dto.ToChannelDeleteResponse(result), "通道已删除")
 }
 
 // GetChannelStats 获取频道统计信息

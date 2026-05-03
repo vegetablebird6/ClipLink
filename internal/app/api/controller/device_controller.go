@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/app/api/dto"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
@@ -31,13 +32,7 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 		return
 	}
 
-	// 绑定请求体 - 适配前端发送的字段
-	var req struct {
-		DeviceID   string `json:"device_id" binding:"required"`
-		DeviceName string `json:"device_name" binding:"required"`
-		DeviceType string `json:"device_type" binding:"required"`
-	}
-
+	var req dto.RegisterDeviceRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
@@ -48,7 +43,6 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 		return
 	}
 
-	// 1. 注册设备到系统
 	device, err := c.deviceService.RegisterDevice(req.DeviceName, req.DeviceType, req.DeviceID)
 	if err != nil {
 		log.Printf("[device] register failed: %v", err)
@@ -56,7 +50,6 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 		return
 	}
 
-	// 2. 将设备关联到当前通道
 	err = c.deviceService.AddDeviceToChannel(device.ID, channelID.(string))
 	if err != nil {
 		log.Printf("[device] add to channel failed: %v", err)
@@ -64,8 +57,7 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 		return
 	}
 
-	// 构建设备DTO返回
-	deviceDTO := &model.DeviceDTO{
+	deviceDTO := dto.ToDeviceResponse(&model.DeviceDTO{
 		ID:        device.ID,
 		Name:      device.Name,
 		Type:      device.Type,
@@ -74,7 +66,7 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 		IsOnline:  device.IsOnline,
 		CreatedAt: device.CreatedAt,
 		JoinedAt:  time.Now(),
-	}
+	})
 
 	response.Success(ctx, deviceDTO, "设备注册成功")
 }
@@ -95,7 +87,7 @@ func (c *DeviceController) GetDevices(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, devices, "获取成功")
+	response.Success(ctx, dto.ToDeviceResponseList(devices), "获取成功")
 }
 
 // GetDeviceByID 获取特定设备
@@ -119,7 +111,7 @@ func (c *DeviceController) GetDeviceByID(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, device, "获取成功")
+	response.Success(ctx, dto.ToDeviceResponse(device), "获取成功")
 }
 
 // UpdateDeviceStatus 更新设备状态
@@ -131,17 +123,12 @@ func (c *DeviceController) UpdateDeviceStatus(ctx *gin.Context) {
 	}
 	deviceID := ctx.Param("deviceID")
 
-	// 绑定请求体 - 适配前端发送的字段
-	var req struct {
-		IsOnline *bool `json:"is_online" binding:"required"`
-	}
-
+	var req dto.UpdateDeviceStatusRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
 
-	// 1. 更新设备全局状态
 	device, err := c.deviceService.UpdateDeviceStatus(deviceID, *req.IsOnline)
 	if err != nil {
 		log.Printf("[device] update status failed: %v", err)
@@ -149,16 +136,13 @@ func (c *DeviceController) UpdateDeviceStatus(ctx *gin.Context) {
 		return
 	}
 
-	// 2. 更新设备在通道中的状态
 	err = c.deviceService.UpdateDeviceInChannel(deviceID, channelID.(string), *req.IsOnline)
 	if err != nil {
-		// 忽略通道关联错误，继续返回设备信息
+		// 忽略通道关联错误
 	}
 
-	// 获取设备在通道中的完整信息
 	deviceDTO, err := c.deviceService.GetDeviceInChannel(deviceID, channelID.(string))
 	if err != nil {
-		// 如果获取失败，返回基本设备信息
 		deviceDTO = &model.DeviceDTO{
 			ID:        device.ID,
 			Name:      device.Name,
@@ -170,7 +154,7 @@ func (c *DeviceController) UpdateDeviceStatus(ctx *gin.Context) {
 		}
 	}
 
-	response.Success(ctx, deviceDTO, "设备状态已更新")
+	response.Success(ctx, dto.ToDeviceResponse(deviceDTO), "设备状态已更新")
 }
 
 // UpdateDeviceName 更新设备名称
@@ -194,24 +178,18 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 		return
 	}
 
-	// 绑定请求体 - 使用snake_case命名风格保持一致性
-	var req struct {
-		Name string `json:"device_name" binding:"required"`
-	}
-
+	var req dto.UpdateDeviceNameRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(ctx, err.Error())
 		return
 	}
 
-	// 更新设备名称
 	if _, err := c.deviceService.UpdateDevice(deviceID, req.Name, ""); err != nil {
 		log.Printf("[device] update name failed: %v", err)
 		response.Error(ctx, err)
 		return
 	}
 
-	// 获取设备在通道中的完整信息
 	deviceDTO, err := c.deviceService.GetDeviceInChannel(deviceID, channelID.(string))
 	if err != nil {
 		log.Printf("[device] get device after update failed: %v", err)
@@ -219,7 +197,7 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 		return
 	}
 
-	response.Success(ctx, deviceDTO, "设备名称已更新")
+	response.Success(ctx, dto.ToDeviceResponse(deviceDTO), "设备名称已更新")
 }
 
 // RemoveDevice 移除设备
