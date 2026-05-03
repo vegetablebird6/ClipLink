@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"github.com/xiaojiu/cliplink/internal/app/usecase/output"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -29,7 +30,7 @@ func NewStatsService(
 }
 
 // GetChannelStats 获取通道统计数据
-func (s *statsService) GetChannelStats(channelID string) (map[string]interface{}, error) {
+func (s *statsService) GetChannelStats(channelID string) (*output.StatsOutput, error) {
 	// 检查通道是否存在
 	exists, err := s.channelRepo.Exists(channelID)
 	if err != nil {
@@ -45,7 +46,6 @@ func (s *statsService) GetChannelStats(channelID string) (map[string]interface{}
 		return nil, err
 	}
 
-	// 按类型统计剪贴板
 	textCount, err := s.clipboardRepo.CountByType("text", channelID)
 	if err != nil {
 		return nil, err
@@ -83,21 +83,18 @@ func (s *statsService) GetChannelStats(channelID string) (map[string]interface{}
 		return nil, err
 	}
 
-	// 构建返回结果
-	result := map[string]interface{}{
-		"clipboard": map[string]interface{}{
-			"total":    clipboardCount,
-			"text":     textCount,
-			"link":     linkCount,
-			"code":     codeCount,
-			"password": passwordCount,
+	return &output.StatsOutput{
+		Clipboard: output.ClipboardStats{
+			Total:    clipboardCount,
+			Text:     textCount,
+			Link:     linkCount,
+			Code:     codeCount,
+			Password: passwordCount,
 		},
-		"devices": map[string]interface{}{
-			"online": onlineDevices,
-			"total":  totalDevices,
+		Devices: output.DevicesStats{
+			Online: onlineDevices,
+			Total:  totalDevices,
 		},
-		"sync_count": syncCount,
-	}
-
-	return result, nil
+		SyncCount: syncCount,
+	}, nil
 }

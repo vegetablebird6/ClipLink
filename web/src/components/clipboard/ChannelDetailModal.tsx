@@ -24,6 +24,7 @@ import { useToast } from '@/contexts/ToastContext';
 import AnimatedModal from '../ui/AnimatedModal';
 import Image from 'next/image';
 import { clipboardService } from '@/services/api';
+import { ChannelStats } from '@/types/clipboard';
 import { useChannel } from '@/contexts/ChannelContext';
 import { deviceIdUtil } from '@/utils/deviceId';
 
@@ -31,14 +32,6 @@ interface ChannelDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   channelId: string;
-}
-
-interface ChannelStats {
-  total_devices: number;
-  online_devices: number;
-  sync_count: number;
-  clipboard_item_count: number;
-  created_at: string;
 }
 
 interface Device {
@@ -132,7 +125,7 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
     try {
       const response = await clipboardService.getChannelStats();
       if (response.success) {
-        setChannelStats(response.data);
+        setChannelStats(response.data ?? null);
       } else {
         showToast(response.message || '获取通道统计数据失败', 'error');
       }

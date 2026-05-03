@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { ApiResponse, ClipboardItem, SaveClipboardRequest, ClipboardType, RawClipboardItem } from '@/types/clipboard';
+import { ApiResponse, ChannelStats, ClipboardItem, SaveClipboardRequest, ClipboardType, RawClipboardItem } from '@/types/clipboard';
 import { deviceIdUtil } from '@/utils/deviceId';
 import { detectDeviceType } from '@/utils/deviceDetection';
 import { settingsManager } from '@/utils/settings';
@@ -152,12 +152,12 @@ export const clipboardService = {
   },
 
   // 获取通道统计（header自动带channelId）
-  getChannelStats: async (): Promise<ApiResponse<any>> => {
+  getChannelStats: async (): Promise<ApiResponse<ChannelStats>> => {
     try {
       const response = await api.get<unknown>('/stats');
-      return handleApiResponse<any>(response.data);
+      return handleApiResponse<ChannelStats>(response.data);
     } catch (error) {
-      return handleApiError<any>(error, '获取统计数据失败');
+      return handleApiError<ChannelStats>(error, '获取统计数据失败');
     }
   },
 

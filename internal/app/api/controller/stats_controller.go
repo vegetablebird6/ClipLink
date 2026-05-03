@@ -4,6 +4,8 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/xiaojiu/cliplink/internal/app/api/dto"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
@@ -52,14 +54,5 @@ func (c *StatsController) GetChannelStats(ctx *gin.Context) {
 		return
 	}
 
-	// 重新格式化，以符合前端期望的格式
-	formattedStats := gin.H{
-		"total_devices":        stats["devices"].(map[string]interface{})["total"],
-		"online_devices":       stats["devices"].(map[string]interface{})["online"],
-		"clipboard_item_count": stats["clipboard"].(map[string]interface{})["total"],
-		"sync_count":           stats["sync_count"],
-		"created_at":           channel.CreatedAt,
-	}
-
-	response.Success(ctx, formattedStats, "获取成功")
+	response.Success(ctx, dto.NewChannelStatsResponse(stats, channel.CreatedAt), "获取成功")
 }

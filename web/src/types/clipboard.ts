@@ -58,6 +58,15 @@ export interface SaveClipboardRequest {
   content_format?: 'plain' | 'html';
 }
 
+// 通道统计
+export interface ChannelStats {
+  total_devices: number;
+  online_devices: number;
+  sync_count: number;
+  clipboard_item_count: number;
+  created_at: string;
+}
+
 // API响应类型 - 新的统一格式
 export interface ApiResponse<T> {
   code: number;
