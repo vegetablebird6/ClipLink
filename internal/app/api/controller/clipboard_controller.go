@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"errors"
+	"log"
 	"strconv"
 	"time"
 
@@ -39,16 +39,8 @@ func clipboardChannelID(ctx *gin.Context) (string, bool) {
 }
 
 func respondClipboardError(ctx *gin.Context, err error) {
-	switch {
-	case errors.Is(err, model.ErrInvalidInput):
-		response.BadRequest(ctx, err.Error())
-	case errors.Is(err, model.ErrClipboardNotFound),
-		errors.Is(err, model.ErrDeviceNotFound),
-		errors.Is(err, model.ErrChannelNotFound):
-		response.NotFound(ctx, err.Error())
-	default:
-		response.ServerError(ctx, err.Error())
-	}
+	log.Printf("[clipboard error] %v", err)
+	response.Error(ctx, err)
 }
 
 func paginationParams(ctx *gin.Context, defaultSize int) (int, int) {

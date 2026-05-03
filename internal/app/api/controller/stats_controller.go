@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
@@ -32,14 +34,16 @@ func (c *StatsController) GetChannelStats(ctx *gin.Context) {
 	// 获取通道信息
 	channel, err := c.channelService.GetChannel(channelID.(string))
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[stats] get channel failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
 	// 获取统计数据
 	stats, err := c.statsService.GetChannelStats(channelID.(string))
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[stats] get stats failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 

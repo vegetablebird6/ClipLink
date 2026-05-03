@@ -1,7 +1,10 @@
 package middleware
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
+	"github.com/xiaojiu/cliplink/internal/common/i18n"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
@@ -24,12 +27,12 @@ func (m *ChannelAuthMiddleware) ExtractChannelFromHeader() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		channelID := c.GetHeader("X-Channel-ID")
 		if channelID == "" {
-			response.BadRequest(c, "X-Channel-ID header is required")
+			response.FailWithCode(c, 400, i18n.GetMessage(c, "error.channel_id_required"), "INVALID_INPUT", "error.channel_id_required")
 			c.Abort()
 			return
 		}
 		if !validation.IsValidChannelID(channelID) {
-			response.BadRequest(c, "invalid channel ID")
+			response.FailWithCode(c, 400, i18n.GetMessage(c, "error.invalid_channel_id"), "INVALID_INPUT", "error.invalid_channel_id")
 			c.Abort()
 			return
 		}
@@ -37,13 +40,14 @@ func (m *ChannelAuthMiddleware) ExtractChannelFromHeader() gin.HandlerFunc {
 		// 验证频道是否存在
 		exists, err := m.channelService.VerifyChannel(channelID)
 		if err != nil {
-			response.ServerError(c, err.Error())
+			log.Printf("[channel auth] verify failed: %v", err)
+			response.FailWithCode(c, 500, i18n.GetMessage(c, "error.internal_error"), "INTERNAL_ERROR", "error.internal_error")
 			c.Abort()
 			return
 		}
 
 		if !exists {
-			response.NotFound(c, "channel not found")
+			response.FailWithCode(c, 404, i18n.GetMessage(c, "error.channel_not_found"), "CHANNEL_NOT_FOUND", "error.channel_not_found")
 			c.Abort()
 			return
 		}
@@ -61,12 +65,12 @@ func (m *ChannelAuthMiddleware) VerifyChannel() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		channelID := c.Param("channelID")
 		if channelID == "" {
-			response.BadRequest(c, "channel ID is required")
+			response.FailWithCode(c, 400, i18n.GetMessage(c, "error.channel_id_required"), "INVALID_INPUT", "error.channel_id_required")
 			c.Abort()
 			return
 		}
 		if !validation.IsValidChannelID(channelID) {
-			response.BadRequest(c, "invalid channel ID")
+			response.FailWithCode(c, 400, i18n.GetMessage(c, "error.invalid_channel_id"), "INVALID_INPUT", "error.invalid_channel_id")
 			c.Abort()
 			return
 		}
@@ -74,13 +78,14 @@ func (m *ChannelAuthMiddleware) VerifyChannel() gin.HandlerFunc {
 		// 验证频道是否存在
 		exists, err := m.channelService.VerifyChannel(channelID)
 		if err != nil {
-			response.ServerError(c, err.Error())
+			log.Printf("[channel auth] verify failed: %v", err)
+			response.FailWithCode(c, 500, i18n.GetMessage(c, "error.internal_error"), "INTERNAL_ERROR", "error.internal_error")
 			c.Abort()
 			return
 		}
 
 		if !exists {
-			response.NotFound(c, "channel not found")
+			response.FailWithCode(c, 404, i18n.GetMessage(c, "error.channel_not_found"), "CHANNEL_NOT_FOUND", "error.channel_not_found")
 			c.Abort()
 			return
 		}

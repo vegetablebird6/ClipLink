@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -50,14 +51,16 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 	// 1. 注册设备到系统
 	device, err := c.deviceService.RegisterDevice(req.DeviceName, req.DeviceType, req.DeviceID)
 	if err != nil {
-		response.ServerError(ctx, "设备注册失败: "+err.Error())
+		log.Printf("[device] register failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
 	// 2. 将设备关联到当前通道
 	err = c.deviceService.AddDeviceToChannel(device.ID, channelID.(string))
 	if err != nil {
-		response.ServerError(ctx, "设备关联通道失败: "+err.Error())
+		log.Printf("[device] add to channel failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -87,7 +90,8 @@ func (c *DeviceController) GetDevices(ctx *gin.Context) {
 	// 获取设备列表
 	devices, err := c.deviceService.GetDevicesByChannel(channelID.(string))
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[device] get devices failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -110,7 +114,8 @@ func (c *DeviceController) GetDeviceByID(ctx *gin.Context) {
 			response.NotFound(ctx, "device not found")
 			return
 		}
-		response.ServerError(ctx, err.Error())
+		log.Printf("[device] get device failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -139,7 +144,8 @@ func (c *DeviceController) UpdateDeviceStatus(ctx *gin.Context) {
 	// 1. 更新设备全局状态
 	device, err := c.deviceService.UpdateDeviceStatus(deviceID, *req.IsOnline)
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[device] update status failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -179,7 +185,8 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 	// 先校验设备是否属于当前通道
 	inChannel, err := c.deviceService.IsDeviceInChannel(deviceID, channelID.(string))
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[device] check in channel failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 	if !inChannel {
@@ -199,14 +206,16 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 
 	// 更新设备名称
 	if _, err := c.deviceService.UpdateDevice(deviceID, req.Name, ""); err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[device] update name failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
 	// 获取设备在通道中的完整信息
 	deviceDTO, err := c.deviceService.GetDeviceInChannel(deviceID, channelID.(string))
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[device] get device after update failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 
@@ -225,7 +234,8 @@ func (c *DeviceController) RemoveDevice(ctx *gin.Context) {
 	// 从通道中移除设备关联
 	err := c.deviceService.RemoveDeviceFromChannel(deviceID, channelID.(string))
 	if err != nil {
-		response.ServerError(ctx, err.Error())
+		log.Printf("[device] remove from channel failed: %v", err)
+		response.Error(ctx, err)
 		return
 	}
 

@@ -5,6 +5,9 @@ import (
 	"reflect"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/xiaojiu/cliplink/internal/common/apperr"
+	"github.com/xiaojiu/cliplink/internal/common/i18n"
 )
 
 // 状态码常量
@@ -19,10 +22,12 @@ const (
 
 // Response 统一响应结构
 type Response struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Success bool        `json:"success"`
+	Code       int         `json:"code"`
+	Message    string      `json:"message"`
+	Data       interface{} `json:"data,omitempty"`
+	Success    bool        `json:"success"`
+	ErrorCode  string      `json:"error_code,omitempty"`
+	MessageKey string      `json:"message_key,omitempty"`
 }
 
 func Success(c *gin.Context, data interface{}, message string) {
@@ -110,6 +115,37 @@ func Fail(c *gin.Context, code int, message string) {
 		Message: message,
 		Success: false,
 	})
+}
+
+// FailWithCode 失败响应（带错误码）
+func FailWithCode(c *gin.Context, code int, message string, errorCode string, messageKey string) {
+	c.JSON(code, Response{
+		Code:       code,
+		Message:    message,
+		Success:    false,
+		ErrorCode:  errorCode,
+		MessageKey: messageKey,
+	})
+}
+
+// Error 从 error 构建统一错误响应
+func Error(c *gin.Context, err error) {
+	appErr := FromError(err)
+	ErrorWithCode(c, appErr)
+}
+
+// FromError 将 error 映射为 AppError
+func FromError(err error) *apperr.AppError {
+	return apperr.FromError(err)
+}
+
+// ErrorWithCode 直接使用 AppError 构建响应
+func ErrorWithCode(c *gin.Context, appErr *apperr.AppError) {
+	if appErr == nil {
+		FailWithCode(c, 500, "内部错误", "INTERNAL_ERROR", "error.internal_error")
+		return
+	}
+	FailWithCode(c, appErr.Status, i18n.GetMessage(c, appErr.MessageKey), appErr.Code, appErr.MessageKey)
 }
 
 // PageResult 分页结果
