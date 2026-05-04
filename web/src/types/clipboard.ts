@@ -74,4 +74,77 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+// --- 后端 DTO 对齐类型 ---
+
+// 通道
+export interface ChannelResponse {
+  id: string;
+  created_at: string;
+}
+
+export interface ChannelDeleteResponse {
+  channel_id: string;
+  clipboard_items_deleted: number;
+  sync_events_deleted: number;
+  device_links_deleted: number;
+  orphan_devices_deleted: number;
+}
+
+// 设备
+export interface RegisterDeviceRequest {
+  device_id: string;
+  device_name: string;
+  device_type: string;
+}
+
+export interface UpdateDeviceStatusRequest {
+  is_online: boolean;
+}
+
+export interface UpdateDeviceNameRequest {
+  device_name: string;
+}
+
+export interface DeviceResponse {
+  id: string;
+  name: string;
+  type: string;
+  channel_id: string;
+  last_seen: string;
+  is_online: boolean;
+  created_at: string;
+  joined_at: string;
+}
+
+// 同步事件
+export interface SyncEventResponse {
+  id: number;
+  channel_id: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  content: string;
+  summary: string;
+  actor_device_id: string;
+  actor_device_name: string;
+  actor_device_type: string;
+  created_at: string;
+}
+
+// 通用分页
+export interface KeysetPageResponse<T> {
+  items: T[];
+  has_more: boolean;
+  next_after?: string;
+  next_after_id?: string;
+}
+
+export interface OffsetPageResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  totalPages: number;
 } 

@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { ApiResponse, ChannelStats, ClipboardItem, SaveClipboardRequest, ClipboardType, RawClipboardItem } from '@/types/clipboard';
+import { ApiResponse, ChannelStats, ChannelResponse, ChannelDeleteResponse, ClipboardItem, SaveClipboardRequest, ClipboardType, RawClipboardItem, RegisterDeviceRequest, DeviceResponse, SyncEventResponse, KeysetPageResponse, OffsetPageResponse } from '@/types/clipboard';
 import { deviceIdUtil } from '@/utils/deviceId';
 import { detectDeviceType } from '@/utils/deviceDetection';
 import { settingsManager } from '@/utils/settings';
@@ -116,16 +116,16 @@ const convertRawClipboardItem = (raw: ClipboardItemResponse): ClipboardItem => {
 export const clipboardService = {
   // 通道相关接口
   // 创建通道
-  createChannel: async (channelId?: string, instanceToken?: string): Promise<ApiResponse<{id: string, created_at: string}>> => {
+  createChannel: async (channelId?: string, instanceToken?: string): Promise<ApiResponse<ChannelResponse>> => {
     try {
       const response = await api.post<unknown>(
         '/channel',
         channelId ? { channel_id: channelId } : undefined,
         instanceToken ? { headers: { 'X-Instance-Token': instanceToken } } : undefined
       );
-      return handleApiResponse<{id: string, created_at: string}>(response.data);
+      return handleApiResponse<ChannelResponse>(response.data);
     } catch (error) {
-      return handleApiError<{id: string, created_at: string}>(error, '创建通道失败');
+      return handleApiError<ChannelResponse>(error, '创建通道失败');
     }
   },
 
@@ -142,12 +142,12 @@ export const clipboardService = {
   },
 
   // 获取当前通道信息（header自动带channelId）
-  getChannel: async (): Promise<ApiResponse<any>> => {
+  getChannel: async (): Promise<ApiResponse<ChannelResponse>> => {
     try {
       const response = await api.get<unknown>('/channel');
-      return handleApiResponse<any>(response.data);
+      return handleApiResponse<ChannelResponse>(response.data);
     } catch (error) {
-      return handleApiError<any>(error, '获取通道信息失败');
+      return handleApiError<ChannelResponse>(error, '获取通道信息失败');
     }
   },
 
@@ -162,49 +162,45 @@ export const clipboardService = {
   },
 
   // 删除当前通道及其关联数据
-  deleteChannel: async (instanceToken: string): Promise<ApiResponse<any>> => {
+  deleteChannel: async (instanceToken: string): Promise<ApiResponse<ChannelDeleteResponse>> => {
     try {
       const response = await api.delete<unknown>('/channel', {
         headers: { 'X-Instance-Token': instanceToken }
       });
-      return handleApiResponse<any>(response.data);
+      return handleApiResponse<ChannelDeleteResponse>(response.data);
     } catch (error) {
-      return handleApiError<any>(error, '删除通道失败');
+      return handleApiError<ChannelDeleteResponse>(error, '删除通道失败');
     }
   },
 
   // 设备相关接口
   // 注册设备
-  registerDevice: async (deviceData: {
-    device_id: string;
-    device_name: string;
-    device_type: string;
-  }): Promise<ApiResponse<any>> => {
+  registerDevice: async (deviceData: RegisterDeviceRequest): Promise<ApiResponse<DeviceResponse>> => {
     try {
       const response = await api.post<unknown>('/devices', deviceData);
-      return handleApiResponse<any>(response.data);
+      return handleApiResponse<DeviceResponse>(response.data);
     } catch (error) {
-      return handleApiError<any>(error, '设备注册失败');
+      return handleApiError<DeviceResponse>(error, '设备注册失败');
     }
   },
 
   // 获取设备列表
-  getDevices: async (): Promise<ApiResponse<any[]>> => {
+  getDevices: async (): Promise<ApiResponse<DeviceResponse[]>> => {
     try {
       const response = await api.get<unknown>('/devices');
-      return handleApiResponse<any[]>(response.data);
+      return handleApiResponse<DeviceResponse[]>(response.data);
     } catch (error) {
-      return handleApiError<any[]>(error, '获取设备列表失败');
+      return handleApiError<DeviceResponse[]>(error, '获取设备列表失败');
     }
   },
 
   // 更新设备状态
-  updateDeviceStatus: async (deviceId: string, isOnline: boolean): Promise<ApiResponse<any>> => {
+  updateDeviceStatus: async (deviceId: string, isOnline: boolean): Promise<ApiResponse<DeviceResponse>> => {
     try {
       const response = await api.put<unknown>(`/devices/${deviceId}/status`, { is_online: isOnline });
-      return handleApiResponse<any>(response.data);
+      return handleApiResponse<DeviceResponse>(response.data);
     } catch (error) {
-      return handleApiError<any>(error, '更新设备状态失败');
+      return handleApiError<DeviceResponse>(error, '更新设备状态失败');
     }
   },
 
@@ -219,17 +215,17 @@ export const clipboardService = {
   },
 
   // 更新设备名称
-  updateDeviceName: async (deviceId: string, name: string): Promise<ApiResponse<any>> => {
+  updateDeviceName: async (deviceId: string, name: string): Promise<ApiResponse<DeviceResponse>> => {
     try {
       const response = await api.put<unknown>(`/devices/${deviceId}/name`, { device_name: name });
-      return handleApiResponse<any>(response.data);
+      return handleApiResponse<DeviceResponse>(response.data);
     } catch (error) {
-      return handleApiError<any>(error, '更新设备名称失败');
+      return handleApiError<DeviceResponse>(error, '更新设备名称失败');
     }
   },
 
   // 获取同步历史（keyset 游标分页）
-  getSyncHistory: async (limit: number = 20, after?: string, afterId?: string): Promise<ApiResponse<{items: any[], has_more: boolean}>> => {
+  getSyncHistory: async (limit: number = 20, after?: string, afterId?: string): Promise<ApiResponse<KeysetPageResponse<SyncEventResponse>>> => {
     try {
       const params: Record<string, string | number> = { limit };
       if (after && afterId) {
@@ -237,9 +233,9 @@ export const clipboardService = {
         params.after_id = afterId;
       }
       const response = await api.get<unknown>(`/sync/history`, { params });
-      return handleApiResponse<{items: any[], has_more: boolean}>(response.data);
+      return handleApiResponse<KeysetPageResponse<SyncEventResponse>>(response.data);
     } catch (error) {
-      return handleApiError<{items: any[], has_more: boolean}>(error, '获取同步历史失败');
+      return handleApiError<KeysetPageResponse<SyncEventResponse>>(error, '获取同步历史失败');
     }
   },
 
@@ -296,7 +292,7 @@ export const clipboardService = {
 
       return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
     } catch (error) {
-      return handleApiError<{items: ClipboardItem[], has_more: boolean}>(error, '获取剪贴板历史失败');
+      return handleApiError<KeysetPageResponse<ClipboardItem>>(error, '获取剪贴板历史失败');
     }
   },
 
@@ -320,7 +316,7 @@ export const clipboardService = {
 
       return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
     } catch (error) {
-      return handleApiError<{items: ClipboardItem[], has_more: boolean}>(error, '按类型获取剪贴板历史失败');
+      return handleApiError<KeysetPageResponse<ClipboardItem>>(error, '按类型获取剪贴板历史失败');
     }
   },
 
@@ -343,7 +339,7 @@ export const clipboardService = {
 
       return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
     } catch (error) {
-      return handleApiError<{items: ClipboardItem[], has_more: boolean}>(error, '获取收藏夹失败');
+      return handleApiError<KeysetPageResponse<ClipboardItem>>(error, '获取收藏夹失败');
     }
   },
 
@@ -470,7 +466,7 @@ export const clipboardService = {
   },
 
   // 搜索剪贴板项目
-  searchClipboard: async (keyword: string, page = 1, size = 12): Promise<ApiResponse<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number, keyword: string}>> => {
+  searchClipboard: async (keyword: string, page = 1, size = 12): Promise<ApiResponse<OffsetPageResponse<ClipboardItem>>> => {
     try {
       const response = await api.get<unknown>('/clipboard/search', {
         params: {
@@ -489,7 +485,7 @@ export const clipboardService = {
       
       return apiResponse as ApiResponse<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number, keyword: string}>;
     } catch (error) {
-      return handleApiError<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number, keyword: string}>(error, '搜索失败');
+      return handleApiError<OffsetPageResponse<ClipboardItem>>(error, '搜索失败');
     }
   }
 }; 
