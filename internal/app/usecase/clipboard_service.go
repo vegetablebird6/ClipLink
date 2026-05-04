@@ -3,6 +3,7 @@ package usecase
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"log"
 	"strings"
 	stdtime "time"
 
@@ -58,6 +59,13 @@ func (s *clipboardService) requireActorDevice(deviceID, channelID string) (*mode
 	}
 
 	return device, nil
+}
+
+// recordSyncEvent 记录同步事件（best-effort，失败只记日志不影响主操作）
+func (s *clipboardService) recordSyncEvent(event *model.SyncEvent) {
+	if err := s.syncEventRepo.Save(event); err != nil {
+		log.Printf("[clipboard] record sync event failed: action=%s target_id=%s err=%v", event.Action, event.TargetID, err)
+	}
 }
 
 // CreateClipboard 创建剪贴板条目
@@ -121,7 +129,7 @@ func (s *clipboardService) CreateClipboard(in service.CreateClipboardInput) (*se
 		ActorDeviceType: device.Type,
 		CreatedAt:       stdtime.Now(),
 	}
-	_ = s.syncEventRepo.Save(syncEvent)
+	s.recordSyncEvent(syncEvent)
 
 	return toClipboardItemOutput(item), nil
 }
@@ -182,7 +190,8 @@ func (s *clipboardService) DeleteClipboard(in service.DeleteClipboardInput) erro
 		CreatedAt:       stdtime.Now(),
 	}
 
-	return s.syncEventRepo.Save(syncEvent)
+	s.recordSyncEvent(syncEvent)
+	return nil
 }
 
 // UpdateClipboard 更新剪贴板条目（部分更新）
@@ -247,9 +256,7 @@ func (s *clipboardService) UpdateClipboard(in service.UpdateClipboardInput) (*se
 		CreatedAt:       stdtime.Now(),
 	}
 
-	if err := s.syncEventRepo.Save(syncEvent); err != nil {
-		return nil, err
-	}
+	s.recordSyncEvent(syncEvent)
 
 	// 获取更新后的数据
 	item, err := s.clipboardRepo.FindByID(in.ID, in.ChannelID)
@@ -292,7 +299,7 @@ func (s *clipboardService) SetFavorite(in service.SetFavoriteInput) (*service.Cl
 		ActorDeviceType: device.Type,
 		CreatedAt:       stdtime.Now(),
 	}
-	_ = s.syncEventRepo.Save(syncEvent)
+	s.recordSyncEvent(syncEvent)
 
 	// 获取更新后的数据
 	updated, err := s.clipboardRepo.FindByID(in.ID, in.ChannelID)
