@@ -483,7 +483,7 @@ export const clipboardService = {
         apiResponse.data.items = apiResponse.data.items.map(convertRawClipboardItem);
       }
       
-      return apiResponse as ApiResponse<{items: ClipboardItem[], total: number, page: number, size: number, totalPages: number, keyword: string}>;
+      return apiResponse as ApiResponse<OffsetPageResponse<ClipboardItem>>;
     } catch (error) {
       return handleApiError<OffsetPageResponse<ClipboardItem>>(error, '搜索失败');
     }
