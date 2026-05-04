@@ -31,7 +31,7 @@ func TestExtractChannelFromHeader_MissingHeader_ZhCN(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.False(t, resp.Success)
-	assert.Equal(t, "INVALID_INPUT", resp.ErrorCode)
+	assert.Equal(t, "CHANNEL_ID_REQUIRED", resp.ErrorCode)
 	assert.Equal(t, "error.channel_id_required", resp.MessageKey)
 	assert.Equal(t, "通道 ID 不能为空", resp.Message)
 }
@@ -56,7 +56,7 @@ func TestExtractChannelFromHeader_MissingHeader_EnUS(t *testing.T) {
 	var resp response.Response
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Equal(t, "INVALID_INPUT", resp.ErrorCode)
+	assert.Equal(t, "CHANNEL_ID_REQUIRED", resp.ErrorCode)
 	assert.Equal(t, "Channel ID is required", resp.Message)
 	assert.NotContains(t, w.Body.String(), "通道 ID")
 }
@@ -80,6 +80,6 @@ func TestExtractChannelFromHeader_InvalidID_ZhCN(t *testing.T) {
 	var resp response.Response
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Equal(t, "INVALID_INPUT", resp.ErrorCode)
+	assert.Equal(t, "INVALID_CHANNEL_ID", resp.ErrorCode)
 	assert.Equal(t, "无效的通道 ID", resp.Message)
 }

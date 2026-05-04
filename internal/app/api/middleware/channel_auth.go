@@ -27,12 +27,12 @@ func (m *ChannelAuthMiddleware) ExtractChannelFromHeader() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		channelID := c.GetHeader("X-Channel-ID")
 		if channelID == "" {
-			response.FailWithCode(c, 400, i18n.GetMessage(c, "error.channel_id_required"), "INVALID_INPUT", "error.channel_id_required", "")
+			response.BadRequestWithCode(c, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 			c.Abort()
 			return
 		}
 		if !validation.IsValidChannelID(channelID) {
-			response.FailWithCode(c, 400, i18n.GetMessage(c, "error.invalid_channel_id"), "INVALID_INPUT", "error.invalid_channel_id", "")
+			response.BadRequestWithCode(c, "INVALID_CHANNEL_ID", "error.invalid_channel_id", "")
 			c.Abort()
 			return
 		}
@@ -61,12 +61,12 @@ func (m *ChannelAuthMiddleware) VerifyChannel() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		channelID := c.Param("channelID")
 		if channelID == "" {
-			response.FailWithCode(c, 400, i18n.GetMessage(c, "error.channel_id_required"), "INVALID_INPUT", "error.channel_id_required", "")
+			response.BadRequestWithCode(c, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 			c.Abort()
 			return
 		}
 		if !validation.IsValidChannelID(channelID) {
-			response.FailWithCode(c, 400, i18n.GetMessage(c, "error.invalid_channel_id"), "INVALID_INPUT", "error.invalid_channel_id", "")
+			response.BadRequestWithCode(c, "INVALID_CHANNEL_ID", "error.invalid_channel_id", "")
 			c.Abort()
 			return
 		}

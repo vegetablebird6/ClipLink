@@ -164,9 +164,9 @@ type PageResult struct {
 
 // KeysetResult keyset 游标分页结果
 type KeysetResult struct {
-	Items       interface{} `json:"items"`                  // 分页数据
-	HasMore     bool        `json:"has_more"`               // 是否还有更多数据
-	NextAfter   string      `json:"next_after,omitempty"`   // 下一页游标（时间戳）
+	Items       interface{} `json:"items"`                   // 分页数据
+	HasMore     bool        `json:"has_more"`                // 是否还有更多数据
+	NextAfter   string      `json:"next_after,omitempty"`    // 下一页游标（时间戳）
 	NextAfterID string      `json:"next_after_id,omitempty"` // 下一页游标（ID）
 }
 
