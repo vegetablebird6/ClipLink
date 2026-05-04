@@ -28,7 +28,7 @@ func NewStatsController(statsService service.StatsService, channelService servic
 func (c *StatsController) GetChannelStats(ctx *gin.Context) {
 	channelID, exists := ctx.Get("channelID")
 	if !exists || channelID == nil || channelID == "" {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 

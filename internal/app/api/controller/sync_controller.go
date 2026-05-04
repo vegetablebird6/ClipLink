@@ -27,7 +27,7 @@ func NewSyncController(syncService service.SyncService) *SyncController {
 func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 	channelID, exists := ctx.Get("channelID")
 	if !exists || channelID == nil || channelID == "" {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 
@@ -81,13 +81,13 @@ func nextSyncCursor(items []*dto.SyncEventResponse) (string, string) {
 func (c *SyncController) LogSyncAction(ctx *gin.Context) {
 	channelID, exists := ctx.Get("channelID")
 	if !exists || channelID == nil || channelID == "" {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 
 	var req dto.LogSyncActionRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, "device_id and content are required")
+		response.BadRequestWithCode(ctx, "INVALID_INPUT", "error.invalid_input", "device_id and content are required")
 		return
 	}
 

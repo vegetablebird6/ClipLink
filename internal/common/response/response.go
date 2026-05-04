@@ -79,9 +79,14 @@ func SuccessWithMessage(c *gin.Context, message string) {
 	})
 }
 
-// BadRequest 请求参数错误
-func BadRequest(c *gin.Context, message string) {
-	FailWithCode(c, StatusBadRequest, i18n.GetMessage(c, "error.invalid_input"), "INVALID_INPUT", "error.invalid_input", message)
+// BadRequest 请求参数错误（使用通用 INVALID_INPUT 码）
+func BadRequest(c *gin.Context, details string) {
+	FailWithCode(c, StatusBadRequest, i18n.GetMessage(c, "error.invalid_input"), "INVALID_INPUT", "error.invalid_input", details)
+}
+
+// BadRequestWithCode 请求参数错误（指定 error_code 和 message_key）
+func BadRequestWithCode(c *gin.Context, code, key, details string) {
+	FailWithCode(c, StatusBadRequest, i18n.GetMessage(c, key), code, key, details)
 }
 
 // Unauthorized 未授权

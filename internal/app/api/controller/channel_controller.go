@@ -31,7 +31,7 @@ func (c *ChannelController) CreateChannel(ctx *gin.Context) {
 		req.ChannelID = ""
 	}
 	if req.ChannelID != "" && !validation.IsValidChannelID(req.ChannelID) {
-		response.BadRequest(ctx, "invalid channel ID")
+		response.BadRequestWithCode(ctx, "INVALID_CHANNEL_ID", "error.invalid_channel_id", "")
 		return
 	}
 
@@ -49,7 +49,7 @@ func (c *ChannelController) CreateChannel(ctx *gin.Context) {
 func (c *ChannelController) GetChannel(ctx *gin.Context) {
 	channelID, exists := ctx.Get("channelID")
 	if !exists || channelID == nil || channelID == "" {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 
@@ -71,7 +71,7 @@ func (c *ChannelController) GetChannel(ctx *gin.Context) {
 func (c *ChannelController) DeleteChannel(ctx *gin.Context) {
 	channelID, exists := ctx.Get("channelID")
 	if !exists || channelID == nil || channelID == "" {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 
@@ -109,7 +109,7 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 	var req dto.VerifyChannelRequest
 	if err := ctx.ShouldBindJSON(&req); err == nil && req.ChannelID != "" {
 		if !validation.IsValidChannelID(req.ChannelID) {
-			response.BadRequest(ctx, "invalid channel ID")
+			response.BadRequestWithCode(ctx, "INVALID_CHANNEL_ID", "error.invalid_channel_id", "")
 			return
 		}
 		exists, err := c.channelService.VerifyChannel(ctx.Request.Context(), req.ChannelID)
@@ -126,5 +126,5 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 		return
 	}
 
-	response.BadRequest(ctx, "channel ID is required")
+	response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 }

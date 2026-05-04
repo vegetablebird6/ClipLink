@@ -28,18 +28,18 @@ func NewDeviceController(deviceService service.DeviceService) *DeviceController 
 func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 	channelID, ok := ctx.Get("channelID")
 	if !ok {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 
 	var req dto.RegisterDeviceRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequestWithCode(ctx, "INVALID_INPUT", "error.invalid_input", "")
 		return
 	}
 
 	if !validation.IsValidDeviceType(req.DeviceType) {
-		response.BadRequest(ctx, "invalid device type: "+req.DeviceType)
+		response.BadRequestWithCode(ctx, "INVALID_DEVICE_TYPE", "error.invalid_device_type", req.DeviceType)
 		return
 	}
 
@@ -76,7 +76,7 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 func (c *DeviceController) GetDevices(ctx *gin.Context) {
 	channelID, ok := ctx.Get("channelID")
 	if !ok {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 
@@ -94,7 +94,7 @@ func (c *DeviceController) GetDevices(ctx *gin.Context) {
 func (c *DeviceController) GetDeviceByID(ctx *gin.Context) {
 	channelID, ok := ctx.Get("channelID")
 	if !ok {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 	deviceID := ctx.Param("deviceID")
@@ -117,14 +117,14 @@ func (c *DeviceController) GetDeviceByID(ctx *gin.Context) {
 func (c *DeviceController) UpdateDeviceStatus(ctx *gin.Context) {
 	channelID, ok := ctx.Get("channelID")
 	if !ok {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 	deviceID := ctx.Param("deviceID")
 
 	var req dto.UpdateDeviceStatusRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequestWithCode(ctx, "INVALID_INPUT", "error.invalid_input", "")
 		return
 	}
 
@@ -161,7 +161,7 @@ func (c *DeviceController) UpdateDeviceStatus(ctx *gin.Context) {
 func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 	channelID, ok := ctx.Get("channelID")
 	if !ok {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 	deviceID := ctx.Param("deviceID")
@@ -180,7 +180,7 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 
 	var req dto.UpdateDeviceNameRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequestWithCode(ctx, "INVALID_INPUT", "error.invalid_input", "")
 		return
 	}
 
@@ -204,7 +204,7 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 func (c *DeviceController) RemoveDevice(ctx *gin.Context) {
 	channelID, ok := ctx.Get("channelID")
 	if !ok {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return
 	}
 	deviceID := ctx.Param("deviceID")

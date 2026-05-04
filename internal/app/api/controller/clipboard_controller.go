@@ -27,12 +27,12 @@ func NewClipboardController(clipboardService service.ClipboardService) *Clipboar
 func clipboardChannelID(ctx *gin.Context) (string, bool) {
 	channelID, exists := ctx.Get("channelID")
 	if !exists {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return "", false
 	}
 	value, ok := channelID.(string)
 	if !ok || value == "" {
-		response.BadRequest(ctx, "channel ID is required")
+		response.BadRequestWithCode(ctx, "CHANNEL_ID_REQUIRED", "error.channel_id_required", "")
 		return "", false
 	}
 	return value, true
@@ -106,20 +106,20 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 
 	var req dto.CreateClipboardRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequestWithCode(ctx, "INVALID_INPUT", "error.invalid_input", "")
 		return
 	}
 
 	if !validation.IsValidClipboardType(req.Type) {
-		response.BadRequest(ctx, "invalid clipboard type: "+req.Type)
+		response.BadRequestWithCode(ctx, "INVALID_CLIPBOARD_TYPE", "error.invalid_clipboard_type", req.Type)
 		return
 	}
 	if !validation.IsValidDeviceType(req.DeviceType) {
-		response.BadRequest(ctx, "invalid device type: "+req.DeviceType)
+		response.BadRequestWithCode(ctx, "INVALID_DEVICE_TYPE", "error.invalid_device_type", req.DeviceType)
 		return
 	}
 	if !validation.IsValidContentFormat(req.ContentFormat) {
-		response.BadRequest(ctx, "invalid content format: "+req.ContentFormat)
+		response.BadRequestWithCode(ctx, "INVALID_CONTENT_FORMAT", "error.invalid_content_format", req.ContentFormat)
 		return
 	}
 
@@ -214,7 +214,7 @@ func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
 
 	var req dto.DeleteClipboardRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, "device_id is required")
+		response.BadRequestWithCode(ctx, "DEVICE_ID_REQUIRED", "error.device_id_required", "")
 		return
 	}
 
@@ -241,20 +241,20 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 
 	var req dto.UpdateClipboardRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, err.Error())
+		response.BadRequestWithCode(ctx, "INVALID_INPUT", "error.invalid_input", "")
 		return
 	}
 
 	if req.Type != nil && !validation.IsValidClipboardType(*req.Type) {
-		response.BadRequest(ctx, "invalid clipboard type: "+*req.Type)
+		response.BadRequestWithCode(ctx, "INVALID_CLIPBOARD_TYPE", "error.invalid_clipboard_type", *req.Type)
 		return
 	}
 	if req.DeviceType != nil && !validation.IsValidDeviceType(*req.DeviceType) {
-		response.BadRequest(ctx, "invalid device type: "+*req.DeviceType)
+		response.BadRequestWithCode(ctx, "INVALID_DEVICE_TYPE", "error.invalid_device_type", *req.DeviceType)
 		return
 	}
 	if req.ContentFormat != nil && !validation.IsValidContentFormat(*req.ContentFormat) {
-		response.BadRequest(ctx, "invalid content format: "+*req.ContentFormat)
+		response.BadRequestWithCode(ctx, "INVALID_CONTENT_FORMAT", "error.invalid_content_format", *req.ContentFormat)
 		return
 	}
 
@@ -288,7 +288,7 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 
 	var req dto.SetFavoriteRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(ctx, "favorite and device_id are required")
+		response.BadRequestWithCode(ctx, "INVALID_INPUT", "error.invalid_input", "favorite and device_id are required")
 		return
 	}
 
@@ -335,7 +335,7 @@ func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
 	}
 	clipType := ctx.Param("type")
 	if !validation.IsValidClipboardType(clipType) {
-		response.BadRequest(ctx, "invalid clipboard type: "+clipType)
+		response.BadRequestWithCode(ctx, "INVALID_CLIPBOARD_TYPE", "error.invalid_clipboard_type", clipType)
 		return
 	}
 
@@ -361,7 +361,7 @@ func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
 	}
 	deviceType := ctx.Param("deviceType")
 	if !validation.IsValidDeviceType(deviceType) {
-		response.BadRequest(ctx, "invalid device type: "+deviceType)
+		response.BadRequestWithCode(ctx, "INVALID_DEVICE_TYPE", "error.invalid_device_type", deviceType)
 		return
 	}
 
@@ -409,7 +409,7 @@ func (c *ClipboardController) SearchClipboard(ctx *gin.Context) {
 
 	keyword := ctx.Query("q")
 	if keyword == "" {
-		response.BadRequest(ctx, "搜索关键词不能为空")
+		response.BadRequestWithCode(ctx, "SEARCH_KEYWORD_REQUIRED", "error.search_keyword_required", "")
 		return
 	}
 
