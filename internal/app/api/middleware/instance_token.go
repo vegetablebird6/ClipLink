@@ -23,13 +23,13 @@ func InstanceTokenAuth(instanceToken string) gin.HandlerFunc {
 
 		actual := strings.TrimSpace(c.GetHeader(InstanceTokenHeader))
 		if actual == "" {
-			response.FailWithCode(c, 401, i18n.GetMessage(c, "error.instance_token_required"), "UNAUTHORIZED", "error.instance_token_required", "")
+			response.FailWithCode(c, 401, i18n.GetMessage(c, "error.instance_token_required"), "INSTANCE_TOKEN_REQUIRED", "error.instance_token_required", "")
 			c.Abort()
 			return
 		}
 
 		if subtle.ConstantTimeCompare([]byte(actual), []byte(expected)) != 1 {
-			response.FailWithCode(c, 403, i18n.GetMessage(c, "error.forbidden"), "FORBIDDEN", "error.forbidden", "")
+			response.FailWithCode(c, 403, i18n.GetMessage(c, "error.invalid_instance_token"), "INVALID_INSTANCE_TOKEN", "error.invalid_instance_token", "")
 			c.Abort()
 			return
 		}
@@ -44,20 +44,20 @@ func RequireInstanceTokenAuth(instanceToken string) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		if expected == "" {
-			response.FailWithCode(c, 403, i18n.GetMessage(c, "error.forbidden"), "FORBIDDEN", "error.forbidden", "")
+			response.FailWithCode(c, 403, i18n.GetMessage(c, "error.invalid_instance_token"), "INVALID_INSTANCE_TOKEN", "error.invalid_instance_token", "")
 			c.Abort()
 			return
 		}
 
 		actual := strings.TrimSpace(c.GetHeader(InstanceTokenHeader))
 		if actual == "" {
-			response.FailWithCode(c, 401, i18n.GetMessage(c, "error.instance_token_required"), "UNAUTHORIZED", "error.instance_token_required", "")
+			response.FailWithCode(c, 401, i18n.GetMessage(c, "error.instance_token_required"), "INSTANCE_TOKEN_REQUIRED", "error.instance_token_required", "")
 			c.Abort()
 			return
 		}
 
 		if subtle.ConstantTimeCompare([]byte(actual), []byte(expected)) != 1 {
-			response.FailWithCode(c, 403, i18n.GetMessage(c, "error.forbidden"), "FORBIDDEN", "error.forbidden", "")
+			response.FailWithCode(c, 403, i18n.GetMessage(c, "error.invalid_instance_token"), "INVALID_INSTANCE_TOKEN", "error.invalid_instance_token", "")
 			c.Abort()
 			return
 		}
