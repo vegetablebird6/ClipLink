@@ -89,28 +89,6 @@ func (c *ChannelController) DeleteChannel(ctx *gin.Context) {
 	response.Success(ctx, dto.ToChannelDeleteResponse(result), "通道已删除")
 }
 
-// GetChannelStats 获取频道统计信息
-func (c *ChannelController) GetChannelStats(ctx *gin.Context) {
-	channelID, exists := ctx.Get("channelID")
-	if !exists {
-		response.BadRequest(ctx, "channel ID is required")
-		return
-	}
-
-	stats, err := c.channelService.GetChannelStats(ctx.Request.Context(), channelID.(string))
-	if err != nil {
-		if err == model.ErrChannelNotFound {
-			response.NotFound(ctx, "channel not found")
-			return
-		}
-		log.Printf("[channel] get stats failed: %v", err)
-		response.Error(ctx, err)
-		return
-	}
-
-	response.Success(ctx, stats, "获取成功")
-}
-
 // VerifyChannel 验证频道存在且有效 - 适配前端POST请求格式
 func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 	if channelID, exists := ctx.Get("channelID"); exists && channelID != nil && channelID != "" {

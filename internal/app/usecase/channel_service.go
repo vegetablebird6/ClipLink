@@ -83,41 +83,6 @@ func (s *channelService) VerifyChannel(ctx context.Context, channelID string) (b
 	return exists, nil
 }
 
-func (s *channelService) GetChannelStats(ctx context.Context, channelID string) (*model.ChannelStats, error) {
-	exists, err := s.channelRepo.Exists(ctx, channelID)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, model.ErrChannelNotFound
-	}
-
-	clipboardCount, err := s.clipboardRepo.Count(ctx, channelID)
-	if err != nil {
-		return nil, err
-	}
-
-	onlineCount, err := s.deviceRepo.CountOnline(ctx, channelID)
-	if err != nil {
-		return nil, err
-	}
-
-	totalDeviceCount, err := s.deviceRepo.CountTotal(ctx, channelID)
-	if err != nil {
-		return nil, err
-	}
-
-	stats := &model.ChannelStats{
-		ChannelID:      channelID,
-		ClipboardCount: clipboardCount,
-		OnlineDevices:  onlineCount,
-		TotalDevices:   totalDeviceCount,
-		LastUpdated:    time.Now(),
-	}
-
-	return stats, nil
-}
-
 func (s *channelService) DeleteChannel(ctx context.Context, channelID string) (*service.ChannelDeleteOutput, error) {
 	exists, err := s.channelRepo.Exists(ctx, channelID)
 	if err != nil {

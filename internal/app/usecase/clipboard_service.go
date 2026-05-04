@@ -198,28 +198,26 @@ func (s *clipboardService) UpdateClipboard(ctx context.Context, in service.Updat
 		return nil, model.ErrInvalidInput
 	}
 
-	updates := map[string]any{
-		"updated_at": stdtime.Now(),
-	}
+	p := newClipboardPatch()
 	if in.Title != nil {
-		updates["title"] = *in.Title
+		p.withTitle(*in.Title)
 	}
 	if in.Content != nil {
-		updates["content"] = *in.Content
-		updates["content_hash"] = computeContentHash(*in.Content)
+		p.withContent(*in.Content)
 	}
 	if in.Type != nil {
-		updates["type"] = *in.Type
+		p.withType(*in.Type)
 	}
 	if in.DeviceType != nil {
-		updates["device_type"] = *in.DeviceType
+		p.withDeviceType(*in.DeviceType)
 	}
 	if in.ContentHTML != nil {
-		updates["content_html"] = *in.ContentHTML
+		p.withContentHTML(*in.ContentHTML)
 	}
 	if in.ContentFormat != nil {
-		updates["content_format"] = *in.ContentFormat
+		p.withContentFormat(*in.ContentFormat)
 	}
+	updates := p.toMap()
 
 	if err := s.clipboardRepo.Update(ctx, in.ID, in.ChannelID, updates); err != nil {
 		return nil, err
@@ -262,10 +260,9 @@ func (s *clipboardService) SetFavorite(ctx context.Context, in service.SetFavori
 		return nil, err
 	}
 
-	updates := map[string]any{
-		"favorite":   in.Favorite,
-		"updated_at": stdtime.Now(),
-	}
+	updates := newClipboardPatch().
+		withFavorite(in.Favorite).
+		toMap()
 
 	if err := s.clipboardRepo.Update(ctx, in.ID, in.ChannelID, updates); err != nil {
 		return nil, err
