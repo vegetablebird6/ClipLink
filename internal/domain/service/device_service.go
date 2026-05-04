@@ -1,28 +1,22 @@
 package service
 
-import (
-	"github.com/xiaojiu/cliplink/internal/domain/model"
-)
+import "context"
 
 // DeviceService 设备服务接口
-// DeviceService defines operations for managing devices
 type DeviceService interface {
-	// 设备基本操作
-	RegisterDevice(name, deviceType, deviceID string) (*model.Device, error)
-	GetDeviceByID(deviceID string) (*model.Device, error)
-	UpdateDevice(deviceID string, name string, deviceType string) (*model.Device, error)
-	UpdateDeviceStatus(deviceID string, isOnline bool) (*model.Device, error)
-	RemoveDevice(deviceID string) error
+	RegisterDevice(ctx context.Context, name, deviceType, deviceID string) (*DeviceOutput, error)
+	GetDeviceByID(ctx context.Context, deviceID string) (*DeviceOutput, error)
+	UpdateDevice(ctx context.Context, deviceID string, name string, deviceType string) (*DeviceOutput, error)
+	UpdateDeviceStatus(ctx context.Context, deviceID string, isOnline bool) (*DeviceOutput, error)
+	RemoveDevice(ctx context.Context, deviceID string) error
 
-	// 设备通道关联操作
-	AddDeviceToChannel(deviceID, channelID string) error
-	RemoveDeviceFromChannel(deviceID, channelID string) error
-	UpdateDeviceInChannel(deviceID, channelID string, isActive bool) error
-	IsDeviceInChannel(deviceID, channelID string) (bool, error)
+	AddDeviceToChannel(ctx context.Context, deviceID, channelID string) error
+	RemoveDeviceFromChannel(ctx context.Context, deviceID, channelID string) error
+	UpdateDeviceInChannel(ctx context.Context, deviceID, channelID string, isActive bool) error
+	IsDeviceInChannel(ctx context.Context, deviceID, channelID string) (bool, error)
 
-	// 通道设备查询
-	GetDevicesByChannel(channelID string) ([]*model.DeviceDTO, error)
-	GetDeviceInChannel(deviceID, channelID string) (*model.DeviceDTO, error)
-	CountOnlineDevices(channelID string) (int64, error)
-	CountTotalDevices(channelID string) (int64, error)
+	GetDevicesByChannel(ctx context.Context, channelID string) ([]*DeviceChannelOutput, error)
+	GetDeviceInChannel(ctx context.Context, deviceID, channelID string) (*DeviceChannelOutput, error)
+	CountOnlineDevices(ctx context.Context, channelID string) (int64, error)
+	CountTotalDevices(ctx context.Context, channelID string) (int64, error)
 }

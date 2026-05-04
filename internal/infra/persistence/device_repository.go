@@ -1,32 +1,34 @@
 package persistence
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
-	"github.com/xiaojiu/cliplink/internal/infra/db"
 	"gorm.io/gorm"
 )
 
 // deviceRepository 设备仓库实现
-type deviceRepository struct{}
+type deviceRepository struct {
+	gdb *gorm.DB
+}
 
 // NewDeviceRepository 创建新的设备仓库
-func NewDeviceRepository() repository.DeviceRepository {
-	return &deviceRepository{}
+func NewDeviceRepository(gdb *gorm.DB) repository.DeviceRepository {
+	return &deviceRepository{gdb: gdb}
 }
 
 // Save 保存设备
-func (r *deviceRepository) Save(device *model.Device) error {
-	return db.GetDB().Create(device).Error
+func (r *deviceRepository) Save(ctx context.Context, device *model.Device) error {
+	return r.gdb.WithContext(ctx).Create(device).Error
 }
 
 // FindByID 通过ID查找设备
-func (r *deviceRepository) FindByID(deviceID string) (*model.Device, error) {
+func (r *deviceRepository) FindByID(ctx context.Context, deviceID string) (*model.Device, error) {
 	var device model.Device
-	err := db.GetDB().Where("id = ?", deviceID).First(&device).Error
+	err := r.gdb.WithContext(ctx).Where("id = ?", deviceID).First(&device).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, model.ErrDeviceNotFound
@@ -37,9 +39,9 @@ func (r *deviceRepository) FindByID(deviceID string) (*model.Device, error) {
 }
 
 // FindByIDAndChannel 通过ID和通道ID查找设备
-func (r *deviceRepository) FindByIDAndChannel(deviceID, channelID string) (*model.Device, error) {
+func (r *deviceRepository) FindByIDAndChannel(ctx context.Context, deviceID, channelID string) (*model.Device, error) {
 	var device model.Device
-	err := db.GetDB().
+	err := r.gdb.WithContext(ctx).
 		Joins("JOIN device_channels ON devices.id = device_channels.device_id").
 		Where("devices.id = ? AND device_channels.channel_id = ?", deviceID, channelID).
 		First(&device).Error
@@ -53,11 +55,10 @@ func (r *deviceRepository) FindByIDAndChannel(deviceID, channelID string) (*mode
 }
 
 // FindByChannel 查找通道下的所有设备
-func (r *deviceRepository) FindByChannel(channelID string) ([]*model.DeviceDTO, error) {
+func (r *deviceRepository) FindByChannel(ctx context.Context, channelID string) ([]*model.DeviceDTO, error) {
 	var deviceDTOs []*model.DeviceDTO
 
-	// 使用连接查询查找通道下的所有设备
-	err := db.GetDB().Table("devices").
+	err := r.gdb.WithContext(ctx).Table("devices").
 		Select("devices.id, devices.name, devices.type, devices.last_seen, devices.is_online, devices.created_at, "+
 			"device_channels.channel_id, device_channels.joined_at").
 		Joins("JOIN device_channels ON devices.id = device_channels.device_id").
@@ -72,13 +73,12 @@ func (r *deviceRepository) FindByChannel(channelID string) ([]*model.DeviceDTO, 
 }
 
 // Update 更新设备
-func (r *deviceRepository) Update(deviceID string, updates map[string]interface{}) error {
-	// 确保更新时间
+func (r *deviceRepository) Update(ctx context.Context, deviceID string, updates map[string]interface{}) error {
 	if updates["updated_at"] == nil {
 		updates["updated_at"] = time.Now()
 	}
 
-	result := db.GetDB().Model(&model.Device{}).
+	result := r.gdb.WithContext(ctx).Model(&model.Device{}).
 		Where("id = ?", deviceID).
 		Updates(updates)
 
@@ -94,14 +94,12 @@ func (r *deviceRepository) Update(deviceID string, updates map[string]interface{
 }
 
 // Delete 删除设备
-func (r *deviceRepository) Delete(deviceID string) error {
-	// 先删除设备通道关联
-	if err := db.GetDB().Where("device_id = ?", deviceID).Delete(&model.DeviceChannel{}).Error; err != nil {
+func (r *deviceRepository) Delete(ctx context.Context, deviceID string) error {
+	if err := r.gdb.WithContext(ctx).Where("device_id = ?", deviceID).Delete(&model.DeviceChannel{}).Error; err != nil {
 		return err
 	}
 
-	// 再删除设备
-	result := db.GetDB().Where("id = ?", deviceID).Delete(&model.Device{})
+	result := r.gdb.WithContext(ctx).Where("id = ?", deviceID).Delete(&model.Device{})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -114,9 +112,9 @@ func (r *deviceRepository) Delete(deviceID string) error {
 }
 
 // CountOnline 统计通道下在线设备数量
-func (r *deviceRepository) CountOnline(channelID string) (int64, error) {
+func (r *deviceRepository) CountOnline(ctx context.Context, channelID string) (int64, error) {
 	var count int64
-	err := db.GetDB().Model(&model.DeviceChannel{}).
+	err := r.gdb.WithContext(ctx).Model(&model.DeviceChannel{}).
 		Joins("JOIN devices ON devices.id = device_channels.device_id").
 		Where("device_channels.channel_id = ? AND devices.is_online = ?", channelID, true).
 		Count(&count).Error
@@ -124,26 +122,26 @@ func (r *deviceRepository) CountOnline(channelID string) (int64, error) {
 }
 
 // CountTotal 统计通道下所有设备数量
-func (r *deviceRepository) CountTotal(channelID string) (int64, error) {
+func (r *deviceRepository) CountTotal(ctx context.Context, channelID string) (int64, error) {
 	var count int64
-	err := db.GetDB().Model(&model.DeviceChannel{}).
+	err := r.gdb.WithContext(ctx).Model(&model.DeviceChannel{}).
 		Where("channel_id = ?", channelID).
 		Count(&count).Error
 	return count, err
 }
 
 // SaveDeviceChannel 保存设备通道关联
-func (r *deviceRepository) SaveDeviceChannel(deviceChannel *model.DeviceChannel) error {
-	return db.GetDB().Create(deviceChannel).Error
+func (r *deviceRepository) SaveDeviceChannel(ctx context.Context, deviceChannel *model.DeviceChannel) error {
+	return r.gdb.WithContext(ctx).Create(deviceChannel).Error
 }
 
 // FindDeviceChannelByDeviceAndChannel 查找设备通道关联
-func (r *deviceRepository) FindDeviceChannelByDeviceAndChannel(deviceID, channelID string) (*model.DeviceChannel, error) {
+func (r *deviceRepository) FindDeviceChannelByDeviceAndChannel(ctx context.Context, deviceID, channelID string) (*model.DeviceChannel, error) {
 	var deviceChannel model.DeviceChannel
-	err := db.GetDB().Where("device_id = ? AND channel_id = ?", deviceID, channelID).First(&deviceChannel).Error
+	err := r.gdb.WithContext(ctx).Where("device_id = ? AND channel_id = ?", deviceID, channelID).First(&deviceChannel).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil // 返回nil表示没有找到
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -151,13 +149,12 @@ func (r *deviceRepository) FindDeviceChannelByDeviceAndChannel(deviceID, channel
 }
 
 // UpdateDeviceChannel 更新设备通道关联
-func (r *deviceRepository) UpdateDeviceChannel(deviceID, channelID string, updates map[string]interface{}) error {
-	// 确保更新时间
+func (r *deviceRepository) UpdateDeviceChannel(ctx context.Context, deviceID, channelID string, updates map[string]interface{}) error {
 	if updates["updated_at"] == nil {
 		updates["updated_at"] = time.Now()
 	}
 
-	result := db.GetDB().Model(&model.DeviceChannel{}).
+	result := r.gdb.WithContext(ctx).Model(&model.DeviceChannel{}).
 		Where("device_id = ? AND channel_id = ?", deviceID, channelID).
 		Updates(updates)
 
@@ -173,8 +170,8 @@ func (r *deviceRepository) UpdateDeviceChannel(deviceID, channelID string, updat
 }
 
 // DeleteDeviceChannel 删除设备通道关联
-func (r *deviceRepository) DeleteDeviceChannel(deviceID, channelID string) error {
-	result := db.GetDB().Where("device_id = ? AND channel_id = ?", deviceID, channelID).
+func (r *deviceRepository) DeleteDeviceChannel(ctx context.Context, deviceID, channelID string) error {
+	result := r.gdb.WithContext(ctx).Where("device_id = ? AND channel_id = ?", deviceID, channelID).
 		Delete(&model.DeviceChannel{})
 
 	if result.Error != nil {
@@ -189,9 +186,9 @@ func (r *deviceRepository) DeleteDeviceChannel(deviceID, channelID string) error
 }
 
 // IsDeviceInChannel 检查设备是否在通道中
-func (r *deviceRepository) IsDeviceInChannel(deviceID, channelID string) (bool, error) {
+func (r *deviceRepository) IsDeviceInChannel(ctx context.Context, deviceID, channelID string) (bool, error) {
 	var count int64
-	err := db.GetDB().Model(&model.DeviceChannel{}).
+	err := r.gdb.WithContext(ctx).Model(&model.DeviceChannel{}).
 		Where("device_id = ? AND channel_id = ?", deviceID, channelID).
 		Count(&count).Error
 

@@ -1,29 +1,31 @@
 package repository
 
 import (
+	"context"
+
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 )
 
 // DeviceRepository 设备仓库接口
 type DeviceRepository interface {
 	// 设备基本操作
-	Save(device *model.Device) error
-	FindByID(deviceID string) (*model.Device, error)
-	Update(deviceID string, updates map[string]interface{}) error
-	Delete(deviceID string) error
+	Save(ctx context.Context, device *model.Device) error
+	FindByID(ctx context.Context, deviceID string) (*model.Device, error)
+	Update(ctx context.Context, deviceID string, updates map[string]interface{}) error
+	Delete(ctx context.Context, deviceID string) error
 
 	// 通过ID和通道ID查找设备（用于同步历史快照）
-	FindByIDAndChannel(deviceID, channelID string) (*model.Device, error)
+	FindByIDAndChannel(ctx context.Context, deviceID, channelID string) (*model.Device, error)
 
 	// 通道相关设备操作
-	FindByChannel(channelID string) ([]*model.DeviceDTO, error)
-	CountOnline(channelID string) (int64, error)
-	CountTotal(channelID string) (int64, error)
+	FindByChannel(ctx context.Context, channelID string) ([]*model.DeviceDTO, error)
+	CountOnline(ctx context.Context, channelID string) (int64, error)
+	CountTotal(ctx context.Context, channelID string) (int64, error)
 
 	// 设备通道关联操作
-	SaveDeviceChannel(deviceChannel *model.DeviceChannel) error
-	FindDeviceChannelByDeviceAndChannel(deviceID, channelID string) (*model.DeviceChannel, error)
-	UpdateDeviceChannel(deviceID, channelID string, updates map[string]interface{}) error
-	DeleteDeviceChannel(deviceID, channelID string) error
-	IsDeviceInChannel(deviceID, channelID string) (bool, error)
+	SaveDeviceChannel(ctx context.Context, deviceChannel *model.DeviceChannel) error
+	FindDeviceChannelByDeviceAndChannel(ctx context.Context, deviceID, channelID string) (*model.DeviceChannel, error)
+	UpdateDeviceChannel(ctx context.Context, deviceID, channelID string, updates map[string]interface{}) error
+	DeleteDeviceChannel(ctx context.Context, deviceID, channelID string) error
+	IsDeviceInChannel(ctx context.Context, deviceID, channelID string) (bool, error)
 }

@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/xiaojiu/cliplink/internal/domain/model"
+	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
 // --- Request DTOs ---
@@ -41,8 +41,8 @@ type DeviceResponse struct {
 
 // --- Converters ---
 
-// ToDeviceResponse 从 model.DeviceDTO 创建响应
-func ToDeviceResponse(d *model.DeviceDTO) *DeviceResponse {
+// ToDeviceResponse 从 service.DeviceChannelOutput 创建响应
+func ToDeviceResponse(d *service.DeviceChannelOutput) *DeviceResponse {
 	if d == nil {
 		return nil
 	}
@@ -59,7 +59,7 @@ func ToDeviceResponse(d *model.DeviceDTO) *DeviceResponse {
 }
 
 // ToDeviceResponseList 批量转换
-func ToDeviceResponseList(dtos []*model.DeviceDTO) []*DeviceResponse {
+func ToDeviceResponseList(dtos []*service.DeviceChannelOutput) []*DeviceResponse {
 	items := make([]*DeviceResponse, 0, len(dtos))
 	for _, d := range dtos {
 		items = append(items, ToDeviceResponse(d))

@@ -35,7 +35,7 @@ func (c *ChannelController) CreateChannel(ctx *gin.Context) {
 		return
 	}
 
-	channel, err := c.channelService.CreateChannel(req.ChannelID)
+	channel, err := c.channelService.CreateChannel(ctx.Request.Context(), req.ChannelID)
 	if err != nil {
 		log.Printf("[channel] create failed: %v", err)
 		response.Error(ctx, err)
@@ -53,8 +53,7 @@ func (c *ChannelController) GetChannel(ctx *gin.Context) {
 		return
 	}
 
-	// 获取频道
-	channel, err := c.channelService.GetChannel(channelID.(string))
+	channel, err := c.channelService.GetChannel(ctx.Request.Context(), channelID.(string))
 	if err != nil {
 		if err == model.ErrChannelNotFound {
 			response.NotFound(ctx, "channel not found")
@@ -76,7 +75,7 @@ func (c *ChannelController) DeleteChannel(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.channelService.DeleteChannel(channelID.(string))
+	result, err := c.channelService.DeleteChannel(ctx.Request.Context(), channelID.(string))
 	if err != nil {
 		if err == model.ErrChannelNotFound {
 			response.NotFound(ctx, "channel not found")
@@ -98,8 +97,7 @@ func (c *ChannelController) GetChannelStats(ctx *gin.Context) {
 		return
 	}
 
-	// 获取统计信息
-	stats, err := c.channelService.GetChannelStats(channelID.(string))
+	stats, err := c.channelService.GetChannelStats(ctx.Request.Context(), channelID.(string))
 	if err != nil {
 		if err == model.ErrChannelNotFound {
 			response.NotFound(ctx, "channel not found")
@@ -115,9 +113,8 @@ func (c *ChannelController) GetChannelStats(ctx *gin.Context) {
 
 // VerifyChannel 验证频道存在且有效 - 适配前端POST请求格式
 func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
-	// 优先从header注入的ctx.Get("channelID")获取
 	if channelID, exists := ctx.Get("channelID"); exists && channelID != nil && channelID != "" {
-		exists, err := c.channelService.VerifyChannel(channelID.(string))
+		exists, err := c.channelService.VerifyChannel(ctx.Request.Context(), channelID.(string))
 		if err != nil {
 			log.Printf("[channel] verify failed: %v", err)
 			response.Error(ctx, err)
@@ -131,14 +128,13 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 		return
 	}
 
-	// 其次尝试POST body
 	var req dto.VerifyChannelRequest
 	if err := ctx.ShouldBindJSON(&req); err == nil && req.ChannelID != "" {
 		if !validation.IsValidChannelID(req.ChannelID) {
 			response.BadRequest(ctx, "invalid channel ID")
 			return
 		}
-		exists, err := c.channelService.VerifyChannel(req.ChannelID)
+		exists, err := c.channelService.VerifyChannel(ctx.Request.Context(), req.ChannelID)
 		if err != nil {
 			log.Printf("[channel] verify failed: %v", err)
 			response.Error(ctx, err)

@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/xiaojiu/cliplink/internal/domain/model"
+	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
 // --- Request DTOs ---
@@ -37,16 +37,16 @@ type ChannelDeleteResponse struct {
 
 // --- Converters ---
 
-// ToChannelResponse 从 model.Channel 创建响应
-func ToChannelResponse(channel *model.Channel) *ChannelResponse {
+// ToChannelResponse 从 service.ChannelOutput 创建响应
+func ToChannelResponse(channel *service.ChannelOutput) *ChannelResponse {
 	return &ChannelResponse{
 		ID:        channel.ID,
 		CreatedAt: channel.CreatedAt,
 	}
 }
 
-// ToChannelDeleteResponse 从 model.ChannelDeleteResult 创建响应
-func ToChannelDeleteResponse(r *model.ChannelDeleteResult) *ChannelDeleteResponse {
+// ToChannelDeleteResponse 从 service.ChannelDeleteOutput 创建响应
+func ToChannelDeleteResponse(r *service.ChannelDeleteOutput) *ChannelDeleteResponse {
 	return &ChannelDeleteResponse{
 		ChannelID:             r.ChannelID,
 		ClipboardItemsDeleted: r.ClipboardItemsDeleted,

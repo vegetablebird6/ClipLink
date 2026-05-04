@@ -1,7 +1,8 @@
 package service
 
+import "context"
+
 // StatsService 统计服务接口
 type StatsService interface {
-	// GetChannelStats 获取通道统计数据
-	GetChannelStats(channelID string) (*StatsOutput, error)
+	GetChannelStats(ctx context.Context, channelID string) (*StatsOutput, error)
 }

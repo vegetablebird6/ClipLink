@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ func TestSyncEventRepositoryFindByChannelUsesSizePlusOne(t *testing.T) {
 	database := setupPersistenceTestDB(t)
 	defer closePersistenceTestDB(t, database)
 
-	repo := NewSyncEventRepository()
+	repo := NewSyncEventRepository(db.GetDB())
 	now := time.Now().UTC()
 	channelID := "sync-keyset-channel"
 
@@ -23,7 +24,8 @@ func TestSyncEventRepositoryFindByChannelUsesSizePlusOne(t *testing.T) {
 		{ChannelID: channelID, Action: model.ActionSync, Content: "one", CreatedAt: now.Add(1 * time.Minute)},
 	})
 
-	firstPage, err := repo.FindByChannel(channelID, nil, nil, 2)
+	ctx := context.Background()
+	firstPage, err := repo.FindByChannel(ctx, channelID, nil, nil, 2)
 	if err != nil {
 		t.Fatalf("find first page: %v", err)
 	}
@@ -31,7 +33,7 @@ func TestSyncEventRepositoryFindByChannelUsesSizePlusOne(t *testing.T) {
 
 	afterCreatedAt := firstPage[1].CreatedAt
 	afterID := firstPage[1].ID
-	secondPage, err := repo.FindByChannel(channelID, &afterCreatedAt, &afterID, 2)
+	secondPage, err := repo.FindByChannel(ctx, channelID, &afterCreatedAt, &afterID, 2)
 	if err != nil {
 		t.Fatalf("find second page: %v", err)
 	}
@@ -42,7 +44,7 @@ func TestSyncEventRepositoryFindByChannelScopesToChannel(t *testing.T) {
 	database := setupPersistenceTestDB(t)
 	defer closePersistenceTestDB(t, database)
 
-	repo := NewSyncEventRepository()
+	repo := NewSyncEventRepository(db.GetDB())
 	now := time.Now().UTC()
 
 	createSyncEventFixtures(t, []model.SyncEvent{
@@ -51,7 +53,7 @@ func TestSyncEventRepositoryFindByChannelScopesToChannel(t *testing.T) {
 		{ChannelID: "target-channel", Action: model.ActionSync, Content: "target one", CreatedAt: now.Add(1 * time.Minute)},
 	})
 
-	events, err := repo.FindByChannel("target-channel", nil, nil, 10)
+	events, err := repo.FindByChannel(context.Background(), "target-channel", nil, nil, 10)
 	if err != nil {
 		t.Fatalf("find target channel: %v", err)
 	}

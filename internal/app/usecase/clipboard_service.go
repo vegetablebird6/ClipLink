@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"log"
@@ -15,9 +16,6 @@ import (
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
-// computeContentHash 计算内容的 SHA-256 哈希。
-// 去重语义：基于 trim 后的纯文本 content 计算，同文本不同 HTML 样式视为同一内容。
-// 空字符串返回空，不参与去重。
 func computeContentHash(content string) string {
 	trimmed := strings.TrimSpace(content)
 	if trimmed == "" {
@@ -27,14 +25,12 @@ func computeContentHash(content string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// clipboardService 剪贴板服务实现
 type clipboardService struct {
 	clipboardRepo repository.ClipboardRepository
 	syncEventRepo repository.SyncEventRepository
 	deviceRepo    repository.DeviceRepository
 }
 
-// NewClipboardService 创建新的剪贴板服务
 func NewClipboardService(
 	clipboardRepo repository.ClipboardRepository,
 	syncEventRepo repository.SyncEventRepository,
@@ -47,13 +43,12 @@ func NewClipboardService(
 	}
 }
 
-// requireActorDevice 验证并返回执行操作的设备
-func (s *clipboardService) requireActorDevice(deviceID, channelID string) (*model.Device, error) {
+func (s *clipboardService) requireActorDevice(ctx context.Context, deviceID, channelID string) (*model.Device, error) {
 	if deviceID == "" {
 		return nil, model.ErrInvalidInput
 	}
 
-	device, err := s.deviceRepo.FindByIDAndChannel(deviceID, channelID)
+	device, err := s.deviceRepo.FindByIDAndChannel(ctx, deviceID, channelID)
 	if err != nil || device == nil {
 		return nil, model.ErrInvalidInput
 	}
@@ -61,15 +56,13 @@ func (s *clipboardService) requireActorDevice(deviceID, channelID string) (*mode
 	return device, nil
 }
 
-// recordSyncEvent 记录同步事件（best-effort，失败只记日志不影响主操作）
-func (s *clipboardService) recordSyncEvent(event *model.SyncEvent) {
-	if err := s.syncEventRepo.Save(event); err != nil {
+func (s *clipboardService) recordSyncEvent(ctx context.Context, event *model.SyncEvent) {
+	if err := s.syncEventRepo.Save(ctx, event); err != nil {
 		log.Printf("[clipboard] record sync event failed: action=%s target_id=%s err=%v", event.Action, event.TargetID, err)
 	}
 }
 
-// CreateClipboard 创建剪贴板条目
-func (s *clipboardService) CreateClipboard(in service.CreateClipboardInput) (*service.ClipboardItemOutput, error) {
+func (s *clipboardService) CreateClipboard(ctx context.Context, in service.CreateClipboardInput) (*service.ClipboardItemOutput, error) {
 	if !validation.IsValidClipboardType(in.Type) {
 		return nil, model.ErrInvalidInput
 	}
@@ -80,7 +73,7 @@ func (s *clipboardService) CreateClipboard(in service.CreateClipboardInput) (*se
 		return nil, model.ErrInvalidInput
 	}
 
-	device, err := s.requireActorDevice(in.ActorDeviceID, in.ChannelID)
+	device, err := s.requireActorDevice(ctx, in.ActorDeviceID, in.ChannelID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,19 +93,18 @@ func (s *clipboardService) CreateClipboard(in service.CreateClipboardInput) (*se
 		ContentHash:   computeContentHash(in.Content),
 	}
 
-	if err := s.clipboardRepo.Save(item); err != nil {
+	if err := s.clipboardRepo.Save(ctx, item); err != nil {
 		return nil, err
 	}
 
 	if in.CleanDuplicates {
 		if item.ContentHash != "" {
-			if _, err := s.clipboardRepo.DeleteByContentHash(in.ChannelID, item.ContentHash, item.ID); err != nil {
+			if _, err := s.clipboardRepo.DeleteByContentHash(ctx, in.ChannelID, item.ContentHash, item.ID); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	// 记录同步事件
 	contentSummary := in.Content
 	if len(contentSummary) > 100 {
 		contentSummary = contentSummary[:100]
@@ -129,51 +121,47 @@ func (s *clipboardService) CreateClipboard(in service.CreateClipboardInput) (*se
 		ActorDeviceType: device.Type,
 		CreatedAt:       stdtime.Now(),
 	}
-	s.recordSyncEvent(syncEvent)
+	s.recordSyncEvent(ctx, syncEvent)
 
 	return toClipboardItemOutput(item), nil
 }
 
-// GetLatestClipboard 获取最新的剪贴板条目
-func (s *clipboardService) GetLatestClipboard(channelID string, limit int) ([]*service.ClipboardItemOutput, error) {
-	items, err := s.clipboardRepo.FindLatest(channelID, limit)
+func (s *clipboardService) GetLatestClipboard(ctx context.Context, channelID string, limit int) ([]*service.ClipboardItemOutput, error) {
+	items, err := s.clipboardRepo.FindLatest(ctx, channelID, limit)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutputs(items), nil
 }
 
-// GetClipboardItem 获取剪贴板条目
-func (s *clipboardService) GetClipboardItem(id, channelID string) (*service.ClipboardItemOutput, error) {
-	item, err := s.clipboardRepo.FindByID(id, channelID)
+func (s *clipboardService) GetClipboardItem(ctx context.Context, id, channelID string) (*service.ClipboardItemOutput, error) {
+	item, err := s.clipboardRepo.FindByID(ctx, id, channelID)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutput(item), nil
 }
 
-// GetClipboardHistory 获取剪贴板历史记录（keyset 游标分页）
-func (s *clipboardService) GetClipboardHistory(channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
-	items, err := s.clipboardRepo.FindWithKeyset(channelID, afterCreatedAt, afterID, size)
+func (s *clipboardService) GetClipboardHistory(ctx context.Context, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
+	items, err := s.clipboardRepo.FindWithKeyset(ctx, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutputs(items), nil
 }
 
-// DeleteClipboard 删除剪贴板条目
-func (s *clipboardService) DeleteClipboard(in service.DeleteClipboardInput) error {
-	device, err := s.requireActorDevice(in.ActorDeviceID, in.ChannelID)
+func (s *clipboardService) DeleteClipboard(ctx context.Context, in service.DeleteClipboardInput) error {
+	device, err := s.requireActorDevice(ctx, in.ActorDeviceID, in.ChannelID)
 	if err != nil {
 		return err
 	}
 
-	item, err := s.clipboardRepo.FindByID(in.ID, in.ChannelID)
+	item, err := s.clipboardRepo.FindByID(ctx, in.ID, in.ChannelID)
 	if err != nil {
 		return err
 	}
 
-	if err := s.clipboardRepo.Delete(in.ID, in.ChannelID); err != nil {
+	if err := s.clipboardRepo.Delete(ctx, in.ID, in.ChannelID); err != nil {
 		return err
 	}
 
@@ -190,13 +178,12 @@ func (s *clipboardService) DeleteClipboard(in service.DeleteClipboardInput) erro
 		CreatedAt:       stdtime.Now(),
 	}
 
-	s.recordSyncEvent(syncEvent)
+	s.recordSyncEvent(ctx, syncEvent)
 	return nil
 }
 
-// UpdateClipboard 更新剪贴板条目（部分更新）
-func (s *clipboardService) UpdateClipboard(in service.UpdateClipboardInput) (*service.ClipboardItemOutput, error) {
-	device, err := s.requireActorDevice(in.ActorDeviceID, in.ChannelID)
+func (s *clipboardService) UpdateClipboard(ctx context.Context, in service.UpdateClipboardInput) (*service.ClipboardItemOutput, error) {
+	device, err := s.requireActorDevice(ctx, in.ActorDeviceID, in.ChannelID)
 	if err != nil {
 		return nil, err
 	}
@@ -234,11 +221,10 @@ func (s *clipboardService) UpdateClipboard(in service.UpdateClipboardInput) (*se
 		updates["content_format"] = *in.ContentFormat
 	}
 
-	if err := s.clipboardRepo.Update(in.ID, in.ChannelID, updates); err != nil {
+	if err := s.clipboardRepo.Update(ctx, in.ID, in.ChannelID, updates); err != nil {
 		return nil, err
 	}
 
-	// 记录同步事件
 	contentType := ""
 	if in.Type != nil {
 		contentType = *in.Type
@@ -256,24 +242,22 @@ func (s *clipboardService) UpdateClipboard(in service.UpdateClipboardInput) (*se
 		CreatedAt:       stdtime.Now(),
 	}
 
-	s.recordSyncEvent(syncEvent)
+	s.recordSyncEvent(ctx, syncEvent)
 
-	// 获取更新后的数据
-	item, err := s.clipboardRepo.FindByID(in.ID, in.ChannelID)
+	item, err := s.clipboardRepo.FindByID(ctx, in.ID, in.ChannelID)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutput(item), nil
 }
 
-// SetFavorite 设置收藏状态
-func (s *clipboardService) SetFavorite(in service.SetFavoriteInput) (*service.ClipboardItemOutput, error) {
-	device, err := s.requireActorDevice(in.ActorDeviceID, in.ChannelID)
+func (s *clipboardService) SetFavorite(ctx context.Context, in service.SetFavoriteInput) (*service.ClipboardItemOutput, error) {
+	device, err := s.requireActorDevice(ctx, in.ActorDeviceID, in.ChannelID)
 	if err != nil {
 		return nil, err
 	}
 
-	item, err := s.clipboardRepo.FindByID(in.ID, in.ChannelID)
+	item, err := s.clipboardRepo.FindByID(ctx, in.ID, in.ChannelID)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +267,7 @@ func (s *clipboardService) SetFavorite(in service.SetFavoriteInput) (*service.Cl
 		"updated_at": stdtime.Now(),
 	}
 
-	if err := s.clipboardRepo.Update(in.ID, in.ChannelID, updates); err != nil {
+	if err := s.clipboardRepo.Update(ctx, in.ID, in.ChannelID, updates); err != nil {
 		return nil, err
 	}
 
@@ -299,68 +283,61 @@ func (s *clipboardService) SetFavorite(in service.SetFavoriteInput) (*service.Cl
 		ActorDeviceType: device.Type,
 		CreatedAt:       stdtime.Now(),
 	}
-	s.recordSyncEvent(syncEvent)
+	s.recordSyncEvent(ctx, syncEvent)
 
-	// 获取更新后的数据
-	updated, err := s.clipboardRepo.FindByID(in.ID, in.ChannelID)
+	updated, err := s.clipboardRepo.FindByID(ctx, in.ID, in.ChannelID)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutput(updated), nil
 }
 
-// GetFavoriteClipboard 获取收藏的剪贴板条目（keyset 游标分页）
-func (s *clipboardService) GetFavoriteClipboard(channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
-	items, err := s.clipboardRepo.FindFavorites(channelID, afterCreatedAt, afterID, size)
+func (s *clipboardService) GetFavoriteClipboard(ctx context.Context, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
+	items, err := s.clipboardRepo.FindFavorites(ctx, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutputs(items), nil
 }
 
-// GetClipboardByType 按内容类型获取剪贴板历史记录（keyset 游标分页）
-func (s *clipboardService) GetClipboardByType(contentType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
-	items, err := s.clipboardRepo.FindByType(contentType, channelID, afterCreatedAt, afterID, size)
+func (s *clipboardService) GetClipboardByType(ctx context.Context, contentType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
+	items, err := s.clipboardRepo.FindByType(ctx, contentType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutputs(items), nil
 }
 
-// GetClipboardByDeviceType 按设备类型获取剪贴板历史记录（keyset 游标分页）
-func (s *clipboardService) GetClipboardByDeviceType(deviceType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
-	items, err := s.clipboardRepo.FindByDeviceType(deviceType, channelID, afterCreatedAt, afterID, size)
+func (s *clipboardService) GetClipboardByDeviceType(ctx context.Context, deviceType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
+	items, err := s.clipboardRepo.FindByDeviceType(ctx, deviceType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutputs(items), nil
 }
 
-// GetClipboardByTypeAndDeviceType 同时按内容类型和设备类型获取剪贴板历史记录（keyset 游标分页）
-func (s *clipboardService) GetClipboardByTypeAndDeviceType(contentType, deviceType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
-	items, err := s.clipboardRepo.FindByTypeAndDeviceType(contentType, deviceType, channelID, afterCreatedAt, afterID, size)
+func (s *clipboardService) GetClipboardByTypeAndDeviceType(ctx context.Context, contentType, deviceType string, channelID string, afterCreatedAt *stdtime.Time, afterID *string, size int) ([]*service.ClipboardItemOutput, error) {
+	items, err := s.clipboardRepo.FindByTypeAndDeviceType(ctx, contentType, deviceType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		return nil, err
 	}
 	return toClipboardItemOutputs(items), nil
 }
 
-// SearchClipboard 按关键词搜索剪贴板条目
-func (s *clipboardService) SearchClipboard(keyword, channelID string, page, size int) (items []*service.ClipboardItemOutput, total int64, totalPages int, err error) {
+func (s *clipboardService) SearchClipboard(ctx context.Context, keyword, channelID string, page, size int) (items []*service.ClipboardItemOutput, total int64, totalPages int, err error) {
 	if keyword == "" {
 		return []*service.ClipboardItemOutput{}, 0, 0, nil
 	}
 
-	modelItems, total, totalPages, err := s.clipboardRepo.SearchByKeyword(keyword, channelID, page, size)
+	modelItems, total, totalPages, err := s.clipboardRepo.SearchByKeyword(ctx, keyword, channelID, page, size)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	return toClipboardItemOutputs(modelItems), total, totalPages, nil
 }
 
-// CleanupDuplicateContents 清理重复内容
-func (s *clipboardService) CleanupDuplicateContents(channelID string) (int64, error) {
-	return s.clipboardRepo.CleanupDuplicateContents(channelID)
+func (s *clipboardService) CleanupDuplicateContents(ctx context.Context, channelID string) (int64, error) {
+	return s.clipboardRepo.CleanupDuplicateContents(ctx, channelID)
 }
 
 // --- model → output converters ---

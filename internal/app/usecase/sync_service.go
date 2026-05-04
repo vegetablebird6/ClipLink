@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"time"
 
 	"github.com/xiaojiu/cliplink/internal/domain/model"
@@ -8,13 +9,11 @@ import (
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
-// syncService 同步服务实现
 type syncService struct {
 	syncEventRepo repository.SyncEventRepository
 	deviceRepo    repository.DeviceRepository
 }
 
-// NewSyncService 创建新的同步服务
 func NewSyncService(syncEventRepo repository.SyncEventRepository, deviceRepo repository.DeviceRepository) service.SyncService {
 	return &syncService{
 		syncEventRepo: syncEventRepo,
@@ -22,18 +21,20 @@ func NewSyncService(syncEventRepo repository.SyncEventRepository, deviceRepo rep
 	}
 }
 
-// GetSyncHistory 获取同步事件记录（keyset 游标分页）
-func (s *syncService) GetSyncHistory(channelID string, afterCreatedAt *time.Time, afterID *uint, limit int) ([]*model.SyncEvent, error) {
-	return s.syncEventRepo.FindByChannel(channelID, afterCreatedAt, afterID, limit)
+func (s *syncService) GetSyncHistory(ctx context.Context, channelID string, afterCreatedAt *time.Time, afterID *uint, limit int) ([]*service.SyncEventOutput, error) {
+	events, err := s.syncEventRepo.FindByChannel(ctx, channelID, afterCreatedAt, afterID, limit)
+	if err != nil {
+		return nil, err
+	}
+	return toSyncEventOutputs(events), nil
 }
 
-// LogSyncAction 记录同步操作（actorDeviceID 必须是已注册且属于 channel 的设备）
-func (s *syncService) LogSyncAction(actorDeviceID, channelID, content string) error {
+func (s *syncService) LogSyncAction(ctx context.Context, actorDeviceID, channelID, content string) error {
 	if actorDeviceID == "" {
 		return model.ErrInvalidInput
 	}
 
-	device, err := s.deviceRepo.FindByIDAndChannel(actorDeviceID, channelID)
+	device, err := s.deviceRepo.FindByIDAndChannel(ctx, actorDeviceID, channelID)
 	if err != nil || device == nil {
 		return model.ErrInvalidInput
 	}
@@ -49,5 +50,27 @@ func (s *syncService) LogSyncAction(actorDeviceID, channelID, content string) er
 		CreatedAt:       time.Now(),
 	}
 
-	return s.syncEventRepo.Save(event)
+	return s.syncEventRepo.Save(ctx, event)
+}
+
+// --- model → output converters ---
+
+func toSyncEventOutputs(events []*model.SyncEvent) []*service.SyncEventOutput {
+	result := make([]*service.SyncEventOutput, 0, len(events))
+	for _, e := range events {
+		result = append(result, &service.SyncEventOutput{
+			ID:              e.ID,
+			ChannelID:       e.ChannelID,
+			Action:          e.Action,
+			TargetType:      e.TargetType,
+			TargetID:        e.TargetID,
+			Content:         e.Content,
+			Summary:         e.Summary,
+			ActorDeviceID:   e.ActorDeviceID,
+			ActorDeviceName: e.ActorDeviceName,
+			ActorDeviceType: e.ActorDeviceType,
+			CreatedAt:       e.CreatedAt,
+		})
+	}
+	return result
 }

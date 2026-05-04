@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ func TestClipboardRepositoryFindWithKeysetUsesSizePlusOne(t *testing.T) {
 	database := setupPersistenceTestDB(t)
 	defer closePersistenceTestDB(t, database)
 
-	repo := NewClipboardRepository()
+	repo := NewClipboardRepository(db.GetDB())
 	now := time.Now().UTC()
 	channelID := "keyset-channel"
 
@@ -43,7 +44,8 @@ func TestClipboardRepositoryFindWithKeysetUsesSizePlusOne(t *testing.T) {
 		{ID: "item-01", ChannelID: channelID, Content: "one", Type: model.TypeText, CreatedAt: now.Add(1 * time.Minute), UpdatedAt: now.Add(1 * time.Minute)},
 	})
 
-	firstPage, err := repo.FindWithKeyset(channelID, nil, nil, 2)
+	ctx := context.Background()
+	firstPage, err := repo.FindWithKeyset(ctx, channelID, nil, nil, 2)
 	if err != nil {
 		t.Fatalf("find first page: %v", err)
 	}
@@ -51,7 +53,7 @@ func TestClipboardRepositoryFindWithKeysetUsesSizePlusOne(t *testing.T) {
 
 	afterCreatedAt := firstPage[1].CreatedAt
 	afterID := firstPage[1].ID
-	secondPage, err := repo.FindWithKeyset(channelID, &afterCreatedAt, &afterID, 2)
+	secondPage, err := repo.FindWithKeyset(ctx, channelID, &afterCreatedAt, &afterID, 2)
 	if err != nil {
 		t.Fatalf("find second page: %v", err)
 	}
@@ -62,7 +64,7 @@ func TestClipboardRepositoryFindByTypeUsesTypeFilterWithKeyset(t *testing.T) {
 	database := setupPersistenceTestDB(t)
 	defer closePersistenceTestDB(t, database)
 
-	repo := NewClipboardRepository()
+	repo := NewClipboardRepository(db.GetDB())
 	now := time.Now().UTC()
 	channelID := "type-channel"
 
@@ -74,7 +76,8 @@ func TestClipboardRepositoryFindByTypeUsesTypeFilterWithKeyset(t *testing.T) {
 		{ID: "text-01", ChannelID: channelID, Content: "text one", Type: model.TypeText, CreatedAt: now.Add(1 * time.Minute), UpdatedAt: now.Add(1 * time.Minute)},
 	})
 
-	firstPage, err := repo.FindByType(model.TypeText, channelID, nil, nil, 2)
+	ctx := context.Background()
+	firstPage, err := repo.FindByType(ctx, model.TypeText, channelID, nil, nil, 2)
 	if err != nil {
 		t.Fatalf("find text first page: %v", err)
 	}
@@ -82,7 +85,7 @@ func TestClipboardRepositoryFindByTypeUsesTypeFilterWithKeyset(t *testing.T) {
 
 	afterCreatedAt := firstPage[1].CreatedAt
 	afterID := firstPage[1].ID
-	secondPage, err := repo.FindByType(model.TypeText, channelID, &afterCreatedAt, &afterID, 2)
+	secondPage, err := repo.FindByType(ctx, model.TypeText, channelID, &afterCreatedAt, &afterID, 2)
 	if err != nil {
 		t.Fatalf("find text second page: %v", err)
 	}

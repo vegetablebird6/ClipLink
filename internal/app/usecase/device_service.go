@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,49 +12,46 @@ import (
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
-// deviceService 设备服务实现
 type deviceService struct {
 	deviceRepo repository.DeviceRepository
 }
 
-// NewDeviceService 创建新的设备服务
 func NewDeviceService(deviceRepo repository.DeviceRepository) service.DeviceService {
 	return &deviceService{
 		deviceRepo: deviceRepo,
 	}
 }
 
-// RegisterDevice 注册新设备
-func (s *deviceService) RegisterDevice(name, deviceType, deviceID string) (*model.Device, error) {
+func (s *deviceService) RegisterDevice(ctx context.Context, name, deviceType, deviceID string) (*service.DeviceOutput, error) {
 	if !validation.IsValidDeviceType(deviceType) {
 		return nil, model.ErrInvalidInput
 	}
 
-	// 如果没有提供deviceID，则生成一个新的
 	if deviceID == "" {
 		deviceID = uuid.New().String()
 	}
 
-	// 先检查设备是否已经存在
-	existingDevice, err := s.deviceRepo.FindByID(deviceID)
+	existingDevice, err := s.deviceRepo.FindByID(ctx, deviceID)
 	if err == nil && existingDevice != nil {
-		// 设备已存在，更新最后在线时间
-		updates := map[string]interface{}{
-			"name":       name,
-			"type":       deviceType,
-			"last_seen":  time.Now(),
-			"is_online":  true,
-			"updated_at": time.Now(),
-		}
+		now := time.Now()
+		updates := newDevicePatch().
+			withName(name).
+			withType(deviceType).
+			withLastSeen(now).
+			withIsOnline(true).
+			toMap()
 
-		if err := s.deviceRepo.Update(deviceID, updates); err != nil {
+		if err := s.deviceRepo.Update(ctx, deviceID, updates); err != nil {
 			return nil, err
 		}
 
-		return s.deviceRepo.FindByID(deviceID)
+		device, err := s.deviceRepo.FindByID(ctx, deviceID)
+		if err != nil {
+			return nil, err
+		}
+		return toDeviceOutput(device), nil
 	}
 
-	// 创建新设备
 	now := time.Now()
 	device := &model.Device{
 		ID:        deviceID,
@@ -65,79 +63,74 @@ func (s *deviceService) RegisterDevice(name, deviceType, deviceID string) (*mode
 		UpdatedAt: now,
 	}
 
-	// 保存设备
-	if err := s.deviceRepo.Save(device); err != nil {
+	if err := s.deviceRepo.Save(ctx, device); err != nil {
 		return nil, err
 	}
 
-	return device, nil
+	return toDeviceOutput(device), nil
 }
 
-// GetDeviceByID 通过ID获取设备
-func (s *deviceService) GetDeviceByID(deviceID string) (*model.Device, error) {
-	return s.deviceRepo.FindByID(deviceID)
-}
-
-// UpdateDevice 更新设备信息。deviceType 为空时只更新 name。
-func (s *deviceService) UpdateDevice(deviceID string, name string, deviceType string) (*model.Device, error) {
-	updates := map[string]interface{}{
-		"name":       name,
-		"updated_at": time.Now(),
+func (s *deviceService) GetDeviceByID(ctx context.Context, deviceID string) (*service.DeviceOutput, error) {
+	device, err := s.deviceRepo.FindByID(ctx, deviceID)
+	if err != nil {
+		return nil, err
 	}
+	return toDeviceOutput(device), nil
+}
+
+func (s *deviceService) UpdateDevice(ctx context.Context, deviceID string, name string, deviceType string) (*service.DeviceOutput, error) {
+	p := newDevicePatch().withName(name)
 	if deviceType != "" {
-		updates["type"] = deviceType
+		p.withType(deviceType)
 	}
+	updates := p.toMap()
 
-	// 更新设备
-	if err := s.deviceRepo.Update(deviceID, updates); err != nil {
+	if err := s.deviceRepo.Update(ctx, deviceID, updates); err != nil {
 		return nil, err
 	}
 
-	// 获取更新后的设备
-	return s.deviceRepo.FindByID(deviceID)
+	device, err := s.deviceRepo.FindByID(ctx, deviceID)
+	if err != nil {
+		return nil, err
+	}
+	return toDeviceOutput(device), nil
 }
 
-// UpdateDeviceStatus 更新设备状态
-func (s *deviceService) UpdateDeviceStatus(deviceID string, isOnline bool) (*model.Device, error) {
-	// 构建更新内容
-	updates := map[string]interface{}{
-		"is_online": isOnline,
-		"last_seen": time.Now(),
-	}
+func (s *deviceService) UpdateDeviceStatus(ctx context.Context, deviceID string, isOnline bool) (*service.DeviceOutput, error) {
+	updates := newDevicePatch().
+		withIsOnline(isOnline).
+		withLastSeen(time.Now()).
+		toMap()
 
-	// 更新设备
-	if err := s.deviceRepo.Update(deviceID, updates); err != nil {
+	if err := s.deviceRepo.Update(ctx, deviceID, updates); err != nil {
 		return nil, err
 	}
 
-	// 获取更新后的设备
-	return s.deviceRepo.FindByID(deviceID)
+	device, err := s.deviceRepo.FindByID(ctx, deviceID)
+	if err != nil {
+		return nil, err
+	}
+	return toDeviceOutput(device), nil
 }
 
-// RemoveDevice 移除设备（从所有通道）
-func (s *deviceService) RemoveDevice(deviceID string) error {
-	return s.deviceRepo.Delete(deviceID)
+func (s *deviceService) RemoveDevice(ctx context.Context, deviceID string) error {
+	return s.deviceRepo.Delete(ctx, deviceID)
 }
 
-// AddDeviceToChannel 添加设备到通道
-func (s *deviceService) AddDeviceToChannel(deviceID, channelID string) error {
-	// 检查设备是否已经在通道中
-	existing, err := s.deviceRepo.FindDeviceChannelByDeviceAndChannel(deviceID, channelID)
+func (s *deviceService) AddDeviceToChannel(ctx context.Context, deviceID, channelID string) error {
+	existing, err := s.deviceRepo.FindDeviceChannelByDeviceAndChannel(ctx, deviceID, channelID)
 	if err != nil {
 		return err
 	}
 
 	if existing != nil {
-		// 设备已经在通道中，更新状态为活跃
-		updates := map[string]interface{}{
-			"is_active":    true,
-			"last_seen_at": time.Now(),
-			"updated_at":   time.Now(),
-		}
-		return s.deviceRepo.UpdateDeviceChannel(deviceID, channelID, updates)
+		updates := newDeviceChannelPatch().
+			withIsActive(true).
+			withLastSeenAt(time.Now()).
+			toMap()
+		return s.deviceRepo.UpdateDeviceChannel(ctx, deviceID, channelID, updates)
 	}
 
-	// 创建新的设备通道关联
 	now := time.Now()
 	deviceChannel := &model.DeviceChannel{
 		DeviceID:   deviceID,
@@ -149,37 +142,35 @@ func (s *deviceService) AddDeviceToChannel(deviceID, channelID string) error {
 		UpdatedAt:  now,
 	}
 
-	return s.deviceRepo.SaveDeviceChannel(deviceChannel)
+	return s.deviceRepo.SaveDeviceChannel(ctx, deviceChannel)
 }
 
-// RemoveDeviceFromChannel 从通道中移除设备
-func (s *deviceService) RemoveDeviceFromChannel(deviceID, channelID string) error {
-	return s.deviceRepo.DeleteDeviceChannel(deviceID, channelID)
+func (s *deviceService) RemoveDeviceFromChannel(ctx context.Context, deviceID, channelID string) error {
+	return s.deviceRepo.DeleteDeviceChannel(ctx, deviceID, channelID)
 }
 
-// UpdateDeviceInChannel 更新设备在通道中的状态
-func (s *deviceService) UpdateDeviceInChannel(deviceID, channelID string, isActive bool) error {
-	updates := map[string]interface{}{
-		"is_active":    isActive,
-		"last_seen_at": time.Now(),
+func (s *deviceService) UpdateDeviceInChannel(ctx context.Context, deviceID, channelID string, isActive bool) error {
+	updates := newDeviceChannelPatch().
+		withIsActive(isActive).
+		withLastSeenAt(time.Now()).
+		toMap()
+	return s.deviceRepo.UpdateDeviceChannel(ctx, deviceID, channelID, updates)
+}
+
+func (s *deviceService) IsDeviceInChannel(ctx context.Context, deviceID, channelID string) (bool, error) {
+	return s.deviceRepo.IsDeviceInChannel(ctx, deviceID, channelID)
+}
+
+func (s *deviceService) GetDevicesByChannel(ctx context.Context, channelID string) ([]*service.DeviceChannelOutput, error) {
+	dtos, err := s.deviceRepo.FindByChannel(ctx, channelID)
+	if err != nil {
+		return nil, err
 	}
-	return s.deviceRepo.UpdateDeviceChannel(deviceID, channelID, updates)
+	return toDeviceChannelOutputs(dtos), nil
 }
 
-// IsDeviceInChannel 检查设备是否在通道中
-func (s *deviceService) IsDeviceInChannel(deviceID, channelID string) (bool, error) {
-	return s.deviceRepo.IsDeviceInChannel(deviceID, channelID)
-}
-
-// GetDevicesByChannel 获取通道下的所有设备
-func (s *deviceService) GetDevicesByChannel(channelID string) ([]*model.DeviceDTO, error) {
-	return s.deviceRepo.FindByChannel(channelID)
-}
-
-// GetDeviceInChannel 获取设备在特定通道的信息
-func (s *deviceService) GetDeviceInChannel(deviceID, channelID string) (*model.DeviceDTO, error) {
-	// 获取设备基本信息
-	device, err := s.deviceRepo.FindByID(deviceID)
+func (s *deviceService) GetDeviceInChannel(ctx context.Context, deviceID, channelID string) (*service.DeviceChannelOutput, error) {
+	device, err := s.deviceRepo.FindByID(ctx, deviceID)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +179,7 @@ func (s *deviceService) GetDeviceInChannel(deviceID, channelID string) (*model.D
 		return nil, model.ErrDeviceNotFound
 	}
 
-	// 获取设备通道关联信息
-	deviceChannel, err := s.deviceRepo.FindDeviceChannelByDeviceAndChannel(deviceID, channelID)
+	deviceChannel, err := s.deviceRepo.FindDeviceChannelByDeviceAndChannel(ctx, deviceID, channelID)
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +188,7 @@ func (s *deviceService) GetDeviceInChannel(deviceID, channelID string) (*model.D
 		return nil, model.ErrDeviceNotFound
 	}
 
-	// 构建DTO
-	deviceDTO := &model.DeviceDTO{
+	return &service.DeviceChannelOutput{
 		ID:        device.ID,
 		Name:      device.Name,
 		Type:      device.Type,
@@ -208,17 +197,46 @@ func (s *deviceService) GetDeviceInChannel(deviceID, channelID string) (*model.D
 		IsOnline:  device.IsOnline,
 		CreatedAt: device.CreatedAt,
 		JoinedAt:  deviceChannel.JoinedAt,
+	}, nil
+}
+
+func (s *deviceService) CountOnlineDevices(ctx context.Context, channelID string) (int64, error) {
+	return s.deviceRepo.CountOnline(ctx, channelID)
+}
+
+func (s *deviceService) CountTotalDevices(ctx context.Context, channelID string) (int64, error) {
+	return s.deviceRepo.CountTotal(ctx, channelID)
+}
+
+// --- model → output converters ---
+
+func toDeviceOutput(device *model.Device) *service.DeviceOutput {
+	if device == nil {
+		return nil
 	}
-
-	return deviceDTO, nil
+	return &service.DeviceOutput{
+		ID:        device.ID,
+		Name:      device.Name,
+		Type:      device.Type,
+		LastSeen:  device.LastSeen,
+		IsOnline:  device.IsOnline,
+		CreatedAt: device.CreatedAt,
+	}
 }
 
-// CountOnlineDevices 计算在线设备数量
-func (s *deviceService) CountOnlineDevices(channelID string) (int64, error) {
-	return s.deviceRepo.CountOnline(channelID)
-}
-
-// CountTotalDevices 计算设备总数
-func (s *deviceService) CountTotalDevices(channelID string) (int64, error) {
-	return s.deviceRepo.CountTotal(channelID)
+func toDeviceChannelOutputs(dtos []*model.DeviceDTO) []*service.DeviceChannelOutput {
+	result := make([]*service.DeviceChannelOutput, 0, len(dtos))
+	for _, d := range dtos {
+		result = append(result, &service.DeviceChannelOutput{
+			ID:        d.ID,
+			Name:      d.Name,
+			Type:      d.Type,
+			ChannelID: d.ChannelID,
+			LastSeen:  d.LastSeen,
+			IsOnline:  d.IsOnline,
+			CreatedAt: d.CreatedAt,
+			JoinedAt:  d.JoinedAt,
+		})
+	}
+	return result
 }

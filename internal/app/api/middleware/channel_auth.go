@@ -37,8 +37,7 @@ func (m *ChannelAuthMiddleware) ExtractChannelFromHeader() gin.HandlerFunc {
 			return
 		}
 
-		// 验证频道是否存在
-		exists, err := m.channelService.VerifyChannel(channelID)
+		exists, err := m.channelService.VerifyChannel(c.Request.Context(), channelID)
 		if err != nil {
 			log.Printf("[channel auth] verify failed: %v", err)
 			response.FailWithCode(c, 500, i18n.GetMessage(c, "error.internal_error"), "INTERNAL_ERROR", "error.internal_error", "")
@@ -52,10 +51,7 @@ func (m *ChannelAuthMiddleware) ExtractChannelFromHeader() gin.HandlerFunc {
 			return
 		}
 
-		// 将channelID存入上下文
 		c.Set("channelID", channelID)
-
-		// 继续处理请求
 		c.Next()
 	}
 }
@@ -75,8 +71,7 @@ func (m *ChannelAuthMiddleware) VerifyChannel() gin.HandlerFunc {
 			return
 		}
 
-		// 验证频道是否存在
-		exists, err := m.channelService.VerifyChannel(channelID)
+		exists, err := m.channelService.VerifyChannel(c.Request.Context(), channelID)
 		if err != nil {
 			log.Printf("[channel auth] verify failed: %v", err)
 			response.FailWithCode(c, 500, i18n.GetMessage(c, "error.internal_error"), "INTERNAL_ERROR", "error.internal_error", "")
@@ -90,7 +85,6 @@ func (m *ChannelAuthMiddleware) VerifyChannel() gin.HandlerFunc {
 			return
 		}
 
-		// 继续处理请求
 		c.Next()
 	}
 }

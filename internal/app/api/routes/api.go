@@ -5,6 +5,7 @@ import (
 	"github.com/xiaojiu/cliplink/internal/app/api/controller"
 	"github.com/xiaojiu/cliplink/internal/app/api/middleware"
 	"github.com/xiaojiu/cliplink/internal/app/usecase"
+	"github.com/xiaojiu/cliplink/internal/infra/db"
 	"github.com/xiaojiu/cliplink/internal/infra/persistence"
 )
 
@@ -21,10 +22,11 @@ func RegisterRoutes(router *gin.Engine) {
 // setupSubRoutes 设置子路由
 func setupSubRoutes(api *gin.RouterGroup, instanceToken string) {
 	// 创建存储库
-	channelRepo := persistence.NewChannelRepository()
-	clipboardRepo := persistence.NewClipboardRepository()
-	deviceRepo := persistence.NewDeviceRepository()
-	syncEventRepo := persistence.NewSyncEventRepository()
+	gdb := db.GetDB()
+	channelRepo := persistence.NewChannelRepository(gdb)
+	clipboardRepo := persistence.NewClipboardRepository(gdb)
+	deviceRepo := persistence.NewDeviceRepository(gdb)
+	syncEventRepo := persistence.NewSyncEventRepository(gdb)
 
 	// 创建服务
 	channelService := usecase.NewChannelService(channelRepo, clipboardRepo, deviceRepo)

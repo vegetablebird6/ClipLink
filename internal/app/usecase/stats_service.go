@@ -1,11 +1,12 @@
 package usecase
 
 import (
+	"context"
+
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
 	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
-// statsService 统计服务实现
 type statsService struct {
 	deviceRepo    repository.DeviceRepository
 	clipboardRepo repository.ClipboardRepository
@@ -13,7 +14,6 @@ type statsService struct {
 	syncEventRepo repository.SyncEventRepository
 }
 
-// NewStatsService 创建新的统计服务
 func NewStatsService(
 	deviceRepo repository.DeviceRepository,
 	clipboardRepo repository.ClipboardRepository,
@@ -28,10 +28,8 @@ func NewStatsService(
 	}
 }
 
-// GetChannelStats 获取通道统计数据
-func (s *statsService) GetChannelStats(channelID string) (*service.StatsOutput, error) {
-	// 检查通道是否存在
-	exists, err := s.channelRepo.Exists(channelID)
+func (s *statsService) GetChannelStats(ctx context.Context, channelID string) (*service.StatsOutput, error) {
+	exists, err := s.channelRepo.Exists(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
@@ -39,45 +37,42 @@ func (s *statsService) GetChannelStats(channelID string) (*service.StatsOutput, 
 		return nil, nil
 	}
 
-	// 获取剪贴板统计
-	clipboardCount, err := s.clipboardRepo.Count(channelID)
+	clipboardCount, err := s.clipboardRepo.Count(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	textCount, err := s.clipboardRepo.CountByType("text", channelID)
+	textCount, err := s.clipboardRepo.CountByType(ctx, "text", channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	linkCount, err := s.clipboardRepo.CountByType("link", channelID)
+	linkCount, err := s.clipboardRepo.CountByType(ctx, "link", channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	codeCount, err := s.clipboardRepo.CountByType("code", channelID)
+	codeCount, err := s.clipboardRepo.CountByType(ctx, "code", channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	passwordCount, err := s.clipboardRepo.CountByType("password", channelID)
+	passwordCount, err := s.clipboardRepo.CountByType(ctx, "password", channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 获取设备统计
-	onlineDevices, err := s.deviceRepo.CountOnline(channelID)
+	onlineDevices, err := s.deviceRepo.CountOnline(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	totalDevices, err := s.deviceRepo.CountTotal(channelID)
+	totalDevices, err := s.deviceRepo.CountTotal(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 获取同步次数
-	syncCount, err := s.syncEventRepo.Count(channelID)
+	syncCount, err := s.syncEventRepo.Count(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}

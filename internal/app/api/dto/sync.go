@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/xiaojiu/cliplink/internal/domain/model"
+	"github.com/xiaojiu/cliplink/internal/domain/service"
 )
 
 // --- Request DTOs ---
@@ -33,8 +33,8 @@ type SyncEventResponse struct {
 
 // --- Converters ---
 
-// ToSyncEventResponse 从 model.SyncEvent 创建响应
-func ToSyncEventResponse(e *model.SyncEvent) *SyncEventResponse {
+// ToSyncEventResponse 从 service.SyncEventOutput 创建响应
+func ToSyncEventResponse(e *service.SyncEventOutput) *SyncEventResponse {
 	if e == nil {
 		return nil
 	}
@@ -54,7 +54,7 @@ func ToSyncEventResponse(e *model.SyncEvent) *SyncEventResponse {
 }
 
 // ToSyncEventResponseList 批量转换
-func ToSyncEventResponseList(events []*model.SyncEvent) []*SyncEventResponse {
+func ToSyncEventResponseList(events []*service.SyncEventOutput) []*SyncEventResponse {
 	items := make([]*SyncEventResponse, 0, len(events))
 	for _, e := range events {
 		items = append(items, ToSyncEventResponse(e))

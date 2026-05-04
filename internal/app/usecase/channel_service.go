@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,14 +13,12 @@ import (
 
 const orphanDeviceRetention = 30 * 24 * time.Hour
 
-// channelService 频道服务实现
 type channelService struct {
 	channelRepo   repository.ChannelRepository
 	clipboardRepo repository.ClipboardRepository
 	deviceRepo    repository.DeviceRepository
 }
 
-// NewChannelService 创建新的频道服务
 func NewChannelService(
 	channelRepo repository.ChannelRepository,
 	clipboardRepo repository.ClipboardRepository,
@@ -32,64 +31,60 @@ func NewChannelService(
 	}
 }
 
-// CreateChannel 创建新的频道
-func (s *channelService) CreateChannel(channelID string) (*model.Channel, error) {
-	// 支持指定channelID创建频道
-	// 如果channelID为空，生成新的UUID
+func (s *channelService) CreateChannel(ctx context.Context, channelID string) (*service.ChannelOutput, error) {
 	id := channelID
 	if id == "" {
 		id = uuid.New().String()
 	}
 
-	// 检查指定ID的频道是否已存在
 	if channelID != "" {
-		exists, err := s.channelRepo.Exists(channelID)
+		exists, err := s.channelRepo.Exists(ctx, channelID)
 		if err != nil {
 			return nil, err
 		}
-		// 如果已存在，直接返回该频道
 		if exists {
-			return s.channelRepo.FindByID(channelID)
+			ch, err := s.channelRepo.FindByID(ctx, channelID)
+			if err != nil {
+				return nil, err
+			}
+			return toChannelOutput(ch), nil
 		}
 	}
 
-	// 创建新频道
 	channel := &model.Channel{
 		ID:        id,
 		CreatedAt: time.Now(),
 	}
 
-	if err := s.channelRepo.Save(channel); err != nil {
+	if err := s.channelRepo.Save(ctx, channel); err != nil {
 		return nil, err
 	}
 
-	return channel, nil
+	return toChannelOutput(channel), nil
 }
 
-// GetChannel 通过ID获取频道
-func (s *channelService) GetChannel(channelID string) (*model.Channel, error) {
-	return s.channelRepo.FindByID(channelID)
+func (s *channelService) GetChannel(ctx context.Context, channelID string) (*service.ChannelOutput, error) {
+	ch, err := s.channelRepo.FindByID(ctx, channelID)
+	if err != nil {
+		return nil, err
+	}
+	return toChannelOutput(ch), nil
 }
 
-// ChannelExists 检查频道是否存在
-func (s *channelService) ChannelExists(channelID string) (bool, error) {
-	return s.channelRepo.Exists(channelID)
+func (s *channelService) ChannelExists(ctx context.Context, channelID string) (bool, error) {
+	return s.channelRepo.Exists(ctx, channelID)
 }
 
-// VerifyChannel 验证频道存在且有效
-func (s *channelService) VerifyChannel(channelID string) (bool, error) {
-	// 检查频道是否存在
-	exists, err := s.channelRepo.Exists(channelID)
+func (s *channelService) VerifyChannel(ctx context.Context, channelID string) (bool, error) {
+	exists, err := s.channelRepo.Exists(ctx, channelID)
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-// GetChannelStats 获取频道统计信息
-func (s *channelService) GetChannelStats(channelID string) (*model.ChannelStats, error) {
-	// 检查频道是否存在
-	exists, err := s.channelRepo.Exists(channelID)
+func (s *channelService) GetChannelStats(ctx context.Context, channelID string) (*model.ChannelStats, error) {
+	exists, err := s.channelRepo.Exists(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,25 +92,21 @@ func (s *channelService) GetChannelStats(channelID string) (*model.ChannelStats,
 		return nil, model.ErrChannelNotFound
 	}
 
-	// 获取剪贴板数量
-	clipboardCount, err := s.clipboardRepo.Count(channelID)
+	clipboardCount, err := s.clipboardRepo.Count(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 获取在线设备数量
-	onlineCount, err := s.deviceRepo.CountOnline(channelID)
+	onlineCount, err := s.deviceRepo.CountOnline(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 获取总设备数量
-	totalDeviceCount, err := s.deviceRepo.CountTotal(channelID)
+	totalDeviceCount, err := s.deviceRepo.CountTotal(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 构建统计信息
 	stats := &model.ChannelStats{
 		ChannelID:      channelID,
 		ClipboardCount: clipboardCount,
@@ -127,9 +118,8 @@ func (s *channelService) GetChannelStats(channelID string) (*model.ChannelStats,
 	return stats, nil
 }
 
-// DeleteChannel 删除频道及其关联数据。
-func (s *channelService) DeleteChannel(channelID string) (*model.ChannelDeleteResult, error) {
-	exists, err := s.channelRepo.Exists(channelID)
+func (s *channelService) DeleteChannel(ctx context.Context, channelID string) (*service.ChannelDeleteOutput, error) {
+	exists, err := s.channelRepo.Exists(ctx, channelID)
 	if err != nil {
 		return nil, err
 	}
@@ -137,5 +127,26 @@ func (s *channelService) DeleteChannel(channelID string) (*model.ChannelDeleteRe
 		return nil, model.ErrChannelNotFound
 	}
 
-	return s.channelRepo.Delete(channelID, time.Now().Add(-orphanDeviceRetention))
+	result, err := s.channelRepo.Delete(ctx, channelID, time.Now().Add(-orphanDeviceRetention))
+	if err != nil {
+		return nil, err
+	}
+
+	return &service.ChannelDeleteOutput{
+		ChannelID:             result.ChannelID,
+		ClipboardItemsDeleted: result.ClipboardItemsDeleted,
+		SyncEventsDeleted:     result.SyncEventsDeleted,
+		DeviceLinksDeleted:    result.DeviceLinksDeleted,
+		OrphanDevicesDeleted:  result.OrphanDevicesDeleted,
+	}, nil
+}
+
+func toChannelOutput(channel *model.Channel) *service.ChannelOutput {
+	if channel == nil {
+		return nil
+	}
+	return &service.ChannelOutput{
+		ID:        channel.ID,
+		CreatedAt: channel.CreatedAt,
+	}
 }

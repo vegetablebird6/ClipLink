@@ -26,23 +26,20 @@ func NewStatsController(statsService service.StatsService, channelService servic
 
 // GetChannelStats 获取通道统计数据
 func (c *StatsController) GetChannelStats(ctx *gin.Context) {
-	// 从上下文中获取channelID
 	channelID, exists := ctx.Get("channelID")
 	if !exists || channelID == nil || channelID == "" {
 		response.BadRequest(ctx, "channel ID is required")
 		return
 	}
 
-	// 获取通道信息
-	channel, err := c.channelService.GetChannel(channelID.(string))
+	channel, err := c.channelService.GetChannel(ctx.Request.Context(), channelID.(string))
 	if err != nil {
 		log.Printf("[stats] get channel failed: %v", err)
 		response.Error(ctx, err)
 		return
 	}
 
-	// 获取统计数据
-	stats, err := c.statsService.GetChannelStats(channelID.(string))
+	stats, err := c.statsService.GetChannelStats(ctx.Request.Context(), channelID.(string))
 	if err != nil {
 		log.Printf("[stats] get stats failed: %v", err)
 		response.Error(ctx, err)

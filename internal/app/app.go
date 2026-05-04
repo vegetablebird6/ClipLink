@@ -67,10 +67,11 @@ func BuildRouterWithConfig(cfg *config.Config) (*gin.Engine, error) {
 	}
 
 	// 5. 创建仓库
-	channelRepo := persistence.NewChannelRepository()
-	clipboardRepo := persistence.NewClipboardRepository()
-	deviceRepo := persistence.NewDeviceRepository()
-	syncEventRepo := persistence.NewSyncEventRepository()
+	gdb := db.GetDB()
+	channelRepo := persistence.NewChannelRepository(gdb)
+	clipboardRepo := persistence.NewClipboardRepository(gdb)
+	deviceRepo := persistence.NewDeviceRepository(gdb)
+	syncEventRepo := persistence.NewSyncEventRepository(gdb)
 
 	// 6. 创建服务
 	channelService := usecase.NewChannelService(channelRepo, clipboardRepo, deviceRepo)

@@ -43,21 +43,22 @@ func (c *DeviceController) RegisterDevice(ctx *gin.Context) {
 		return
 	}
 
-	device, err := c.deviceService.RegisterDevice(req.DeviceName, req.DeviceType, req.DeviceID)
+	rctx := ctx.Request.Context()
+	device, err := c.deviceService.RegisterDevice(rctx, req.DeviceName, req.DeviceType, req.DeviceID)
 	if err != nil {
 		log.Printf("[device] register failed: %v", err)
 		response.Error(ctx, err)
 		return
 	}
 
-	err = c.deviceService.AddDeviceToChannel(device.ID, channelID.(string))
+	err = c.deviceService.AddDeviceToChannel(rctx, device.ID, channelID.(string))
 	if err != nil {
 		log.Printf("[device] add to channel failed: %v", err)
 		response.Error(ctx, err)
 		return
 	}
 
-	deviceDTO := dto.ToDeviceResponse(&model.DeviceDTO{
+	deviceDTO := dto.ToDeviceResponse(&service.DeviceChannelOutput{
 		ID:        device.ID,
 		Name:      device.Name,
 		Type:      device.Type,
@@ -79,8 +80,7 @@ func (c *DeviceController) GetDevices(ctx *gin.Context) {
 		return
 	}
 
-	// 获取设备列表
-	devices, err := c.deviceService.GetDevicesByChannel(channelID.(string))
+	devices, err := c.deviceService.GetDevicesByChannel(ctx.Request.Context(), channelID.(string))
 	if err != nil {
 		log.Printf("[device] get devices failed: %v", err)
 		response.Error(ctx, err)
@@ -99,8 +99,7 @@ func (c *DeviceController) GetDeviceByID(ctx *gin.Context) {
 	}
 	deviceID := ctx.Param("deviceID")
 
-	// 获取设备在通道中的信息
-	device, err := c.deviceService.GetDeviceInChannel(deviceID, channelID.(string))
+	device, err := c.deviceService.GetDeviceInChannel(ctx.Request.Context(), deviceID, channelID.(string))
 	if err != nil {
 		if err == model.ErrDeviceNotFound {
 			response.NotFound(ctx, "device not found")
@@ -129,21 +128,22 @@ func (c *DeviceController) UpdateDeviceStatus(ctx *gin.Context) {
 		return
 	}
 
-	device, err := c.deviceService.UpdateDeviceStatus(deviceID, *req.IsOnline)
+	rctx := ctx.Request.Context()
+	device, err := c.deviceService.UpdateDeviceStatus(rctx, deviceID, *req.IsOnline)
 	if err != nil {
 		log.Printf("[device] update status failed: %v", err)
 		response.Error(ctx, err)
 		return
 	}
 
-	err = c.deviceService.UpdateDeviceInChannel(deviceID, channelID.(string), *req.IsOnline)
+	err = c.deviceService.UpdateDeviceInChannel(rctx, deviceID, channelID.(string), *req.IsOnline)
 	if err != nil {
 		// 忽略通道关联错误
 	}
 
-	deviceDTO, err := c.deviceService.GetDeviceInChannel(deviceID, channelID.(string))
+	deviceDTO, err := c.deviceService.GetDeviceInChannel(rctx, deviceID, channelID.(string))
 	if err != nil {
-		deviceDTO = &model.DeviceDTO{
+		deviceDTO = &service.DeviceChannelOutput{
 			ID:        device.ID,
 			Name:      device.Name,
 			Type:      device.Type,
@@ -166,8 +166,8 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 	}
 	deviceID := ctx.Param("deviceID")
 
-	// 先校验设备是否属于当前通道
-	inChannel, err := c.deviceService.IsDeviceInChannel(deviceID, channelID.(string))
+	rctx := ctx.Request.Context()
+	inChannel, err := c.deviceService.IsDeviceInChannel(rctx, deviceID, channelID.(string))
 	if err != nil {
 		log.Printf("[device] check in channel failed: %v", err)
 		response.Error(ctx, err)
@@ -184,13 +184,13 @@ func (c *DeviceController) UpdateDeviceName(ctx *gin.Context) {
 		return
 	}
 
-	if _, err := c.deviceService.UpdateDevice(deviceID, req.Name, ""); err != nil {
+	if _, err := c.deviceService.UpdateDevice(rctx, deviceID, req.Name, ""); err != nil {
 		log.Printf("[device] update name failed: %v", err)
 		response.Error(ctx, err)
 		return
 	}
 
-	deviceDTO, err := c.deviceService.GetDeviceInChannel(deviceID, channelID.(string))
+	deviceDTO, err := c.deviceService.GetDeviceInChannel(rctx, deviceID, channelID.(string))
 	if err != nil {
 		log.Printf("[device] get device after update failed: %v", err)
 		response.Error(ctx, err)
@@ -209,8 +209,7 @@ func (c *DeviceController) RemoveDevice(ctx *gin.Context) {
 	}
 	deviceID := ctx.Param("deviceID")
 
-	// 从通道中移除设备关联
-	err := c.deviceService.RemoveDeviceFromChannel(deviceID, channelID.(string))
+	err := c.deviceService.RemoveDeviceFromChannel(ctx.Request.Context(), deviceID, channelID.(string))
 	if err != nil {
 		log.Printf("[device] remove from channel failed: %v", err)
 		response.Error(ctx, err)

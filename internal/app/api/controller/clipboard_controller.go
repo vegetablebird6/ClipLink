@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/xiaojiu/cliplink/internal/app/api/dto"
 	"github.com/xiaojiu/cliplink/internal/common/response"
 	"github.com/xiaojiu/cliplink/internal/common/validation"
@@ -70,7 +69,6 @@ func keysetCursor(ctx *gin.Context) (*time.Time, *string) {
 	}
 	t, err := time.Parse(time.RFC3339Nano, afterStr)
 	if err != nil {
-		// 兼容 ISO 8601 无时区格式
 		t, err = time.Parse("2006-01-02T15:04:05.999999999", afterStr)
 		if err != nil {
 			return nil, nil
@@ -92,7 +90,6 @@ func keysetSize(ctx *gin.Context, defaultSize int) int {
 }
 
 // keysetHasMore 判断 keyset 分页是否还有更多数据，并裁掉 size+1 条中的额外记录。
-// 调用约定：repository 查 size+1 条，items 可能有 size 或 size+1 条。
 func keysetHasMore[T any](items []T, size int) ([]T, bool) {
 	if len(items) > size {
 		return items[:size], true
@@ -126,7 +123,7 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		return
 	}
 
-	item, err := c.clipboardService.CreateClipboard(service.CreateClipboardInput{
+	item, err := c.clipboardService.CreateClipboard(ctx.Request.Context(), service.CreateClipboardInput{
 		ChannelID:       channelID,
 		ActorDeviceID:   req.DeviceID,
 		ActorDeviceType: req.DeviceType,
@@ -154,7 +151,7 @@ func (c *ClipboardController) GetClipboardItem(ctx *gin.Context) {
 	}
 	itemID := ctx.Param("itemID")
 
-	item, err := c.clipboardService.GetClipboardItem(itemID, channelID)
+	item, err := c.clipboardService.GetClipboardItem(ctx.Request.Context(), itemID, channelID)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
@@ -178,7 +175,7 @@ func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
 	size := keysetSize(ctx, 20)
 	afterCreatedAt, afterID := keysetCursor(ctx)
 
-	items, err := c.clipboardService.GetClipboardHistory(channelID, afterCreatedAt, afterID, size)
+	items, err := c.clipboardService.GetClipboardHistory(ctx.Request.Context(), channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
@@ -221,7 +218,7 @@ func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
 		return
 	}
 
-	err := c.clipboardService.DeleteClipboard(service.DeleteClipboardInput{
+	err := c.clipboardService.DeleteClipboard(ctx.Request.Context(), service.DeleteClipboardInput{
 		ID:            itemID,
 		ChannelID:     channelID,
 		ActorDeviceID: req.DeviceID,
@@ -261,16 +258,16 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 		return
 	}
 
-	item, err := c.clipboardService.UpdateClipboard(service.UpdateClipboardInput{
-		ID:             itemID,
-		ChannelID:      channelID,
-		ActorDeviceID:  req.DeviceID,
-		Title:          req.Title,
-		Content:        req.Content,
-		Type:           req.Type,
-		DeviceType:     req.DeviceType,
-		ContentHTML:    req.ContentHTML,
-		ContentFormat:  req.ContentFormat,
+	item, err := c.clipboardService.UpdateClipboard(ctx.Request.Context(), service.UpdateClipboardInput{
+		ID:            itemID,
+		ChannelID:     channelID,
+		ActorDeviceID: req.DeviceID,
+		Title:         req.Title,
+		Content:       req.Content,
+		Type:          req.Type,
+		DeviceType:    req.DeviceType,
+		ContentHTML:   req.ContentHTML,
+		ContentFormat: req.ContentFormat,
 	})
 
 	if err != nil {
@@ -295,7 +292,7 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 		return
 	}
 
-	item, err := c.clipboardService.SetFavorite(service.SetFavoriteInput{
+	item, err := c.clipboardService.SetFavorite(ctx.Request.Context(), service.SetFavoriteInput{
 		ID:            itemID,
 		ChannelID:     channelID,
 		ActorDeviceID: req.DeviceID,
@@ -319,7 +316,7 @@ func (c *ClipboardController) GetFavoriteClipboard(ctx *gin.Context) {
 	size := keysetSize(ctx, 20)
 	afterCreatedAt, afterID := keysetCursor(ctx)
 
-	items, err := c.clipboardService.GetFavoriteClipboard(channelID, afterCreatedAt, afterID, size)
+	items, err := c.clipboardService.GetFavoriteClipboard(ctx.Request.Context(), channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
@@ -345,7 +342,7 @@ func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
 	size := keysetSize(ctx, 20)
 	afterCreatedAt, afterID := keysetCursor(ctx)
 
-	items, err := c.clipboardService.GetClipboardByType(clipType, channelID, afterCreatedAt, afterID, size)
+	items, err := c.clipboardService.GetClipboardByType(ctx.Request.Context(), clipType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
@@ -371,7 +368,7 @@ func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
 	size := keysetSize(ctx, 20)
 	afterCreatedAt, afterID := keysetCursor(ctx)
 
-	items, err := c.clipboardService.GetClipboardByDeviceType(deviceType, channelID, afterCreatedAt, afterID, size)
+	items, err := c.clipboardService.GetClipboardByDeviceType(ctx.Request.Context(), deviceType, channelID, afterCreatedAt, afterID, size)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
@@ -389,7 +386,7 @@ func (c *ClipboardController) GetCurrentClipboard(ctx *gin.Context) {
 		return
 	}
 
-	items, err := c.clipboardService.GetLatestClipboard(channelID, 1)
+	items, err := c.clipboardService.GetLatestClipboard(ctx.Request.Context(), channelID, 1)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
@@ -418,7 +415,7 @@ func (c *ClipboardController) SearchClipboard(ctx *gin.Context) {
 
 	page, size := paginationParams(ctx, 20)
 
-	items, total, totalPages, err := c.clipboardService.SearchClipboard(keyword, channelID, page, size)
+	items, total, totalPages, err := c.clipboardService.SearchClipboard(ctx.Request.Context(), keyword, channelID, page, size)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return
@@ -434,7 +431,7 @@ func (c *ClipboardController) CleanupDuplicateContents(ctx *gin.Context) {
 		return
 	}
 
-	deleted, err := c.clipboardService.CleanupDuplicateContents(channelID)
+	deleted, err := c.clipboardService.CleanupDuplicateContents(ctx.Request.Context(), channelID)
 	if err != nil {
 		respondClipboardError(ctx, err)
 		return

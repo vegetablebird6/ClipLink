@@ -31,14 +31,12 @@ func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 		return
 	}
 
-	// 获取分页参数
 	limitStr := ctx.DefaultQuery("limit", "20")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit < 1 || limit > 100 {
 		limit = 20
 	}
 
-	// 解析 keyset 游标
 	var afterCreatedAt *time.Time
 	var afterID *uint
 	afterStr := ctx.Query("after")
@@ -53,7 +51,7 @@ func (c *SyncController) GetSyncHistory(ctx *gin.Context) {
 		}
 	}
 
-	events, err := c.syncService.GetSyncHistory(channelID.(string), afterCreatedAt, afterID, limit)
+	events, err := c.syncService.GetSyncHistory(ctx.Request.Context(), channelID.(string), afterCreatedAt, afterID, limit)
 	if err != nil {
 		log.Printf("[sync] get history failed: %v", err)
 		response.Error(ctx, err)
@@ -93,7 +91,7 @@ func (c *SyncController) LogSyncAction(ctx *gin.Context) {
 		return
 	}
 
-	err := c.syncService.LogSyncAction(req.DeviceID, channelID.(string), req.Content)
+	err := c.syncService.LogSyncAction(ctx.Request.Context(), req.DeviceID, channelID.(string), req.Content)
 	if err != nil {
 		log.Printf("[sync] log action failed: %v", err)
 		response.Error(ctx, err)

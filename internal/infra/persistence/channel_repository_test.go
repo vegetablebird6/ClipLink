@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -49,7 +50,7 @@ func TestChannelRepositoryDeleteCascadesChannelDataAndOldOrphanDevices(t *testin
 		}
 	}
 
-	result, err := NewChannelRepository().Delete(deleteChannelID, now.Add(-30*24*time.Hour))
+	result, err := NewChannelRepository(db.GetDB()).Delete(context.Background(), deleteChannelID, now.Add(-30*24*time.Hour))
 	if err != nil {
 		t.Fatalf("delete channel: %v", err)
 	}

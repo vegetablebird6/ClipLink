@@ -1,31 +1,33 @@
 package persistence
 
 import (
+	"context"
 	"time"
 
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"github.com/xiaojiu/cliplink/internal/domain/repository"
-	"github.com/xiaojiu/cliplink/internal/infra/db"
 	"gorm.io/gorm"
 )
 
 // channelRepository 通道仓库实现
-type channelRepository struct{}
+type channelRepository struct {
+	gdb *gorm.DB
+}
 
 // NewChannelRepository 创建新的通道仓库
-func NewChannelRepository() repository.ChannelRepository {
-	return &channelRepository{}
+func NewChannelRepository(gdb *gorm.DB) repository.ChannelRepository {
+	return &channelRepository{gdb: gdb}
 }
 
 // Save 保存通道
-func (r *channelRepository) Save(channel *model.Channel) error {
-	return db.GetDB().Create(channel).Error
+func (r *channelRepository) Save(ctx context.Context, channel *model.Channel) error {
+	return r.gdb.WithContext(ctx).Create(channel).Error
 }
 
 // FindByID 通过ID查找通道
-func (r *channelRepository) FindByID(channelID string) (*model.Channel, error) {
+func (r *channelRepository) FindByID(ctx context.Context, channelID string) (*model.Channel, error) {
 	var channel model.Channel
-	err := db.GetDB().Where("id = ?", channelID).First(&channel).Error
+	err := r.gdb.WithContext(ctx).Where("id = ?", channelID).First(&channel).Error
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +35,9 @@ func (r *channelRepository) FindByID(channelID string) (*model.Channel, error) {
 }
 
 // Exists 检查通道是否存在
-func (r *channelRepository) Exists(channelID string) (bool, error) {
+func (r *channelRepository) Exists(ctx context.Context, channelID string) (bool, error) {
 	var count int64
-	err := db.GetDB().Model(&model.Channel{}).Where("id = ?", channelID).Count(&count).Error
+	err := r.gdb.WithContext(ctx).Model(&model.Channel{}).Where("id = ?", channelID).Count(&count).Error
 	if err != nil {
 		return false, err
 	}
@@ -43,10 +45,10 @@ func (r *channelRepository) Exists(channelID string) (bool, error) {
 }
 
 // Delete 删除通道及其通道内数据，并清理超过指定时间的孤儿设备。
-func (r *channelRepository) Delete(channelID string, orphanDeviceOlderThan time.Time) (*model.ChannelDeleteResult, error) {
+func (r *channelRepository) Delete(ctx context.Context, channelID string, orphanDeviceOlderThan time.Time) (*model.ChannelDeleteResult, error) {
 	result := &model.ChannelDeleteResult{ChannelID: channelID}
 
-	err := db.GetDB().Transaction(func(tx *gorm.DB) error {
+	err := r.gdb.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		clipboardResult := tx.Where("channel_id = ?", channelID).Delete(&model.ClipboardItem{})
 		if clipboardResult.Error != nil {
 			return clipboardResult.Error
