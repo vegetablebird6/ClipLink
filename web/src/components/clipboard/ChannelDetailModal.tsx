@@ -173,9 +173,9 @@ export default function ChannelDetailModal({ isOpen, onClose, channelId }: Chann
         afterId = String(last.id);
       }
 
-      const response: any = await clipboardService.getSyncHistory(10, after, afterId);
+      const response = await clipboardService.getSyncHistory(10, after, afterId);
       if (response.success && response.data) {
-        const records = response.data.items || response.data || [];
+        const records = response.data.items;
         if (append) {
           setSyncHistory(prev => [...prev, ...records]);
         } else {

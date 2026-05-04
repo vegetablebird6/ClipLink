@@ -272,7 +272,7 @@ export const clipboardService = {
   },
 
   // 获取剪贴板历史（keyset 游标分页）
-  getClipboardHistory: async (size = 12, after?: string, afterId?: string): Promise<ApiResponse<{items: ClipboardItem[], has_more: boolean}>> => {
+  getClipboardHistory: async (size = 12, after?: string, afterId?: string): Promise<ApiResponse<KeysetPageResponse<ClipboardItem>>> => {
     try {
       const params: Record<string, string | number> = { size };
       if (after && afterId) {
@@ -290,14 +290,14 @@ export const clipboardService = {
         }
       }
 
-      return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
+      return apiResponse as ApiResponse<KeysetPageResponse<ClipboardItem>>;
     } catch (error) {
       return handleApiError<KeysetPageResponse<ClipboardItem>>(error, '获取剪贴板历史失败');
     }
   },
 
   // 按类型获取剪贴板历史（keyset 游标分页）
-  getClipboardByType: async (type: ClipboardType, size = 12, after?: string, afterId?: string): Promise<ApiResponse<{items: ClipboardItem[], has_more: boolean}>> => {
+  getClipboardByType: async (type: ClipboardType, size = 12, after?: string, afterId?: string): Promise<ApiResponse<KeysetPageResponse<ClipboardItem>>> => {
     try {
       const params: Record<string, string | number> = { size };
       if (after && afterId) {
@@ -314,14 +314,14 @@ export const clipboardService = {
         }
       }
 
-      return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
+      return apiResponse as ApiResponse<KeysetPageResponse<ClipboardItem>>;
     } catch (error) {
       return handleApiError<KeysetPageResponse<ClipboardItem>>(error, '按类型获取剪贴板历史失败');
     }
   },
 
   // 获取收藏的剪贴板项目（keyset 游标分页）
-  getFavorites: async (size = 12, after?: string, afterId?: string): Promise<ApiResponse<{items: ClipboardItem[], has_more: boolean}>> => {
+  getFavorites: async (size = 12, after?: string, afterId?: string): Promise<ApiResponse<KeysetPageResponse<ClipboardItem>>> => {
     try {
       const params: Record<string, string | number> = { size };
       if (after && afterId) {
@@ -337,7 +337,7 @@ export const clipboardService = {
         }
       }
 
-      return apiResponse as ApiResponse<{items: ClipboardItem[], has_more: boolean}>;
+      return apiResponse as ApiResponse<KeysetPageResponse<ClipboardItem>>;
     } catch (error) {
       return handleApiError<KeysetPageResponse<ClipboardItem>>(error, '获取收藏夹失败');
     }
