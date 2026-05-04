@@ -132,9 +132,7 @@ func (c *ChannelController) VerifyChannel(ctx *gin.Context) {
 	}
 
 	// 其次尝试POST body
-	var req struct {
-		ChannelID string `json:"channel_id"`
-	}
+	var req dto.VerifyChannelRequest
 	if err := ctx.ShouldBindJSON(&req); err == nil && req.ChannelID != "" {
 		if !validation.IsValidChannelID(req.ChannelID) {
 			response.BadRequest(ctx, "invalid channel ID")

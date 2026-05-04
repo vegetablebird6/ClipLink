@@ -13,6 +13,11 @@ type CreateChannelRequest struct {
 	ChannelID string `json:"channel_id"`
 }
 
+// VerifyChannelRequest 验证频道请求
+type VerifyChannelRequest struct {
+	ChannelID string `json:"channel_id"`
+}
+
 // --- Response DTOs ---
 
 // ChannelResponse 频道响应
